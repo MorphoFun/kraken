@@ -1,0 +1,14 @@
+Package: kraken
+Type: Package
+Title: Cracking bone biomechanics
+Version: 0.0.0.9000
+Date: 2015-10-20
+Authors@R: person("Sandy", "Kawano", email = "sandy.kawano@gmail.com", role = c("aut", "cre"))
+Maintainer: Sandy Kawano <sandy.kawano@gmail.com>
+Description: More about what it does (maybe more than one line)
+License: GPL-2
+BugReports: https://github.com/MorphoFun/kraken/issues
+URL: https://github.com/MorphoFun/kraken
+LazyData: TRUE
+Suggests: knitr
+VignetteBuilder: knitr
