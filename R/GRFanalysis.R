@@ -1,53 +1,75 @@
 ######## Analysis of FinLimb GRF daa ######
 
 library(devtools)
-install_github("MorphoFun/kraken")
+# I'm having issues with installing kraken from github... 
+# install_github("MorphoFun/kraken")
 
-data("FinLimbGRFs")
+load("FinLimbGRFs.rda")
 
 library(rstan)
 
+# stan can't handle factor types (e.g., Species in character format), so need to convert factor levels to dummy variables using as.integer()
+FinLimbGRFs$SpeciesInt <- as.integer(FinLimbGRFs$Species)
+d <- FinLimbGRFs
+response <- FinLimbGRFs$NetGRF.BW
+predictor <- FinLimbGRFs$SpeciesInt
+
+species_dat <- list(S = length(levels(FinLimbGRFs$Species)), 
+                    y = as.numeric(unlist(aggregate(response, list(predictor), mean)[2])),
+                    sigma = as.numeric(unlist(aggregate(response, list(predictor), sd)[2]))
+)
+# see page 11 of the Rstan: the R interface to Stan manual; do I need to convert y to an array? S should never equal 1, so I'm guessing the answer is "no". 
+
+### Stan code
+speciesModel <-'
+data {
+  int<lower=0> S; // number of species
+  real y[S]; // estimated treatment effects
+  real<lower=0> sigma[S]; SE of the effect estimates
+}
+parameters {
+  real mu;
+  real<lower=0> tau;
+  vector[S] eta;
+}
+transformed parameters {
+  vector[S] theta;
+  theta <- mu + tau * eta;
+}
+model {
+  eta ~ normal(0,1);
+  y ~ normal(theta, sigma);
+}
+'
+
+speciesMeansfit <- stan(file = 'speciesMeans.stan', data = species_dat, iter = 1000, chains = 4)
+### Get warning messages
+# Warning messages:
+# 1: There were 21 divergent transitions after warmup. Increasing adapt_delta may help. 
+# 2: Examine the pairs() plot to diagnose sampling problems
+
+print(speciesMeansfit)
+# theta means are very similar to the means of y by species (as we would expect)
+
+## Evaluating whether there were problems in the model
+# yellow points = transitions where the max treedepth__ was hit
+# red points = transitions where n_divergent__ = 1 
+# the below-diagonal intersection (draws with below-median accept_stat__) and the above diagonal intersection (draws with above-media accept_stat__) of the same two 
+# variables should have distributions that are mirror images of each other. 
+pairs(speciesMeansfit, pars = c("mu", "tau", "lp__"))
+# below- and above-diagonal plots do not seem to mirror each other, so the data may be skewed?
+
+# looking at the sampler directly, by each individual chain
+lapply(get_sampler_params(speciesMeansfit, inc_warmup = TRUE), summary, digits = 2)
+# max of n_divergent__ reaches one for each chain but the mean values are relatively small, so this suggests there were only a small number of divergent transitions? 
+# the mean accept_stat__ is about 0.75 but the median is about 0.95; this suggests that it is pretty skewed
+
 ##### SIMPLE EXAMPLE 
-## from https://github.com/mclark--/Miscellaneous-R-Code/blob/master/ModelFitting/Bayesian/rstan_linregwithprior.R
-
-cormat = matrix(c(1, .2, -.1, .3,
-  .2, 1, .1, .2,
-  -.1, .1, 1, .1,
-  .3, .2, .1, 1),
-  ncol=4, byrow=T)
-
-cormat
-
-# ensure pos def
-library(Matrix)
-cormat = nearPD(cormat, corr=T)$mat
-
-### generate data ###
-
-library(MASS)
-means = rep(0, ncol(cormat))
-n = 1000
-d = mvrnorm(n, means, cormat, empirical=T)
-colnames(d) = c('X1', 'X2', 'X3', 'y')
-d[,'y'] = d[,'y'] -.1 # unnecessary, just to model a non-zero intercept
-str(d)
-cor(d)
-
-### prepare for later processing ###
-
-# strip X (add intercept column) and y for vectorized version later
-X = cbind(1, d[,1:3]); colnames(X) = c('Intercept', 'X1', 'X2', 'X3')
-y = d[,4]
-
-# for comparison
-modlm = lm(y~., data.frame(d))
-
+## based on code from https://github.com/mclark--/Miscellaneous-R-Code/blob/master/ModelFitting/Bayesian/rstan_linregwithprior.R
 
 ##########################
 ### UNVECTORIZED MODEL ###
 ##########################
-
-### Stan related stuff ###
 
 # Create the data list object
 dat = list(N = nrow(d), y=y, X1=d[,1], X2=d[,2], X3=d[,3])
