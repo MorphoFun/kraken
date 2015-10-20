@@ -34,7 +34,8 @@
 #' @usage FinLimbGRFs
 #' @keywords datasets
 #'
-
+#' @examples 
+#' data(FinLimbGRFs)
 
 setwd(paste(getwd(),"/dataraw",sep=""))
 FinLimbGRFs <- read.csv("PeakNetGRFData_150518.csv", sep=",")
