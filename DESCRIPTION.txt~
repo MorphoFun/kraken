@@ -1,0 +1,15 @@
+Package: tremors
+Type: Package
+Title: Toolkit for Reproducible Evaluations of MORphological Selection
+Version: 0.0.0.9000
+Date: 2015-07-01
+Authors@R: person("Sandy", "Kawano", email = "sandy.kawano@gmail.com", role = c("aut", "cre"))
+Maintainer: Sandy Kawano <sandy.kawano@gmail.com>
+Imports: lme4 
+Description: More about what it does (maybe more than one line)
+License: GPL-2
+BugReports: https://github.com/MorphoFun/tremors/issues
+URL: https://github.com/MorphoFun/tremors
+LazyData: TRUE
+Suggests: knitr
+VignetteBuilder: knitr
