@@ -37,6 +37,7 @@ HLDago <- sapply(subset(d, Appendage=="Pel", select = c(1:7)), function(x) dagoT
 FLDago <- sapply(subset(d, Appendage=="Pec" & !Species=="pb", select = c(1:7)), function(x) dagoTest(x))
 
 ######### REDUNDANCY ANALYSIS ###############
+# Example: https://rstudio-pubs-static.s3.amazonaws.com/64619_2f93b223a318410bbf999d092ecf05ec.html
 library(vegan)
 
 speciesrda <- rda(FinLimbGRFs[,1:7] ~ Species, data = FinLimbGRFs)
