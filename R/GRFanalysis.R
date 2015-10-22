@@ -1,19 +1,19 @@
 ######## Analysis of FinLimb GRF daa ######
 
-library(devtools)
-install_github("MorphoFun/kraken")
 
-data("FinLimbGRFs")
-
-library(rstan)
+# Currently having issues with installing straight from GitHub
+# install_github("MorphoFun/kraken")
+# 
+# data("FinLimbGRFs")
 
 ######### Analysis of FinLimb GRF data ##########
 ## All data were taken at the peak net GRF for each individual trial
 
 library(rstan)
 library(devtools)
-# I'm having issues with installing kraken from github... 
-# install_github("MorphoFun/kraken")
+
+# loading from local folder
+load("FinLimbGRFs.rda")
 
 ########## GRF DATA ############
 load("FinLimbGRFs.rda")
@@ -56,6 +56,12 @@ RsquareAdj(speciesrda) # pretty weak
 speciesindrda <- rda(FinLimbGRFs[,1:7] ~ Species + Ind, data = FinLimbGRFs)
 # Species with inds explains about 20% of the variance
 RsquareAdj(speciesindrda)
+
+plot(speciesrda, xlab = paste("RDA1 (", summary(speciesrda)$cont[[1]][2]*100, "%)"), 
+     ylab = paste("RDA1 (", summary(speciesrda)$cont[[1]][5]*100, "%)"),
+     type = "n"
+     )
+    #trialscores <- scores(speciesrda, choices=1:2, scaling = 2)
 
 ########## SELECTING VARIABLES FOR COMPARISON ##############
 species_dat <- list(S = length(levels(FinLimbGRFs$Species)), 
