@@ -1,8 +1,11 @@
 Package: kraken
-Title: What the Package Does (one line, title case)
+Title: Analyses for bone biomechanics
 Version: 0.0.0.9000
-Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
+Authors@R: person("Sandy", "Kawano", email = "sandy.kawano@gmail.com", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
-Depends: R (>= 3.2.1)
-License: What license is it under?
-LazyData: true
+License: GPL-2
+BugReports: https://github.com/MorphoFun/kraken/issues
+URL: https://github.com/MorphoFun/kraken
+LazyData: TRUE
+Suggests: knitr
+VignetteBuilder: knitr
