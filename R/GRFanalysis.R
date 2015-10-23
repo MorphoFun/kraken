@@ -47,55 +47,184 @@ FLDago <- sapply(subset(d, Appendage=="Pec" & !Species=="pb", select = c(1:7)), 
 
 ######### REDUNDANCY ANALYSIS ###############
 # Example: https://rstudio-pubs-static.s3.amazonaws.com/64619_2f93b223a318410bbf999d092ecf05ec.html
+# For these data, the "sites" in vegan are actually individual trials,
+# and the "Species" are the variables that are being compared amongst the species 
+
 library(vegan)
 
-speciesrda <- rda(FinLimbGRFs[,1:7] ~ Species, data = FinLimbGRFs)
+###### RDA: pectoral appendages of the three species ####
+pecrda <- rda(subset(d[,1:7], Appendage=="Pec") ~ Species, data = subset(d, Appendage=="Pec"))
+RsquareAdj(pecrda) # ~ 0.35
+
+# pecindrda <- rda(subset(d[,1:7], d$Appendage=="Pec") ~ Species + Ind, data = subset(d, d$Appendage=="Pec"))
+# RsquareAdj(pecindrda) # ~ 0.48
+
+# eigenvalues for both RD1 and RD2 are <1
+
+colvec <- c("brown", "blue", "lightblue")
+pecscors <- scores(pecrda, display = c("sites", "species"), scaling = 3)
+pecxlimit <- with(pecscors, range(species[,1], sites[,1]))
+pecylimit <- with(pecscors, range(species[,2], sites[,2]))
+
+plot(pecrda, xlab = paste("RD1 (", summary(pecrda)$cont[[1]][2]*100, "%)"), 
+     ylab = paste("RD2 (", summary(pecrda)$cont[[1]][5]*100, "%)"),
+     type = "n",
+     scaling = 3, 
+     xlim = c(pecxlimit[1]-0.5, pecxlimit[2]+0.5),
+     ylim = c(pecylimit[1]-0.5, pecylimit[2]+0.5)
+)
+with(subset(d, Appendage=="Pec"), points(pecrda, display = "sites", col = colvec[Species], pch = 19),
+     scaling = 3)
+with(subset(d, Appendage=="Pec"), legend("topleft", legend = levels(Species), bty = "n", col = colvec, pch = 19))
+ellipses <- ordiellipse(pecrda, subset(d, Appendage=="Pec")$Species, kind = "sd", conf = 0.95, lwd=2, draw = "polygon", col = "brown", alpha = 80, show.groups = "at") 
+ellipses <- ordiellipse(pecrda, subset(d, Appendage=="Pec")$Species, kind = "sd", conf = 0.95, lwd=2, draw = "polygon", col = "lightblue", alpha = 80, show.groups = "pw") 
+ellipses <- ordiellipse(pecrda, subset(d, Appendage=="Pec")$Species, kind = "sd", conf = 0.95, lwd=2, draw = "polygon", col = "blue", alpha = 80, show.groups = "pb") 
+
+
+####### RDA: pelvic appendages of the two tetrapod species ####
+pelrda <- rda(subset(d[,1:7], Appendage=="Pel") ~ Species, data = subset(d, Appendage=="Pel"))
+RsquareAdj(pelrda) # ~ 0.04
+
+# pelindrda <- rda(subset(d[,1:7], d$Appendage=="Pel") ~ Species + Ind, data = subset(d, d$Appendage=="Pel"))
+# RsquareAdj(pelindrda) # ~ 0.23
+
+# eigenvalues for RD <1
+# no bivariate plot since there is only one axis
+boxplot(summary(pelrda)$sites ~ subset(d, Appendage=="Pel")$Species, xlab = "species", ylab = paste("RD1 (", summary(pelrda)$cont[[1]][2]*100, "%)"))
+
+####### RDA: 5 species:appendage combos (stored under "Group") ####
+grouprda <- rda(d[,1:7] ~ Group, data = d)
+RsquareAdj(grouprda) # ~ 0.53
+
+# groupindrda <- rda(d[,1:7] ~ Group + Ind, data = d)
+# RsquareAdj(groupindrda) # ~ 0.58
+
+# eigenvalues for all RD axes are <1
+
+colvec <- c("brown", "blue", "lightblue")
+groupscors <- scores(grouprda, display = c("sites", "species"), scaling = 3)
+groupxlimit <- with(groupscors, range(species[,1], sites[,1]))
+groupylimit <- with(groupscors, range(species[,2], sites[,2]))
+
+colgroup <- c("tan", "brown", "blue", "lightblue", "cyan")
+plot(grouprda, xlab = paste("RD1 (", summary(grouprda)$cont[[1]][2]*100, "%)"), 
+     ylab = paste("RD2 (", summary(grouprda)$cont[[1]][5]*100, "%)"),
+     type = "n",
+     scaling = 3, 
+     xlim = c(groupxlimit[1], groupxlimit[2]),
+     ylim = c(groupylimit[1], groupylimit[2])
+)
+with(d, points(grouprda, display = "sites", col = colgroup[Group], pch = 19),
+     scaling = 3)
+with(d, legend("topleft", legend = levels(Group), bty = "n", col = colgroup, pch = 19))
+ellipses <- ordiellipse(grouprda, d$Group, kind = "sd", conf = 0.95, lwd=2, draw = "polygon", col = "tan", alpha = 80, show.groups = "at_Pec") 
+ellipses <- ordiellipse(grouprda, d$Group, kind = "sd", conf = 0.95, lwd=2, draw = "polygon", col = "brown", alpha = 80, show.groups = "at_Pel") 
+ellipses <- ordiellipse(grouprda, d$Group, kind = "sd", conf = 0.95, lwd=2, draw = "polygon", col = "blue", alpha = 80, show.groups = "pb_Pec")
+ellipses <- ordiellipse(grouprda, d$Group, kind = "sd", conf = 0.95, lwd=2, draw = "polygon", col = "lightblue", alpha = 80, show.groups = "pw_Pec") 
+ellipses <- ordiellipse(grouprda, d$Group, kind = "sd", conf = 0.95, lwd=2, draw = "polygon", col = "cyan", alpha = 80, show.groups = "pw_Pel") 
+
+####### RDA: Pooled data across the three species (just for shits and giggles) ####
+speciesrda <- rda(d[,1:7] ~ Species, data = d)
 # constrained variable only explains about 10% of the variance? yikes...
 RsquareAdj(speciesrda) # pretty weak
 
-speciesindrda <- rda(FinLimbGRFs[,1:7] ~ Species + Ind, data = FinLimbGRFs)
-# Species with inds explains about 20% of the variance
-RsquareAdj(speciesindrda)
+# speciesindrda <- rda(d[,1:7] ~ Species + Ind, data = d)
+# # Species with inds explains about 20% of the variance
+# RsquareAdj(speciesindrda)
 
-plot(speciesrda, xlab = paste("RDA1 (", summary(speciesrda)$cont[[1]][2]*100, "%)"), 
-     ylab = paste("RDA1 (", summary(speciesrda)$cont[[1]][5]*100, "%)"),
-     type = "n"
-     )
-    #trialscores <- scores(speciesrda, choices=1:2, scaling = 2)
+# eigenvalues for both RD1 and RD2 are <1, so the rda tells me that species classification doesn't explain a lot of the variation in the GRF variables?
+
+colvec <- c("brown", "blue", "lightblue")
+scors <- scores(speciesrda, display = c("sites", "species"), scaling = 3)
+xlimit <- with(scors, range(species[,1], sites[,1]))
+ylimit <- with(scors, range(species[,2], sites[,2]))
+
+plot(speciesrda, xlab = paste("RD1 (", summary(speciesrda)$cont[[1]][2]*100, "%)"), 
+     ylab = paste("RD2 (", summary(speciesrda)$cont[[1]][5]*100, "%)"),
+     type = "n",
+     scaling = 3, 
+     xlim = c(xlimit[1]-0.5, xlimit[2]+0.5),
+     ylim = c(ylimit[1]-0.5, ylimit[2]+0.5)
+)
+with(d, points(speciesrda, display = "sites", col = colvec[Species], pch = 19),
+     scaling = 3)
+with(d, legend("topleft", legend = levels(Species), bty = "n", col = colvec, pch = 19))
+ellipses <- ordiellipse(speciesrda, d$Species, kind = "sd", conf = 0.95, lwd=2, draw = "polygon", col = "brown", alpha = 80, show.groups = "at") #ellipses with se are way small
+ellipses <- ordiellipse(speciesrda, d$Species, kind = "sd", conf = 0.95, lwd=2, draw = "polygon", col = "lightblue", alpha = 80, show.groups = "pw") #ellipses with se are way small
+ellipses <- ordiellipse(speciesrda, d$Species, kind = "sd", conf = 0.95, lwd=2, draw = "polygon", col = "blue", alpha = 80, show.groups = "pb") #ellipses with se are way small
+
+### Things to try:
+## Try to calculate area of overlap between the ellipses? 
+## Calculate significance of the axes? http://onlinelibrary.wiley.com/doi/10.1111/j.2041-210X.2010.00078.x/pdf
 
 ########## SELECTING VARIABLES FOR COMPARISON ##############
+species_dat <- list(N = nrow(FinLimbGRFs),
+                    S = as.integer(FinLimbGRFs$Species),
+                    I = as.integer(FinLimbGRFs$Ind),
+                    y = as.numeric(response)
+)
+
 species_dat <- list(S = length(levels(FinLimbGRFs$Species)), 
                     y = as.numeric(unlist(aggregate(response, list(predictor), mean)[2])),
                     sigma = as.numeric(unlist(aggregate(response, list(predictor), sd)[2]))
 )
+
 # see page 11 of the Rstan: the R interface to Stan manual; do I need to convert y to an array? S should never equal 1, so I'm guessing the answer is "no". 
 
 ########## STAN MODEL FOR COMPARING SPECIES MEANS ###########
 # Should the data and parameters be defined as vectors instead? https://groups.google.com/forum/#!msg/stan-users/4PgOF38Mnwk/hgUPCA768w0J
 # Should vector types always be used for linear (algebra) problems?
 
-speciesMeansModel <-'
+# speciesMeansModel <-'
+# data {
+#   int<lower=0> S; // number of species
+#   real y[S]; // estimated treatment effects
+#   real<lower=0> sigma[S]; // SE of the effect estimates
+# }
+# parameters {
+#   real mu;
+#   real<lower=0> tau;
+#   real eta[S];
+# }
+# transformed parameters {
+#   real theta[S];
+#   for (s in 1:S)
+#     theta[s] <- mu + tau * eta[s];
+# }
+# model {
+#   eta ~ normal(0, 1);
+#   y ~ normal(theta, sigma);
+# }
+# '
+
+# Based primarily from: https://github.com/mclark--/Miscellaneous-R-Code/blob/master/ModelFitting/Bayesian/rstan_linregwithprior.R
+# Right now I don't think the varying slope contribution from "Ind" is being incorporated correctly into the model; so far this is simple linear regression
+# I need to edit this so that a different beta value is created for each species
+speciesMeansModel <- '
 data {
-  int<lower=0> S; // number of species
-  real y[S]; // estimated treatment effects
-  real<lower=0> sigma[S]; // SE of the effect estimates
+  int<lower=0> N; // sample size
+  vector[N] S; // Predictor - species ID
+  vector[N] I; // "random effect" - individual ID
+  vector[N] y; // response
 }
 parameters {
-  real mu;
-  real<lower=0> tau;
-  real eta[S];
-}
-transformed parameters {
-  real theta[S];
-  for (s in 1:S)
-    theta[s] <- mu + tau * eta[s];
+  real alpha; 
+  real beta1;
+  real<lower=0> sigma;
 }
 model {
-  eta ~ normal(0, 1);
-  y ~ normal(theta, sigma);
+//priors
+  alpha ~ normal(0,10); // 0,10 thrown in arbitrarily as a broad prior
+  beta1 ~ normal(0,10);
+  sigma ~ cauchy(0, 2.5); // Gelman 2006 and 2013 have an example using this
+
+//likelihood
+for (n in 1:N)
+  y[n] ~ normal(alpha + beta1*S[n], sigma);
 }
 '
-speciesMeansfitString <- stan(model_code = speciesMeansModel, data = species_dat, iter = 1000, chains = 4)
+
+speciesMeansFitString <- stan(model_code = speciesMeansModel, data = species_dat, iter = 1000, chains = 4)
 # Warning messages:
 # 1: There were 75 divergent transitions after warmup. Increasing adapt_delta may help. 
 # 2: Examine the pairs() plot to diagnose sampling problems
@@ -109,7 +238,7 @@ speciesMeansfitStringAD9 <- stan(model_code = speciesMeansModel, data = species_
 # Exception thrown at line 19: normal_log: Location parameter[1] is inf, but must be finite!     1
 # If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
 
-speciesMeansfit <- stan(file = 'speciesMeans.stan', data = species_dat, iter = 1000, chains = 4)
+#speciesMeansfit <- stan(file = 'speciesMeans.stan', data = species_dat, iter = 1000, chains = 4)
 ### Get warning messages
 # Warning messages:
 # 1: There were 21 divergent transitions after warmup. Increasing adapt_delta may help. 
