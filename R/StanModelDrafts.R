@@ -359,3 +359,34 @@ model {
 }'
 
 fit1 <- stan(model_code = schoolStan, data = schools_data, iter = 2000, chains =4)
+
+######### STAN CODE FOR SINGLE RANDOM EFFECT #########
+stancode <- '
+data{
+int<lower=0> N;
+int<lower=0> K;
+matrix[N,K] X;
+vector[N] price;
+int J;
+int<lower=1,upper=J> re[N];
+}
+parameters{
+vector[J] a;
+real mu_a;
+real tau;
+real<lower=0> sigma_a;
+real<lower=0> sigma;
+vector[K] beta;
+}
+transformed parameters{
+vector[N] mu_hat;
+for(i in 1:N)
+mu_hat[i] <- a[re[i]];
+}
+model {
+mu_a ~ normal(0,10);
+tau ~ cauchy(0,5);
+a ~ normal(mu_a,sigma_a);
+for(i in 1:N)
+price[i] ~ normal(X[i]*beta + mu_hat[i], sigma);
+}'
