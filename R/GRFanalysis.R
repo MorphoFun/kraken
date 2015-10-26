@@ -174,63 +174,66 @@ species_dat <- list(S = length(levels(FinLimbGRFs$Species)),
 # Should the data and parameters be defined as vectors instead? https://groups.google.com/forum/#!msg/stan-users/4PgOF38Mnwk/hgUPCA768w0J
 # Should vector types always be used for linear (algebra) problems?
 
-# speciesMeansModel <-'
-# data {
-#   int<lower=0> S; // number of species
-#   real y[S]; // estimated treatment effects
-#   real<lower=0> sigma[S]; // SE of the effect estimates
-# }
-# parameters {
-#   real mu;
-#   real<lower=0> tau;
-#   real eta[S];
-# }
-# transformed parameters {
-#   real theta[S];
-#   for (s in 1:S)
-#     theta[s] <- mu + tau * eta[s];
-# }
-# model {
-#   eta ~ normal(0, 1);
-#   y ~ normal(theta, sigma);
-# }
-# '
+### This code currently seems to be working to reproduce species means (only doing for practice; not for the paper)
+speciesMeansModel <-'
+data {
+  int<lower=0> S; // number of species
+  real y[S]; // estimated treatment effects
+  real<lower=0> sigma[S]; // SE of the effect estimates
+}
+parameters {
+  real mu;
+  real<lower=0> tau;
+  real eta[S];
+}
+transformed parameters {
+  real theta[S];
+  for (s in 1:S)
+    theta[s] <- mu + tau * eta[s];
+}
+model {
+  eta ~ normal(0, 1);
+  y ~ normal(theta, sigma);
+}
+'
 
 # Based primarily from: https://github.com/mclark--/Miscellaneous-R-Code/blob/master/ModelFitting/Bayesian/rstan_linregwithprior.R
 # Right now I don't think the varying slope contribution from "Ind" is being incorporated correctly into the model; so far this is simple linear regression
 # I need to edit this so that a different beta value is created for each species
-speciesMeansModel <- '
-data {
-  int<lower=0> N; // sample size
-  vector[N] S; // Predictor - species ID
-  vector[N] I; // "random effect" - individual ID
-  vector[N] y; // response
-}
-parameters {
-  real alpha; 
-  real beta1;
-  real<lower=0> sigma;
-}
-model {
-//priors
-  alpha ~ normal(0,10); // 0,10 thrown in arbitrarily as a broad prior
-  beta1 ~ normal(0,10);
-  sigma ~ cauchy(0, 2.5); // Gelman 2006 and 2013 have an example using this
+### This code is currently not working; I need to mess with it some more.
+# speciesMeansModel <- '
+# data {
+#   int<lower=0> N; // sample size
+#   vector[N] S; // Predictor - species ID
+#   vector[N] I; // "random effect" - individual ID
+#   vector[N] y; // response
+# }
+# parameters {
+#   real alpha; 
+#   real beta1;
+#   real<lower=0> sigma;
+# }
+# model {
+# //priors
+#   alpha ~ normal(0,10); // 0,10 thrown in arbitrarily as a broad prior
+#   beta1 ~ normal(0,10);
+#   sigma ~ cauchy(0, 2.5); // Gelman 2006 and 2013 have an example using this
+# 
+# //likelihood
+# for (n in 1:N)
+#   y[n] ~ normal(alpha + beta1*S[n], sigma);
+# }
+# '
 
-//likelihood
-for (n in 1:N)
-  y[n] ~ normal(alpha + beta1*S[n], sigma);
-}
-'
-
-speciesMeansFitString <- stan(model_code = speciesMeansModel, data = species_dat, iter = 1000, chains = 4)
+speciesMeansFit <- stan(model_code = speciesMeansModel, data = species_dat, iter = 1000, chains = 4)
 # Warning messages:
 # 1: There were 75 divergent transitions after warmup. Increasing adapt_delta may help. 
 # 2: Examine the pairs() plot to diagnose sampling problems
 ## NOTE: number of divergent transitions after warmup is not consistent; will change if you re-run the code; same is true if you use the file option below
+pairs(speciesMeansFit)
 
 ## Increasing adapt delta to see if it helps with the divergent transitions
-speciesMeansfitStringAD9 <- stan(model_code = speciesMeansModel, data = species_dat, iter = 1000, chains = 4, control = list(adapt_delta = 0.9))
+speciesMeansfitAD9 <- stan(model_code = speciesMeansModel, data = species_dat, iter = 1000, chains = 4, control = list(adapt_delta = 0.9))
 # Nope, didn't help. 
 # Now it also spits out:
 # The following numerical problems occured the indicated number of times on chain  4 count
@@ -243,7 +246,7 @@ speciesMeansfitStringAD9 <- stan(model_code = speciesMeansModel, data = species_
 # 1: There were 21 divergent transitions after warmup. Increasing adapt_delta may help. 
 # 2: Examine the pairs() plot to diagnose sampling problems
 
-print(speciesMeansfit)
+print(speciesMeansFit)
 # theta means are very similar to the means of y by species (as we would expect)
 
 ## Evaluating whether there were problems in the model
@@ -251,76 +254,12 @@ print(speciesMeansfit)
 # red points = transitions where n_divergent__ = 1 
 # the below-diagonal intersection (draws with below-median accept_stat__) and the above diagonal intersection (draws with above-media accept_stat__) of the same two 
 # variables should have distributions that are mirror images of each other. 
-pairs(speciesMeansfit, pars = c("mu", "tau", "lp__"))
+pairs(speciesMeansFit, pars = c("mu", "tau", "lp__"))
 # below- and above-diagonal plots do not seem to mirror each other, so the data may be skewed?
 
 # looking at the sampler directly, by each individual chain
-lapply(get_sampler_params(speciesMeansfit, inc_warmup = TRUE), summary, digits = 2)
+lapply(get_sampler_params(speciesMeansFit, inc_warmup = TRUE), summary, digits = 2)
 # max of n_divergent__ reaches one for each chain but the mean values are relatively small, so this suggests there were only a small number of divergent transitions? 
 # the mean accept_stat__ is about 0.75 but the median is about 0.95; this suggests that it is pretty skewed
 
 
-
-
-
-
-
-
-
-##### SIMPLE EXAMPLE 
-## based on code from https://github.com/mclark--/Miscellaneous-R-Code/blob/master/ModelFitting/Bayesian/rstan_linregwithprior.R
-
-##########################
-### UNVECTORIZED MODEL ###
-##########################
-
-
-### Stan related stuff ###
-
-
-# Create the data list object
-dat = list(N = nrow(d), y=y, X1=d[,1], X2=d[,2], X3=d[,3])
-
-# Create the stan model object.
-stanmodelcode <-'
-data {                      // all of data noted here must be in the list that is imported
-int<lower=0> N;           // Sample size
-vector[N] X1;             // Predictor X1
-vector[N] X2;
-vector[N] X3;
-vector[N] y;              // Response
-}
-parameters {                // which parameters will be estimated?
-real alpha;               
-real beta1;
-real beta2;
-real beta3;
-real<lower=0> sigma;      
-}
-model {                     // Model setup of priors and likelihood
-//priors
-alpha ~ normal(0, 10);    // note that in Stan, normal(0,2) means distributed as mean 0 and standard deviation 2           
-beta1 ~ normal(0, 10);
-beta2 ~ normal(0, 10);
-beta3 ~ normal(0, 10);
-sigma ~ cauchy(0, 2.5);   // see Gelman 2006 or 2013 for example
-
-//likelihood
-for (n in 1:N)
-y[n] ~ normal(alpha + beta1 * X1[n] + beta2 * X2[n] + beta3 * X3[n], sigma);
-}
-'
-
-library(rstan)
-
-### Run the model and examine results ###
-# fit
-fit <- stan(model_code = stanmodelcode, model_name = "example", 
-            data = dat, iter = 12000, warmup=2000, thin=10, chains = 3, # sample_file = 'norm.csv', if you want to save
-            verbose = F) 
-
-# summary
-print(fit, digits_summary=4)
-
-# compare
-summary(modlm)
