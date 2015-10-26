@@ -52,7 +52,7 @@ FLDago <- sapply(subset(d, Appendage=="Pec" & !Species=="pb", select = c(1:7)), 
 library(vegan)
 
 ###### RDA: pectoral appendages of the three species ####
-pecrda <- rda(subset(d[,1:7], Appendage=="Pec") ~ Species, data = subset(d, Appendage=="Pec"))
+pecrda <- rda(subset(d, Appendage=="Pec")[,1:7] ~ Species, data = subset(d, Appendage=="Pec"))
 RsquareAdj(pecrda) # ~ 0.35
 
 # pecindrda <- rda(subset(d[,1:7], d$Appendage=="Pec") ~ Species + Ind, data = subset(d, d$Appendage=="Pec"))
@@ -81,7 +81,7 @@ ellipses <- ordiellipse(pecrda, subset(d, Appendage=="Pec")$Species, kind = "sd"
 
 
 ####### RDA: pelvic appendages of the two tetrapod species ####
-pelrda <- rda(subset(d[,1:7], Appendage=="Pel") ~ Species, data = subset(d, Appendage=="Pel"))
+pelrda <- rda(subset(d, Appendage=="Pel")[,1:7] ~ Species, data = subset(d, Appendage=="Pel"))
 RsquareAdj(pelrda) # ~ 0.04
 
 # pelindrda <- rda(subset(d[,1:7], d$Appendage=="Pel") ~ Species + Ind, data = subset(d, d$Appendage=="Pel"))
