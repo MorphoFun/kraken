@@ -13,10 +13,10 @@ library(rstan)
 library(devtools)
 
 # loading from local folder
-load("FinLimbGRFs.rda")
+data("FinLimbGRFs.rda")
 
 ########## GRF DATA ############
-load("FinLimbGRFs.rda")
+data("FinLimbGRFs.rda")
 
 # stan can't handle factor types (e.g., Species in character format), so need to convert factor levels to dummy variables using as.integer()
 FinLimbGRFs$SpeciesInt <- as.integer(FinLimbGRFs$Species)
