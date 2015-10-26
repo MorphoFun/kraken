@@ -33,12 +33,13 @@
 #' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land.  \emph{Integrative and Comparative Biology} 53(2): 283-294.
 #' @usage FinLimbGRFs
 #' @keywords datasets
+#' @export fBasics, rstan, devtools
 #'
 #' @examples 
 #' data(FinLimbGRFs)
 
-setwd(paste(getwd(),"/dataraw",sep=""))
-FinLimbGRFs <- read.csv("PeakNetGRFData_150518.csv", sep=",")
-
- setwd("../data")
- save(FinLimbGRFs, file="FinLimbGRFs.rda")
+# setwd(paste(getwd(),"/dataraw",sep=""))
+# FinLimbGRFs <- read.csv("PeakNetGRFData_150518.csv", sep=",")
+# 
+#  setwd("../data")
+#  save(FinLimbGRFs, file="FinLimbGRFs.rda")
