@@ -1,2 +1,2 @@
 exportPattern("^[^\\.]")
-importFrom(vegan, fBasics, rstan, devtools)
+
