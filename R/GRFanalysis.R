@@ -1,22 +1,21 @@
-######## Analysis of FinLimb GRF daa ######
-
-
-# Currently having issues with installing straight from GitHub
-# install_github("MorphoFun/kraken")
-# 
-# data("FinLimbGRFs")
-
 ######### Analysis of FinLimb GRF data ##########
 ## All data were taken at the peak net GRF for each individual trial
 
 library(rstan)
 library(devtools)
 
+readGitHub <- function(url, header = TRUE, fill = TRUE, stringAsFactors = FALSE, ...) {
+  store <- tempfile()
+  download.file(url, destfile=store, method="curl")
+  dd <- read.table(store, header = header, ...)
+  return(dd)
+}
+
+
 # loading from local folder
-data("FinLimbGRFs.rda")
+FinLimbGRFs <- readGitHub("https://raw.githubusercontent.com/MorphoFun/kraken/master/dataraw/PeakNetGRFData_150518.csv", sep = ",")
 
 ########## GRF DATA ############
-data("FinLimbGRFs.rda")
 
 # stan can't handle factor types (e.g., Species in character format), so need to convert factor levels to dummy variables using as.integer()
 FinLimbGRFs$SpeciesInt <- as.integer(FinLimbGRFs$Species)
