@@ -25,9 +25,6 @@ d[,1] <- FinLimbGRFs[,1]/100
 # converting degrees to radians to make them closer in magnitude to the .BW data
 d[,2:3] <- FinLimbGRFs[,2:3]*(pi/180)
 
-# defining response vs. predictor for the stan model later
-response <- d$NetGRF.BW
-predictor <- d$SpeciesInt
 
 # decided against standardizing data b/c
 # 1. I want to be able to interpret the results in their original units
@@ -156,13 +153,20 @@ ellipses <- ordiellipse(speciesrda, d$Species, kind = "sd", conf = 0.95, lwd=2, 
 ## Try to calculate area of overlap between the ellipses? 
 ## Calculate significance of the axes? http://onlinelibrary.wiley.com/doi/10.1111/j.2041-210X.2010.00078.x/pdf
 
+
+# defining response vs. predictor for the stan model later
+response <- d$NetGRF.BW
+predictor <- d$SpeciesInt
+
 ########## SELECTING VARIABLES FOR COMPARISON ##############
 species_dat <- list(N = nrow(FinLimbGRFs),
                     S = as.integer(FinLimbGRFs$Species),
                     I = as.integer(FinLimbGRFs$Ind),
-                    y = as.numeric(response)
+                    y = as.numeric(unlist(aggregate(response, list(predictor), mean)[2])),
+                    sigma = as.numeric(unlist(aggregate(response, list(predictor), sd)[2]))
 )
 
+# For comparison of the pooled data for each species
 species_dat <- list(S = length(levels(FinLimbGRFs$Species)), 
                     y = as.numeric(unlist(aggregate(response, list(predictor), mean)[2])),
                     sigma = as.numeric(unlist(aggregate(response, list(predictor), sd)[2]))
@@ -177,53 +181,24 @@ species_dat <- list(S = length(levels(FinLimbGRFs$Species)),
 ### This code currently seems to be working to reproduce species means (only doing for practice; not for the paper)
 speciesMeansModel <-'
 data {
-  int<lower=0> S; // number of species
+  int<lower=1> S; // number of species
   real y[S]; // estimated treatment effects
   real<lower=0> sigma[S]; // SE of the effect estimates
 }
 parameters {
-  real mu;
-  real<lower=0> tau;
-  real eta[S];
+  real mu; // overall means of all data
+  real<lower=0> tau; // overall sd of all data
+  vector[S] eta; // species-level errors
 }
 transformed parameters {
-  real theta[S];
-  for (s in 1:S)
-    theta[s] <- mu + tau * eta[s];
+  vector[S] theta; // species effects
+    theta <- mu + tau * eta;
 }
 model {
   eta ~ normal(0, 1);
   y ~ normal(theta, sigma);
 }
 '
-
-# Based primarily from: https://github.com/mclark--/Miscellaneous-R-Code/blob/master/ModelFitting/Bayesian/rstan_linregwithprior.R
-# Right now I don't think the varying slope contribution from "Ind" is being incorporated correctly into the model; so far this is simple linear regression
-# I need to edit this so that a different beta value is created for each species
-### This code is currently not working; I need to mess with it some more.
-# speciesMeansModel <- '
-# data {
-#   int<lower=0> N; // sample size
-#   vector[N] S; // Predictor - species ID
-#   vector[N] I; // "random effect" - individual ID
-#   vector[N] y; // response
-# }
-# parameters {
-#   real alpha; 
-#   real beta1;
-#   real<lower=0> sigma;
-# }
-# model {
-# //priors
-#   alpha ~ normal(0,10); // 0,10 thrown in arbitrarily as a broad prior
-#   beta1 ~ normal(0,10);
-#   sigma ~ cauchy(0, 2.5); // Gelman 2006 and 2013 have an example using this
-# 
-# //likelihood
-# for (n in 1:N)
-#   y[n] ~ normal(alpha + beta1*S[n], sigma);
-# }
-# '
 
 speciesMeansFit <- stan(model_code = speciesMeansModel, data = species_dat, iter = 1000, chains = 4)
 # Warning messages:
@@ -261,5 +236,83 @@ pairs(speciesMeansFit, pars = c("mu", "tau", "lp__"))
 lapply(get_sampler_params(speciesMeansFit, inc_warmup = TRUE), summary, digits = 2)
 # max of n_divergent__ reaches one for each chain but the mean values are relatively small, so this suggests there were only a small number of divergent transitions? 
 # the mean accept_stat__ is about 0.75 but the median is about 0.95; this suggests that it is pretty skewed
+
+
+###### Attempting to account for individual variation ####
+# Based on: http://rstudio-pubs-static.s3.amazonaws.com/64315_bc3a395edd104095a8384db8d9952f43.html
+# So far I haven't gotten a working model figured out yet... 
+speciesLookupVec <- unique(d[c("Ind", "Species")])[,"Species"]
+
+dat <- with(d, 
+            list(Ni = nrow(d), 
+                 Nj = length(unique(Ind)),
+                 Nk = length(unique(Species)),
+                 indID = as.integer(Ind),
+                 speciesID = as.integer(Species), 
+                 speciesLookup = as.integer(speciesLookupVec),
+                 y = response
+            ))
+
+speciesMeansIndModel <-'
+data {
+int<lower=1> Ni; // number of observations
+int<lower=1> Nj; // number of individuals
+int<lower=1> Nk; // number of species
+
+int<lower=1> indID[Ni];
+int<lower=1> speciesID[Ni];
+int<lower=1> speciesLookup[Nj];
+real y[Ni];
+}
+parameters {
+real beta_0; // sample intercept
+real beta_1; // sample slope
+real<lower=0> sigma_e0; // sample error
+
+real u_0jk[Nj];
+real<lower=0> sigma_u0jk;
+
+real u_0k[Nk];
+real<lower=0> sigma_u0k; 
+}
+transformed parameters {
+// Varying intercepts
+real beta_0jk[Nj];
+real beta_0k[Nk];
+
+// Individual mean
+real mu[Ni];
+
+// Varying intercepts definition
+for (k in 1:Nk) {
+beta_0k[k] <- beta_0 + u_0k[k]; // species level
+}
+for (j in 1:Nj) {
+beta_0jk[j] <- beta_0k[speciesLookup[j]] + u_0jk[j]; // individual level
+}
+
+// sample mean
+for (i in 1:Ni) {
+mu[i] <- beta_0jk[indID[i]]; 
+}
+}
+
+model {
+// assuming flat prior for now, so do not need to code anything to specify that
+
+// Random effects distribution
+u_0k ~ normal(0, sigma_u0k);
+u_0jk ~ normal(0, sigma_u0jk);
+
+// Likelihood 
+// outcome model is N(mu, sigma^2) whereby sigma represents SD rather than variance
+for (i in 1:Ni) {
+y[i] ~ normal(mu[i], sigma_e0);
+}
+}
+'
+
+speciesIndStanFit <- stan(model_code = speciesMeansIndModel, data = dat,
+                          chains = 4, iter = 1000, warmup = 1000, thin = 10)
 
 
