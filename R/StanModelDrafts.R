@@ -390,3 +390,31 @@ a ~ normal(mu_a,sigma_a);
 for(i in 1:N)
 price[i] ~ normal(X[i]*beta + mu_hat[i], sigma);
 }'
+
+
+#### simple linear regression ####
+data(ChickWeight)
+dat <- list(
+    N <- nrow(ChickWeight),
+    x <- ChickWeight$Time,
+    y <- ChickWeight$weight
+  )
+
+linreg <- '
+data {
+  int<lower=0> N;
+  vector[N] x; 
+  vector[N] y;
+}
+parameters {
+  real alpha;
+  real beta;
+  real<lower=0> sigma;
+}
+model {
+  y ~ normal(alpha + beta * x, sigma);
+}
+'
+
+ChickWeightFit <- stan(model_code = linreg, data = dat, iter = 1000, chains = 4)
+ChickWeightLM <- lm(Weight ~ Time, data = ChickWeight)

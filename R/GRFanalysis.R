@@ -12,7 +12,7 @@ readGitHub <- function(url, header = TRUE, fill = TRUE, stringAsFactors = FALSE,
 }
 
 
-# loading from local folder
+# loading from remote folder
 FinLimbGRFs <- readGitHub("https://raw.githubusercontent.com/MorphoFun/kraken/master/dataraw/PeakNetGRFData_150518.csv", sep = ",")
 
 ########## GRF DATA ############
@@ -40,6 +40,17 @@ fullDago <- sapply(d[,1:7], function(x) dagoTest(x))
 pecDago <- sapply(subset(d, Appendage=="Pec", select = c(1:7)), function(x) dagoTest(x))
 HLDago <- sapply(subset(d, Appendage=="Pel", select = c(1:7)), function(x) dagoTest(x))
 FLDago <- sapply(subset(d, Appendage=="Pec" & !Species=="pb", select = c(1:7)), function(x) dagoTest(x))
+
+
+####### TESTING COEFFICIENT OF VARIATION TO IND VARIABILITY #####
+## Looking to pool the data for each individual, but first need to determine how variable the data are 
+## for each individual. 
+
+indSummaryData <- aggregate(d[,1:7], by = list(d$Ind), function(x) {c(MEAN = mean(x), SD = sd(x), CoV = sd(x)/mean(x))})
+indCoV <- aggregate(d[,1:7], by = list(d$Ind), function(x) {c(CoV = (sd(x)/mean(x))*100)})
+
+## Ugh, a number of the variables seem to have a lot of variable within an individual.... 
+
 
 ######### REDUNDANCY ANALYSIS ###############
 # Example: https://rstudio-pubs-static.s3.amazonaws.com/64619_2f93b223a318410bbf999d092ecf05ec.html
@@ -177,6 +188,46 @@ species_dat <- list(S = length(levels(FinLimbGRFs$Species)),
 ########## STAN MODEL FOR COMPARING SPECIES MEANS ###########
 # Should the data and parameters be defined as vectors instead? https://groups.google.com/forum/#!msg/stan-users/4PgOF38Mnwk/hgUPCA768w0J
 # Should vector types always be used for linear (algebra) problems?
+
+### stan mcode for hierarchical model with multivariate priors on teh group-level coefficients and group-level
+## prior means (p. 66 on stan manual):
+hierstanmod <- '
+data {
+  int<lower=0> N;             // num individuals
+  int<lower=1> K;             // num ind predictors
+  int<lower=1> J;             // num groups
+  int<lower=1> L;             // num group predictors
+  int<lower=1,upper=J> jj[N]; // group for individual
+  matrix[N,K] x;              // individual predictors
+  row_vector[L] u[J];         // group predictors
+  vector[N] y;                // outcomes
+}
+parameters {
+  corr_matrix[K] Omega;       // prior correlation
+  vector<lower=0>[K] tau;     // prior scale
+  matrix[L,K] gamma;          // group coeffs
+  vector[K] beta[J];          // ind coeffs by group
+  real<lower=0> sigma;        // prediction error scale
+}
+model {
+  tau ~ cauchy(0,2.5);
+  Omega ~ lkj_corr(2);
+  to_vector(gamma) ~ normal(0,
+{
+  row_vector[K] u_gamma[J];
+  for (j in 1:J)
+    u_gamma[j] <- u[j] * gamma;
+    beta ~ multi_normal(u_gamma, quad_form_diag(Omega, tau));
+}
+{
+  vector[N] x_beta_jj;
+  for (n in 1:N)
+    x_beta_jj[n] <- x[n] * beta[jj[n]];
+  y ~ normal(x_beta_jj, sigma);
+}
+}'
+
+
 
 ### This code currently seems to be working to reproduce species means (only doing for practice; not for the paper)
 speciesMeansModel <-'
