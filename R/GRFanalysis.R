@@ -42,6 +42,18 @@ HLDago <- sapply(subset(d, Appendage=="Pel", select = c(1:7)), function(x) dagoT
 FLDago <- sapply(subset(d, Appendage=="Pec" & !Species=="pb", select = c(1:7)), function(x) dagoTest(x))
 
 
+######## PLOTTING HISTOGRAMS OF THE DATA #######
+library(ggplot2) 
+ 
+ggplot(d) + geom_histogram(aes(d$PercentStance, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage, binwidth = 40) 
+ggplot(d) + geom_histogram(aes(d$APAngle.Convert, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage) 
+ggplot(d) + geom_histogram(aes(d$MLAngle.Convert, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage) 
+ggplot(d) + geom_histogram(aes(d$InterpV.BW, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage) 
+ggplot(d) + geom_histogram(aes(d$InterpML.BW, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage) 
+ggplot(d) + geom_histogram(aes(d$InterpAP.BW, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage) 
+ggplot(d) + geom_histogram(aes(d$NetGRF.BW, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage) 
+
+
 ####### TESTING COEFFICIENT OF VARIATION TO IND VARIABILITY #####
 ## Looking to pool the data for each individual, but first need to determine how variable the data are 
 ## for each individual. 
@@ -227,7 +239,28 @@ model {
 }
 }'
 
-
+mod <- '
+data {
+  int<lower=1> S;        // dummy coding for species
+  int<lower=1> App;      // dummy coding for appendage type
+  int<lower=1> N;        // total number of observations
+  vector[N] y;           // response variable
+}
+parameters {
+  real alpha_spp;
+  real beta_spp;
+}
+transformed parameters {
+  real mu_spp;
+  
+}
+model {
+  
+  y ~ normal(mu_spp, sigma_spp);
+  
+}
+'
+#  y ~ normal(beta[1] + beta[2]*App + beta[3]*App + beta[4]*App, sigma);
 
 ### This code currently seems to be working to reproduce species means (only doing for practice; not for the paper)
 speciesMeansModel <-'

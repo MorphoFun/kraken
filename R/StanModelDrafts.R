@@ -418,3 +418,231 @@ model {
 
 ChickWeightFit <- stan(model_code = linreg, data = dat, iter = 1000, chains = 4)
 ChickWeightLM <- lm(Weight ~ Time, data = ChickWeight)
+
+
+#####   multivariate mixture model ########
+#### based on: https://kylenpayne.wordpress.com/2014/01/10/bayesian-normal-mixture-models-with-rstan/
+
+#Simulate Normal Distributions
+library(mvtnorm)
+
+### first cluster
+mu1<-c(0,0,0,0)
+sigma1<-matrix(c(1,0,0,0,
+                 0,1,0,0,
+                 0,0,1,0,
+                 0,0,0,1), ncol=4, nrow=4, byrow=TRUE)
+
+norm1<-rmvnorm(30, mean = mu1, sigma=sigma1)
+### second cluster
+
+mu2<-c(2,2,2,2)
+sigma2<-matrix(c(1,0,0,0,
+                 0,1,0,0,
+                 0,0,1,0,
+                 0,0,0,1
+) + rnorm(1,0,.1), ncol=4, nrow=4, byrow=TRUE)
+
+norm2<-rmvnorm(30, mean=mu2, sigma=sigma2)
+### third cluster
+
+mu3 <-c(5,3.4,2,0)
+sigma3<-matrix(c(5,0,0,0,
+                 0,2.5,0,0,
+                 0,0,1.25,0,
+                 0,0,0,3) + rnorm(1,0,.2), ncol=4, nrow=4, byrow=TRUE)
+
+norm3<-rmvnorm(30, mean=mu3, sigma=sigma3)
+norms<-rbind(norm1,norm2,norm3)
+
+N = 90
+Dim = 4
+y<-array(as.vector(norms), dim=c(N,Dim))
+
+#Fit Mixture Models
+
+mixture_dat <-list(
+  N = N,
+  D = 4, K = 3, y=y )
+
+mixture_model <-'
+data {
+  int<lower=1> D; // number of variables
+  int<lower=1> K; // number of groups
+  int<lower=1> N; // number of rows
+  vector[D] y[N]; //observations
+}
+
+parameters {
+  simplex[K] theta;
+  vector[D] mu[K];
+  real<lower=0,upper=10> sigma[K];  // scales of mixture components
+}
+
+model {
+  real ps[K];
+  //for (k in 1:K) {
+    //  mu[k] ~ normal(0,10);
+    //}
+  mu[1] ~ normal(0,1);
+  mu[2] ~ normal(2,1);
+  mu[3] ~ normal(4,1);
+  
+  for (n in 1:N){
+    for(k in 1:K){
+      
+      ps[k] <- log(theta[k])
+      
+      + normal_log(y[n],mu[k],sigma[k]);
+    }
+    
+    increment_log_prob(log_sum_exp(ps));
+  }
+}'
+
+fit.1 <- stan(model_code = mixture_model, model_name ="Mixture", data = mixture_dat)
+
+
+
+########## READING TIME - SIMPLE LINEAR REGRESSION ########
+
+## read in data:
+rDat <- readGitHub("https://raw.githubusercontent.com/vasishth/BayesLMMTutorial/master/data/gibsonwu2012data.txt")
+## subset critical region:
+rDat <- subset( rDat , region == "headnoun" )
+
+## create data as list for Stan, and fit model:
+stanDat <- list( rt = rDat$rt, so = ifelse(rDat$type=="subj-ext", -1, 1), N = nrow(rDat) )
+
+stanMod <- '
+data {
+  int<lower=1> N;                //number of data points
+  real rt[N];                    //reading time
+  real<lower=-1,upper=1> so[N];  //predictor
+}
+
+parameters {
+  vector[2] beta;            //intercept and slope
+  real<lower=0> sigma_e;     //error sd
+}
+
+model {
+  real mu;
+  for (i in 1:N){                   // likelihood
+    mu <- beta[1] + beta[2]*so[i];
+    rt[i] ~ lognormal(mu,sigma_e);
+  }
+}
+'
+library(rstan)
+fixEfFit <- stan ( model_code = stanMod, data = stanDat, iter = 2000 , chains = 4 )
+
+## plot traceplot, excluding warm-up:
+traceplot( fixEfFit , pars = c("beta","sigma_e"), inc_warmup = FALSE)
+
+## examine quantiles of posterior distributions:
+print( fixEfFit , pars = c("beta","sigma_e") ,
+probs = c(0.025,0.5,0.975))
+
+## examine quantiles of parameter of interest:
+beta1 <- extract ( fixEfFit , pars=c("beta[2]"))$beta
+print ( signif ( quantile ( beta1,probs = c(0.025,0.5,0.975)), 2))
+
+##### READING TIME - RANDOM INTERCEPTS MODEL ####
+
+## format data for Stan:
+stanDat<-list(subj=as.integer(factor(rDat$subj)),
+                item=as.integer(factor(rDat$item)),
+                rt=rDat$rt,
+                so = ifelse(rDat$type=="subj-ext", -1, 1),
+                N=nrow(rDat),
+                J=length(unique(rDat$subj)),
+                K=length(unique(rDat$item)))
+
+ranInt <- '
+data {
+int<lower=1> N;                  //number of data points
+real rt[N];                      //reading time
+real<lower=-1,upper=1> so[N];    //predictor
+int<lower=1> J;                  //number of subjects
+int<lower=1> K;                  //number of items
+int<lower=1, upper=J> subj[N];   //subject id
+int<lower=1, upper=K> item[N];   //item id
+}
+
+parameters {
+vector[2] beta;            //fixed intercept and slope
+vector[J] u;               //subject intercepts
+vector[K] w;               //item intercepts
+real<lower=0> sigma_e;     //error sd
+real<lower=0> sigma_u;     //subj sd
+real<lower=0> sigma_w;     //item sd
+}
+
+model {
+real mu;
+//priors
+u ~ normal(0,sigma_u);    //subj random effects
+w ~ normal(0,sigma_w);    //item random effects
+// likelihood
+for (i in 1:N){
+mu <- beta[1] + u[subj[i]] + w[item[i]] + beta[2]*so[i];
+rt[i] ~ lognormal(mu,sigma_e);
+}
+}'
+
+## Sample from posterior distribution:
+ranIntFit <- stan(model_code = ranInt, data=stanDat,
+                     iter=2000, chains=4)
+## Summarize results:
+print(ranIntFit,pars=c("beta","sigma_e","sigma_u","sigma_w"),
+         probs=c(0.025,0.5,0.975))
+
+beta1 <- extract(ranIntFit,pars=c("beta[2]"))$beta
+print(signif(quantile(beta1,probs=c(0.025,0.5,0.975)),2))
+
+## Posterior probability of beta1 being less than 0:
+mean(beta1<0)
+
+
+##### READING TIME - RANDOM INTERCEPTS MODEL WITHOUT ITEM ####
+
+## format data for Stan:
+stanDatRINoItem<-list(subj=as.integer(factor(rDat$subj)),
+              rt=rDat$rt,
+              so = ifelse(rDat$type=="subj-ext", -1, 1),
+              N=nrow(rDat),
+              J=length(unique(rDat$subj)))
+
+ranIntNoItem <- '
+data {
+int<lower=1> N;                  //number of data points
+real rt[N];                      //reading time
+real<lower=-1,upper=1> so[N];    //predictor
+int<lower=1> J;                  //number of subjects
+int<lower=1, upper=J> subj[N];   //subject id
+}
+
+parameters {
+vector[2] beta;            //fixed intercept and slope
+vector[J] u;               //subject intercepts
+real<lower=0> sigma_e;     //error sd
+real<lower=0> sigma_u;     //subj sd
+}
+
+model {
+real mu;
+//priors
+u ~ normal(0,sigma_u);    //subj random effects
+// likelihood
+for (i in 1:N){
+mu <- beta[1] + u[subj[i]] + beta[2]*so[i];
+rt[i] ~ lognormal(mu,sigma_e);
+}
+}'
+
+## Sample from posterior distribution:
+ranIntFit_noItem <- stan(model_code = ranIntNoItem, data=stanDatRINoItem,
+                     iter=2000, chains=4)
+print(ranIntFit_noItem)
+
