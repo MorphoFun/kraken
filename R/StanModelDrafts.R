@@ -505,7 +505,7 @@ fit.1 <- stan(model_code = mixture_model, model_name ="Mixture", data = mixture_
 
 
 ########## READING TIME - SIMPLE LINEAR REGRESSION ########
-
+#### http://arxiv.org/abs/1506.06201
 ## read in data:
 rDat <- readGitHub("https://raw.githubusercontent.com/vasishth/BayesLMMTutorial/master/data/gibsonwu2012data.txt")
 ## subset critical region:
@@ -646,3 +646,12 @@ ranIntFit_noItem <- stan(model_code = ranIntNoItem, data=stanDatRINoItem,
                      iter=2000, chains=4)
 print(ranIntFit_noItem)
 
+## Summarize results:
+print(ranIntFit_noItem,pars=c("beta","sigma_e","sigma_u"),
+probs=c(0.025,0.5,0.975))
+
+beta1 <- extract(ranIntFit_noItem,pars=c("beta[2]"))$beta
+print(signif(quantile(beta1,probs=c(0.025,0.5,0.975)),2))
+
+## Posterior probability of beta1 being less than 0:
+mean(beta1<0)

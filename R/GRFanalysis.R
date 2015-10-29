@@ -177,9 +177,9 @@ ellipses <- ordiellipse(speciesrda, d$Species, kind = "sd", conf = 0.95, lwd=2, 
 ## Calculate significance of the axes? http://onlinelibrary.wiley.com/doi/10.1111/j.2041-210X.2010.00078.x/pdf
 
 
-# defining response vs. predictor for the stan model later
+# defining response for the stan model later
 response <- d$NetGRF.BW
-predictor <- d$SpeciesInt
+
 
 ########## SELECTING VARIABLES FOR COMPARISON ##############
 species_dat <- list(N = nrow(FinLimbGRFs),
@@ -195,208 +195,56 @@ species_dat <- list(S = length(levels(FinLimbGRFs$Species)),
                     sigma = as.numeric(unlist(aggregate(response, list(predictor), sd)[2]))
 )
 
+dat <-list(spp = as.integer(d$Species),
+            app = as.integer(d$Appendage),
+            ind = as.integer(d$Ind),
+            y = response,
+            N = nrow(d),
+            J = length(unique(d$Ind))
+          )
+
 # see page 11 of the Rstan: the R interface to Stan manual; do I need to convert y to an array? S should never equal 1, so I'm guessing the answer is "no". 
 
 ########## STAN MODEL FOR COMPARING SPECIES MEANS ###########
 # Should the data and parameters be defined as vectors instead? https://groups.google.com/forum/#!msg/stan-users/4PgOF38Mnwk/hgUPCA768w0J
 # Should vector types always be used for linear (algebra) problems?
 
-### stan mcode for hierarchical model with multivariate priors on teh group-level coefficients and group-level
-## prior means (p. 66 on stan manual):
-hierstanmod <- '
+stanMod <- '
 data {
-  int<lower=0> N;             // num individuals
-  int<lower=1> K;             // num ind predictors
-  int<lower=1> J;             // num groups
-  int<lower=1> L;             // num group predictors
-  int<lower=1,upper=J> jj[N]; // group for individual
-  matrix[N,K] x;              // individual predictors
-  row_vector[L] u[J];         // group predictors
-  vector[N] y;                // outcomes
+  int<lower=1> N;                  //number of data points
+  real y[N];                       //response
+  int<lower=1,upper=3> spp [N];    //predictor
+  int<lower=1> J;                  //number of individuals
+  int<lower=1, upper=J> ind[N];    //ind id
 }
+
 parameters {
-  corr_matrix[K] Omega;       // prior correlation
-  vector<lower=0>[K] tau;     // prior scale
-  matrix[L,K] gamma;          // group coeffs
-  vector[K] beta[J];          // ind coeffs by group
-  real<lower=0> sigma;        // prediction error scale
+  vector[2] beta;            //fixed intercept and slope
+  vector[J] u;               //ind intercepts
+  real<lower=0> sigma_e;     //error sd
+  real<lower=0> sigma_u;     //ind sd
 }
+
 model {
-  tau ~ cauchy(0,2.5);
-  Omega ~ lkj_corr(2);
-  to_vector(gamma) ~ normal(0,
-{
-  row_vector[K] u_gamma[J];
-  for (j in 1:J)
-    u_gamma[j] <- u[j] * gamma;
-    beta ~ multi_normal(u_gamma, quad_form_diag(Omega, tau));
-}
-{
-  vector[N] x_beta_jj;
-  for (n in 1:N)
-    x_beta_jj[n] <- x[n] * beta[jj[n]];
-  y ~ normal(x_beta_jj, sigma);
-}
+  real mu;
+  //priors
+  u ~ normal(0,sigma_u);    //ind random effects
+  // likelihood
+  for (i in 1:N){
+  mu <- beta[1] + u[ind[i]] + beta[2]*spp[i];
+  y[i] ~ lognormal(mu,sigma_e);
+  }
 }'
 
-mod <- '
-data {
-  int<lower=1> S;        // dummy coding for species
-  int<lower=1> App;      // dummy coding for appendage type
-  int<lower=1> N;        // total number of observations
-  vector[N] y;           // response variable
-}
-parameters {
-  real alpha_spp;
-  real beta_spp;
-}
-transformed parameters {
-  real mu_spp;
-  
-}
-model {
-  
-  y ~ normal(mu_spp, sigma_spp);
-  
-}
-'
-#  y ~ normal(beta[1] + beta[2]*App + beta[3]*App + beta[4]*App, sigma);
+## Sample from posterior distribution:
+stanFit <- stan(model_code = stanMod, data=dat, iter=2000, chains=4)
+print(stanFit)
 
-### This code currently seems to be working to reproduce species means (only doing for practice; not for the paper)
-speciesMeansModel <-'
-data {
-  int<lower=1> S; // number of species
-  real y[S]; // estimated treatment effects
-  real<lower=0> sigma[S]; // SE of the effect estimates
-}
-parameters {
-  real mu; // overall means of all data
-  real<lower=0> tau; // overall sd of all data
-  vector[S] eta; // species-level errors
-}
-transformed parameters {
-  vector[S] theta; // species effects
-    theta <- mu + tau * eta;
-}
-model {
-  eta ~ normal(0, 1);
-  y ~ normal(theta, sigma);
-}
-'
+## Summarize results:
+print(stanFit,pars=c("beta","sigma_e","sigma_u"),probs=c(0.025,0.5,0.975))
 
-speciesMeansFit <- stan(model_code = speciesMeansModel, data = species_dat, iter = 1000, chains = 4)
-# Warning messages:
-# 1: There were 75 divergent transitions after warmup. Increasing adapt_delta may help. 
-# 2: Examine the pairs() plot to diagnose sampling problems
-## NOTE: number of divergent transitions after warmup is not consistent; will change if you re-run the code; same is true if you use the file option below
-pairs(speciesMeansFit)
+beta1 <- extract(stanFit,pars=c("beta[2]"))$beta
+print(signif(quantile(beta1,probs=c(0.025,0.5,0.975)),2))
 
-## Increasing adapt delta to see if it helps with the divergent transitions
-speciesMeansfitAD9 <- stan(model_code = speciesMeansModel, data = species_dat, iter = 1000, chains = 4, control = list(adapt_delta = 0.9))
-# Nope, didn't help. 
-# Now it also spits out:
-# The following numerical problems occured the indicated number of times on chain  4 count
-# Exception thrown at line 19: normal_log: Location parameter[1] is inf, but must be finite!     1
-# If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-#speciesMeansfit <- stan(file = 'speciesMeans.stan', data = species_dat, iter = 1000, chains = 4)
-### Get warning messages
-# Warning messages:
-# 1: There were 21 divergent transitions after warmup. Increasing adapt_delta may help. 
-# 2: Examine the pairs() plot to diagnose sampling problems
-
-print(speciesMeansFit)
-# theta means are very similar to the means of y by species (as we would expect)
-
-## Evaluating whether there were problems in the model
-# yellow points = transitions where the max treedepth__ was hit
-# red points = transitions where n_divergent__ = 1 
-# the below-diagonal intersection (draws with below-median accept_stat__) and the above diagonal intersection (draws with above-media accept_stat__) of the same two 
-# variables should have distributions that are mirror images of each other. 
-pairs(speciesMeansFit, pars = c("mu", "tau", "lp__"))
-# below- and above-diagonal plots do not seem to mirror each other, so the data may be skewed?
-
-# looking at the sampler directly, by each individual chain
-lapply(get_sampler_params(speciesMeansFit, inc_warmup = TRUE), summary, digits = 2)
-# max of n_divergent__ reaches one for each chain but the mean values are relatively small, so this suggests there were only a small number of divergent transitions? 
-# the mean accept_stat__ is about 0.75 but the median is about 0.95; this suggests that it is pretty skewed
-
-
-###### Attempting to account for individual variation ####
-# Based on: http://rstudio-pubs-static.s3.amazonaws.com/64315_bc3a395edd104095a8384db8d9952f43.html
-# So far I haven't gotten a working model figured out yet... 
-speciesLookupVec <- unique(d[c("Ind", "Species")])[,"Species"]
-
-dat <- with(d, 
-            list(Ni = nrow(d), 
-                 Nj = length(unique(Ind)),
-                 Nk = length(unique(Species)),
-                 indID = as.integer(Ind),
-                 speciesID = as.integer(Species), 
-                 speciesLookup = as.integer(speciesLookupVec),
-                 y = response
-            ))
-
-speciesMeansIndModel <-'
-data {
-int<lower=1> Ni; // number of observations
-int<lower=1> Nj; // number of individuals
-int<lower=1> Nk; // number of species
-
-int<lower=1> indID[Ni];
-int<lower=1> speciesID[Ni];
-int<lower=1> speciesLookup[Nj];
-real y[Ni];
-}
-parameters {
-real beta_0; // sample intercept
-real beta_1; // sample slope
-real<lower=0> sigma_e0; // sample error
-
-real u_0jk[Nj];
-real<lower=0> sigma_u0jk;
-
-real u_0k[Nk];
-real<lower=0> sigma_u0k; 
-}
-transformed parameters {
-// Varying intercepts
-real beta_0jk[Nj];
-real beta_0k[Nk];
-
-// Individual mean
-real mu[Ni];
-
-// Varying intercepts definition
-for (k in 1:Nk) {
-beta_0k[k] <- beta_0 + u_0k[k]; // species level
-}
-for (j in 1:Nj) {
-beta_0jk[j] <- beta_0k[speciesLookup[j]] + u_0jk[j]; // individual level
-}
-
-// sample mean
-for (i in 1:Ni) {
-mu[i] <- beta_0jk[indID[i]]; 
-}
-}
-
-model {
-// assuming flat prior for now, so do not need to code anything to specify that
-
-// Random effects distribution
-u_0k ~ normal(0, sigma_u0k);
-u_0jk ~ normal(0, sigma_u0jk);
-
-// Likelihood 
-// outcome model is N(mu, sigma^2) whereby sigma represents SD rather than variance
-for (i in 1:Ni) {
-y[i] ~ normal(mu[i], sigma_e0);
-}
-}
-'
-
-speciesIndStanFit <- stan(model_code = speciesMeansIndModel, data = dat,
-                          chains = 4, iter = 1000, warmup = 1000, thin = 10)
-
-
+## Posterior probability of beta1 being less than 0:
+mean(beta1<0)
