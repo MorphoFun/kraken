@@ -45,13 +45,13 @@ FLDago <- sapply(subset(d, Appendage=="Pec" & !Species=="pb", select = c(1:7)), 
 ######## PLOTTING HISTOGRAMS OF THE DATA #######
 library(ggplot2) 
  
-ggplot(d) + geom_histogram(aes(d$PercentStance, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage, binwidth = 40) 
-ggplot(d) + geom_histogram(aes(d$APAngle.Convert, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage) 
-ggplot(d) + geom_histogram(aes(d$MLAngle.Convert, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage) 
-ggplot(d) + geom_histogram(aes(d$InterpV.BW, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage) 
-ggplot(d) + geom_histogram(aes(d$InterpML.BW, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage) 
-ggplot(d) + geom_histogram(aes(d$InterpAP.BW, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage) 
-ggplot(d) + geom_histogram(aes(d$NetGRF.BW, fill = interaction(d$Species, d$Appendage))) + facet_grid(Species~Appendage) 
+ggplot(d) + geom_histogram(aes(d$PercentStance, fill = interaction(d$Species, d$Appendage)), binwidth = 0.05) + facet_grid(Species~Appendage) 
+ggplot(d) + geom_histogram(aes(d$APAngle.Convert, fill = interaction(d$Species, d$Appendage)), binwidth = 0.05) + facet_grid(Species~Appendage) 
+ggplot(d) + geom_histogram(aes(d$MLAngle.Convert, fill = interaction(d$Species, d$Appendage)), binwidth = 0.05) + facet_grid(Species~Appendage) 
+ggplot(d) + geom_histogram(aes(d$InterpV.BW, fill = interaction(d$Species, d$Appendage)), binwidth = 0.05) + facet_grid(Species~Appendage) 
+ggplot(d) + geom_histogram(aes(d$InterpML.BW, fill = interaction(d$Species, d$Appendage)), binwidth = 0.05) + facet_grid(Species~Appendage) 
+ggplot(d) + geom_histogram(aes(d$InterpAP.BW, fill = interaction(d$Species, d$Appendage)), binwidth = 0.05) + facet_grid(Species~Appendage) 
+ggplot(d) + geom_histogram(aes(d$NetGRF.BW, fill = interaction(d$Species, d$Appendage)), binwidth = 0.05) + facet_grid(Species~Appendage) 
 
 
 ####### TESTING COEFFICIENT OF VARIATION TO IND VARIABILITY #####
@@ -181,70 +181,70 @@ ellipses <- ordiellipse(speciesrda, d$Species, kind = "sd", conf = 0.95, lwd=2, 
 response <- d$NetGRF.BW
 
 
-########## SELECTING VARIABLES FOR COMPARISON ##############
-species_dat <- list(N = nrow(FinLimbGRFs),
-                    S = as.integer(FinLimbGRFs$Species),
-                    I = as.integer(FinLimbGRFs$Ind),
-                    y = as.numeric(unlist(aggregate(response, list(predictor), mean)[2])),
-                    sigma = as.numeric(unlist(aggregate(response, list(predictor), sd)[2]))
-)
-
-# For comparison of the pooled data for each species
-species_dat <- list(S = length(levels(FinLimbGRFs$Species)), 
-                    y = as.numeric(unlist(aggregate(response, list(predictor), mean)[2])),
-                    sigma = as.numeric(unlist(aggregate(response, list(predictor), sd)[2]))
-)
-
-dat <-list(spp = as.integer(d$Species),
-            app = as.integer(d$Appendage),
-            ind = as.integer(d$Ind),
-            y = response,
-            N = nrow(d),
-            J = length(unique(d$Ind))
-          )
-
-# see page 11 of the Rstan: the R interface to Stan manual; do I need to convert y to an array? S should never equal 1, so I'm guessing the answer is "no". 
-
-########## STAN MODEL FOR COMPARING SPECIES MEANS ###########
-# Should the data and parameters be defined as vectors instead? https://groups.google.com/forum/#!msg/stan-users/4PgOF38Mnwk/hgUPCA768w0J
-# Should vector types always be used for linear (algebra) problems?
-
-stanMod <- '
-data {
-  int<lower=1> N;                  //number of data points
-  real y[N];                       //response
-  int<lower=1,upper=3> spp [N];    //predictor
-  int<lower=1> J;                  //number of individuals
-  int<lower=1, upper=J> ind[N];    //ind id
-}
-
-parameters {
-  vector[2] beta;            //fixed intercept and slope
-  vector[J] u;               //ind intercepts
-  real<lower=0> sigma_e;     //error sd
-  real<lower=0> sigma_u;     //ind sd
-}
-
-model {
-  real mu;
-  //priors
-  u ~ normal(0,sigma_u);    //ind random effects
-  // likelihood
-  for (i in 1:N){
-  mu <- beta[1] + u[ind[i]] + beta[2]*spp[i];
-  y[i] ~ lognormal(mu,sigma_e);
-  }
-}'
-
-## Sample from posterior distribution:
-stanFit <- stan(model_code = stanMod, data=dat, iter=2000, chains=4)
-print(stanFit)
-
-## Summarize results:
-print(stanFit,pars=c("beta","sigma_e","sigma_u"),probs=c(0.025,0.5,0.975))
-
-beta1 <- extract(stanFit,pars=c("beta[2]"))$beta
-print(signif(quantile(beta1,probs=c(0.025,0.5,0.975)),2))
-
-## Posterior probability of beta1 being less than 0:
-mean(beta1<0)
+# ########## SELECTING VARIABLES FOR COMPARISON ##############
+# species_dat <- list(N = nrow(FinLimbGRFs),
+#                     S = as.integer(FinLimbGRFs$Species),
+#                     I = as.integer(FinLimbGRFs$Ind),
+#                     y = as.numeric(unlist(aggregate(response, list(predictor), mean)[2])),
+#                     sigma = as.numeric(unlist(aggregate(response, list(predictor), sd)[2]))
+# )
+# 
+# # For comparison of the pooled data for each species
+# species_dat <- list(S = length(levels(FinLimbGRFs$Species)), 
+#                     y = as.numeric(unlist(aggregate(response, list(predictor), mean)[2])),
+#                     sigma = as.numeric(unlist(aggregate(response, list(predictor), sd)[2]))
+# )
+# 
+# dat <-list(spp = as.integer(d$Species),
+#             app = as.integer(d$Appendage),
+#             ind = as.integer(d$Ind),
+#             y = response,
+#             N = nrow(d),
+#             J = length(unique(d$Ind))
+#           )
+# 
+# # see page 11 of the Rstan: the R interface to Stan manual; do I need to convert y to an array? S should never equal 1, so I'm guessing the answer is "no". 
+# 
+# ########## STAN MODEL FOR COMPARING SPECIES MEANS ###########
+# # Should the data and parameters be defined as vectors instead? https://groups.google.com/forum/#!msg/stan-users/4PgOF38Mnwk/hgUPCA768w0J
+# # Should vector types always be used for linear (algebra) problems?
+# 
+# stanMod <- '
+# data {
+#   int<lower=1> N;                  //number of data points
+#   real y[N];                       //response
+#   int<lower=1,upper=3> spp [N];    //predictor
+#   int<lower=1> J;                  //number of individuals
+#   int<lower=1, upper=J> ind[N];    //ind id
+# }
+# 
+# parameters {
+#   vector[2] beta;            //fixed intercept and slope
+#   vector[J] u;               //ind intercepts
+#   real<lower=0> sigma_e;     //error sd
+#   real<lower=0> sigma_u;     //ind sd
+# }
+# 
+# model {
+#   real mu;
+#   //priors
+#   u ~ normal(0,sigma_u);    //ind random effects
+#   // likelihood
+#   for (i in 1:N){
+#   mu <- beta[1] + u[ind[i]] + beta[2]*spp[i];
+#   y[i] ~ lognormal(mu,sigma_e);
+#   }
+# }'
+# 
+# ## Sample from posterior distribution:
+# stanFit <- stan(model_code = stanMod, data=dat, iter=2000, chains=4)
+# print(stanFit)
+# 
+# ## Summarize results:
+# print(stanFit,pars=c("beta","sigma_e","sigma_u"),probs=c(0.025,0.5,0.975))
+# 
+# beta1 <- extract(stanFit,pars=c("beta[2]"))$beta
+# print(signif(quantile(beta1,probs=c(0.025,0.5,0.975)),2))
+# 
+# ## Posterior probability of beta1 being less than 0:
+# mean(beta1<0)
