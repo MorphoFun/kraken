@@ -14,9 +14,9 @@
 #' @param \code{fasicleLength} Numerical value of the muscle fiber length, in units of meters. Often assumed to be average muscle fiber length.
 #' @param \code{density} Numerical value of the muscle density. Defaults to 1060 kg/m^3, a typical value for striated muscles (Biewener 2003)
 #' @param \code{stringsAsFactors}. Logical. Indicate whether character vectors should be automatically converted to factors. Default is \code{FALSE}.
-#' @param \code{...} Further arguments that can be passed to the read.table family
+#' @param \code{...} Further arguments that can be passed
 #'
-#' @details See description in Hutchinson et al. (2015) and Sacks and Roy (1982) for more details. 
+#' @details See description in Hutchinson et al. (2015) and Sacks and Roy (1982) for more details regarding the calculation of PCSA.
 #' @references Biewener AA. 2003. Animal locomotion. Oxford, UK: Oxford University Press. 
 #' @references Hutchinson JR, Rankin JW, Rubenson J, Rosenbluth KH, Siston RA, Delp SL. 2015. Musculoskeletal modelling of an ostrich (Struthio camelus) pelvic limb: influence of limb orientation on muscular capacity during locomotion. \url{http://dx.doi.org/10.7717/peerj.1001}
 #' @references Sacks RD, Roy RR. 1982. Architecture of The Hind Limb Muscles of Cats: Functional Significance. Journal of Morphology, 185–195. \url{http://onlinelibrary.wiley.com/doi/10.1002/jmor.1051730206/abstract}
