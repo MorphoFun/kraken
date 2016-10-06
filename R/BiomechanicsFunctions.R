@@ -13,8 +13,6 @@
 #' @param \code{pennationAngle} Numerical value of the pennational angle of the muscle, in units of degrees.
 #' @param \code{fasicleLength} Numerical value of the muscle fiber length, in units of meters. Often assumed to be average muscle fiber length.
 #' @param \code{density} Numerical value of the muscle density. Defaults to 1060 kg/m^3, a typical value for striated muscles (Biewener 2003)
-#' @param \code{stringsAsFactors}. Logical. Indicate whether character vectors should be automatically converted to factors. Default is \code{FALSE}.
-#' @param \code{...} Further arguments that can be passed
 #'
 #' @details See description in Hutchinson et al. (2015) and Sacks and Roy (1982) for more details regarding the calculation of PCSA.
 #' @references Biewener AA. 2003. Animal locomotion. Oxford, UK: Oxford University Press. 
@@ -27,7 +25,7 @@
 #'
 #' @export
 
-pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, stringsasFactors = FALSE,...) {
+pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
   d <- (mass * cos(pennationAngle))/(fascicleLength*density)
   return(d)
 }
