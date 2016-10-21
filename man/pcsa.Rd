@@ -14,16 +14,12 @@ pcsa(mass, pennationAngle, fiberLength, density, stringAsFactors = FALSE, ...)
 \item{\code{fasicleLength}}{Numerical value of the muscle fiber length, in units of meters. Often assumed to be average muscle fiber length.}
 
 \item{\code{density}}{Numerical value of the muscle density. Defaults to 1060 kg/m^3, a typical value for striated muscles (Biewener 2003)}
-
-\item{\code{stringsAsFactors}.}{Logical. Indicate whether character vectors should be automatically converted to factors. Default is \code{FALSE}.}
-
-\item{\code{...}}{Further arguments that can be passed to the read.table family}
 }
 \description{
 \code{pcsa} allows one to estimate the physiological cross-sectional area of a muscle
 }
 \details{
-See description in Hutchinson et al. (2015) and Sacks and Roy (1982) for more details.
+See description in Hutchinson et al. (2015) and Sacks and Roy (1982) for more details regarding the calculation of PCSA.
 }
 \examples{
 
