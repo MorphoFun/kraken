@@ -1,13 +1,1 @@
 Package: kraken
-Title: Analyses for bone biomechanics
-Version: 0.0.0.9000
-Authors@R: person("Sandy", "Kawano", email = "sandy.kawano@gmail.com", role = c("aut", "cre"))
-Description: Evaluations of bone biomechanics.
-License: GPL-2
-BugReports: https://github.com/MorphoFun/kraken/issues
-URL: https://github.com/MorphoFun/kraken
-LazyData: TRUE
-Suggests:
-    knitr
-VignetteBuilder: knitr
-RoxygenNote: 5.0.1
