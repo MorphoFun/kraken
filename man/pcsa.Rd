@@ -33,4 +33,3 @@ Hutchinson JR, Rankin JW, Rubenson J, Rosenbluth KH, Siston RA, Delp SL. 2015. M
 
 Sacks RD, Roy RR. 1982. Architecture of The Hind Limb Muscles of Cats: Functional Significance. Journal of Morphology, 185–195. \url{http://onlinelibrary.wiley.com/doi/10.1002/jmor.1051730206/abstract}
 }
-
