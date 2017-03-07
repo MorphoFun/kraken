@@ -3,18 +3,13 @@
 
 library(rstan)
 library(devtools)
-
-readGitHub <- function(url, header = TRUE, fill = TRUE, stringAsFactors = FALSE, ...) {
-  store <- tempfile()
-  download.file(url, destfile=store, method="curl")
-  dd <- read.table(store, header = header, ...)
-  return(dd)
-}
-
+library(psa)
 
 # loading from remote folder
-FinLimbGRFs <- readGitHub("https://raw.githubusercontent.com/MorphoFun/kraken/master/dataraw/PeakNetGRFData_150518.csv", sep = ",")
-
+url <- ("https://raw.githubusercontent.com/MorphoFun/kraken/master/dataraw/PeakNetGRFData_150518.csv")
+FinLimbGRFs <- read.csv(file = url)
+  
+  
 ########## GRF DATA ############
 
 # stan can't handle factor types (e.g., Species in character format), so need to convert factor levels to dummy variables using as.integer()
