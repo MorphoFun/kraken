@@ -58,7 +58,9 @@ pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
 #' @examples
 #'
 #' profilePlotR(subset(AT_Kine2, Variable == "AbductAdductAngle"), "PercentStance", "value", groupname = "Appendage", subgroupname = "Ind", rowname = "Filename", highlight = AT_Kine2_AAA_subset, title = "Abduction versus Adduction", xlab = "PercentStance", ylab = "Degrees")
-#'
+#' 
+#' @import ggplot2
+#' @import vegan
 #' @export
 
 profilePlotR <- function(d = d, xname = xname, yname = yname, groupname = groupname, subgroupname = subgroupname, rowname = rowname, title = "plot", xlab = "x", ylab = "y", colorlinesby = subgroupname, highlight = NULL, ...) {
