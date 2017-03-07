@@ -58,7 +58,7 @@ pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
 #' @examples
 #'
 #' profilePlotR(subset(AT_Kine2, Variable == "AbductAdductAngle"), "PercentStance", "value", groupname = "Appendage", subgroupname = "Ind", rowname = "Filename", highlight = AT_Kine2_AAA_subset, title = "Abduction versus Adduction", xlab = "PercentStance", ylab = "Degrees")
-#' 
+#'
 #' @import ggplot2
 #' @import vegan
 #' @export
@@ -85,14 +85,14 @@ profilePlotR <- function(d = d, xname = xname, yname = yname, groupname = groupn
 #'
 #' @name impulse
 #'
-#' @description Estimates impulse from data of force over time by calculating the area under the curve. 
+#' @description Estimates impulse from data of force over time by calculating the area under the curve.
 #'
 #' @usage impulse(time, GRF)
 #'
 #' @param \code{time} a vector of numerical data on the time sequence
 #' @param \code{GRF} an array of columns for the force data (assumed that force data are already synchronized to the time data)
 #'
-#' @details Impulse is a measure of the force applied over a specific time period. The time and force data should already be ordered so that the first row is the beginning of the trial and the last row is the end of the trial. 
+#' @details Impulse is a measure of the force applied over a specific time period. The time and force data should already be ordered so that the first row is the beginning of the trial and the last row is the end of the trial.
 #'
 #' @examples
 #' time <- seq(1:10)
@@ -100,16 +100,15 @@ profilePlotR <- function(d = d, xname = xname, yname = yname, groupname = groupn
 #' GRF <- data.frame(x = rnorm(10), y = rnorm(10), z = rnorm(10))
 #'
 #' impulse(time, GRF)
-#' 
+#'
 #'
 #' @import zoo
 #' @export
 
 impulse <- function(time, GRF) {
-  output <- list(
-    totalImpulse = sapply(GRF, FUN = function(x) sum(diff(time)*rollmean(x,2))),
-    rollImpulse = sapply(GRF, FUN = function(x) diff(time)*rollmean(x,2))
-  )
+  ifelse(ncol(cbind(time,GRF) == 2), totalImpulse <- sum(diff(time)*rollmean(GRF,2)), totalImpulse <- sapply(GRF, FUN = function(x) sum(diff(time)*rollmean(x,2))))
+  ifelse(ncol(cbind(time,GRF) == 2), rollImpulse <- diff(time)*rollmean(GRF,2), rollImpulse <- sapply(GRF, FUN = function(x) sum(diff(time)*rollmean(x,2))))
+    output <- list(totalImpulse = totalImpulse, rollImpulse = rollImpulse)
   return(output)
 }
-  
+
