@@ -105,10 +105,27 @@ profilePlotR <- function(d = d, xname = xname, yname = yname, groupname = groupn
 #' @import zoo
 #' @export
 
+# current not reporting separate total impulse values if there are more than one GRF column
 impulse <- function(time, GRF) {
+  dd <- cbind(time, GRF)
   ifelse(ncol(cbind(time,GRF) == 2), totalImpulse <- sum(diff(time)*rollmean(GRF,2)), totalImpulse <- sapply(GRF, FUN = function(x) sum(diff(time)*rollmean(x,2))))
-  ifelse(ncol(cbind(time,GRF) == 2), rollImpulse <- diff(time)*rollmean(GRF,2), rollImpulse <- sapply(GRF, FUN = function(x) sum(diff(time)*rollmean(x,2))))
+  ifelse(ncol(cbind(time,GRF) == 2), rollImpulse <- diff(time)*rollmean(GRF,2), rollImpulse <- sapply(GRF, FUN = function(x) diff(time)*rollmean(x,2)))
     output <- list(totalImpulse = totalImpulse, rollImpulse = rollImpulse)
   return(output)
 }
 
+
+impulse <- function(time, GRF) {
+  if (ncol(GRF) == 1) {
+    totalImpulse <- sum(diff(time)*rollmean(GRF,2))
+    rollImpulse <- diff(time)*rollmean(GRF,2)
+  } else {
+    totalImpulse <- sapply(GRF, FUN = function(x) sum(diff(time)*rollmean(x,2)))
+    rollImpulse <- sapply(GRF, FUN = function(x) diff(time)*rollmean(x,2))
+  }
+  output <- list(
+    totalImpulse = totalImpulse,
+    rollImpulse = rollImpulse
+  )
+  return(output)
+}
