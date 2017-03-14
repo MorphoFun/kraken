@@ -146,7 +146,7 @@ impulse <- function(time, GRF) {
 #'
 #' @examples
 #' 
-#' voltToForce(calib, lightStartFrame, startFrame, endFrame, videoHz, forceHz, zeroStart, saveData)
+#' voltToForce(df, calib = c(-0.710, 1.337, 1.563), lightStartFrame = 248, startFrame = 20, endFrame = 196, zeroStart = 22000)
 #'
 #' @export
 #' 
@@ -260,6 +260,9 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, zeroSt
 #' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
 #'
 #' @examples
+#' 
+#' GRF <- voltToForce(df, calib = c(-0.710, 1.337, 1.563), lightStartFrame = 248, startFrame = 20, endFrame = 196, zeroStart = 22000)
+#' GRF_filtered <- buttFilteR(GRF)
 #'
 #' @import signal
 #' @export
