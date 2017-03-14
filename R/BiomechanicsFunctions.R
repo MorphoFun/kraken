@@ -17,7 +17,7 @@
 #' @details See description in Hutchinson et al. (2015) and Sacks and Roy (1982) for more details regarding the calculation of PCSA.
 #' @references Biewener AA. 2003. Animal locomotion. Oxford, UK: Oxford University Press.
 #' @references Hutchinson JR, Rankin JW, Rubenson J, Rosenbluth KH, Siston RA, Delp SL. 2015. Musculoskeletal modelling of an ostrich (Struthio camelus) pelvic limb: influence of limb orientation on muscular capacity during locomotion. \url{http://dx.doi.org/10.7717/peerj.1001}
-#' @references Sacks RD, Roy RR. 1982. Architecture of The Hind Limb Muscles of Cats: Functional Significance. Journal of Morphology, 185–195. \url{http://onlinelibrary.wiley.com/doi/10.1002/jmor.1051730206/abstract}
+#' @references Sacks RD, Roy RR. 1982. Architecture of The Hind Limb Muscles of Cats: Functional Significance. Journal of Morphology, 185-195. \url{http://onlinelibrary.wiley.com/doi/10.1002/jmor.1051730206/abstract}
 #'
 #' @examples
 #'
@@ -105,16 +105,6 @@ profilePlotR <- function(d = d, xname = xname, yname = yname, groupname = groupn
 #' @import zoo
 #' @export
 
-# current not reporting separate total impulse values if there are more than one GRF column
-impulse <- function(time, GRF) {
-  dd <- cbind(time, GRF)
-  ifelse(ncol(cbind(time,GRF) == 2), totalImpulse <- sum(diff(time)*rollmean(GRF,2)), totalImpulse <- sapply(GRF, FUN = function(x) sum(diff(time)*rollmean(x,2))))
-  ifelse(ncol(cbind(time,GRF) == 2), rollImpulse <- diff(time)*rollmean(GRF,2), rollImpulse <- sapply(GRF, FUN = function(x) diff(time)*rollmean(x,2)))
-    output <- list(totalImpulse = totalImpulse, rollImpulse = rollImpulse)
-  return(output)
-}
-
-
 impulse <- function(time, GRF) {
   if (ncol(GRF) == 1) {
     totalImpulse <- sum(diff(time)*rollmean(GRF,2))
@@ -127,5 +117,220 @@ impulse <- function(time, GRF) {
     totalImpulse = totalImpulse,
     rollImpulse = rollImpulse
   )
+  return(output)
+}
+
+
+
+#### voltToForce ####
+#' @title Convert voltage data to ground reaction force data
+#'
+#' @name voltToForce
+#'
+#' @description Takes voltage data from a multi-axis force platform and then converts those data to ground reation forces.
+#'
+#' @usage voltToForce(calib, lightStartFrame, startFrame, endFrame, videoHz, forceHz, zeroStart)
+#'
+#' @param \code{calib} A vector of numeric data containing the calibrations in the vertical, mediolateral, and anteroposterior directions, respectively.
+#' @param \code{lightStartFrame} A numeric / integer value depicting the frame in which the light is triggered on the high-speed video.
+#' @param \code{startFrame} A numeric / integer value depicting the frame number in which the behavior started (e.g., first contact of the foot onto the force plate)
+#' @param \code{endFrame} A numeric / integer value depicting the frame number in which the behavior ended (e.g., penultimate frame to the foot lifting off from the force plate)
+#' @param \code{videoHz} A numeric / integer value depicting the frame rate for the high-speed videos.
+#' @param \code{forceHz} A numeric / integer value depicting the recording rate for the force plate data.
+#' @param \code{zeroStart} A numeric / integer value depicting the sweep number in which to start zeroing the data (i.e., estimate the baseline). Should be at least 1000 sweeps away from any activity. 
+#' @param \code{saveData} Option to save all of the data from this function as .csv files. Default is set to "no".
+#'
+#' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016. It is assumed that the output from the force platform contain 12 channels in the following order: trigger, four verticals, sum of the verticals, two mediolateral, sum of the mediolaterals, two anteroposterior, and the sum of the anteroposteriors.
+#' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
+#' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
+#'
+#' @examples
+#' 
+#' voltToForce(calib, lightStartFrame, startFrame, endFrame, videoHz, forceHz, zeroStart, saveData)
+#'
+#' @export
+#' 
+
+#### TO DO FOR voltToForce: add option to insert pectoral vs. pelvic vs. tail start and end points on the plot
+
+voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, zeroStart, videoHz = 100, forceHz= 5000, filename = NULL, saveData = "no", ...) {
+  myData <- df[,c(1:12)] # ensuring only the desired columns are used for analysis
+  names(myData) <- c("light_Volts", "vert1_Volts", "vert2_Volts", "vert3_Volts", "vert4_Volts", "vertSum_Volts", "ML1_Volts", "ML2_Volts", "MLSum_Volts", "AP1_Volts", "AP2_Volts", "APSum_Volts")
+  myData$sweep <- 1:nrow(myData)
+  
+  # Calibrating data
+  myData$vertSumCalib_N <- myData$vertSum_Volts*as.numeric(calib[1])
+  myData$MLSumCalib_N <- myData$MLSum_Volts*as.numeric(calib[2])
+  myData$APSumCalib_N <- myData$APSum_Volts*as.numeric(calib[3])
+  
+  # Putting forces in terms of GRF (which is opposite in direction to the force produced by the limb onto the force plate)
+  myData$GRF_vertSumCalib_N <- myData$vertSumCalib_N # Already made negative based on the calibration calculations conducted earlier in the excel calibration files
+  myData$GRF_MLSumCalib_N <- -myData$MLSumCalib_N
+  myData$GRF_APSumCalib_N <- -myData$APSumCalib_N
+  
+  # Determining what sweep number the light is turned on, so we can sync with video frames
+  lightSwitch <- myData[which(myData$light_Volts<0),]
+  lightOnset <- lightSwitch[which(lightSwitch$sweep == min(lightSwitch$sweep)),]
+  
+  # Synching video frames with force sweep numbers
+  startSweep <- lightOnset$sweep-((lightStartFrame-startFrame)*(forceHz/videoHz))
+  endSweep <- lightOnset$sweep-((lightStartFrame-endFrame)*(forceHz/videoHz))
+  
+  # Correcting for the offset from the baseline (zero)
+  offsetCalcStart <- zeroStart-2000
+  offsetCalcEnd <- zeroStart-1000
+  GRF_vertSumCalib_N_Offset <- mean(myData$GRF_vertSumCalib_N[offsetCalcStart:offsetCalcEnd])
+  GRF_MLSumCalib_N_Offset <- mean(myData$GRF_MLSumCalib_N[offsetCalcStart:offsetCalcEnd])
+  GRF_APSumCalib_N_Offset <- mean(myData$GRF_APSumCalib_N[offsetCalcStart:offsetCalcEnd])
+  
+  # Zeroing the force trace data using the offset value
+  myData$GRF_vertSumCalib_N_Zero <- myData$GRF_vertSumCalib_N - GRF_vertSumCalib_N_Offset
+  myData$GRF_MLSumCalib_N_Zero <- myData$GRF_MLSumCalib_N - GRF_MLSumCalib_N_Offset
+  myData$GRF_APSumCalib_N_Zero <- myData$GRF_APSumCalib_N - GRF_APSumCalib_N_Offset
+  
+  # Plotting the force data that has been converted to Newtons and zero'd
+  plotStart <- as.numeric(startSweep-1000)
+  plotEnd <- as.numeric(endSweep+1000)
+  windows(width=10)
+  par(mfrow=c(1,3), oma = c(0, 0, 2, 0))  # oma = outer margin with 2 lines above the top of the graphs
+  # Vertical component of GRF graph
+  plot(myData$sweep[plotStart:plotEnd], myData$GRF_vertSumCalib_N_Zero[plotStart:plotEnd], xlab='Sweep', ylab='GRF - Vertical (N)', main='Zeroed GRF (Vertical) Force', type="l", col="blue")
+  #points(ImpPointsX[1,], ImpPoints_GRFVert[1,], type='p', pch='O', col='cyan')
+  #text(ImpPointsX[1,], ImpPoints_GRFVert[1,], labels=names(ImpPointsX), pos=3, font=2) # pos: 1 = below, 2 = left, 3 = above, 4 = right
+  
+  # Mediolateral component of GRF graph
+  plot(myData$sweep[plotStart:plotEnd], myData$GRF_MLSumCalib_N_Zero[plotStart:plotEnd], xlab='Sweep', ylab='GRF - Mediolateral (N)', main='Zeroed GRF (Mediolateral) Force', type="l", col="red")
+  #points(ImpPointsX[1,], ImpPoints_GRFML[1,], type='p', pch='O', col='cyan')
+  #text(ImpPointsX[1,], ImpPoints_GRFML[1,], labels=names(ImpPointsX), pos=3, font=2) # pos: 1 = below, 2 = left, 3 = above, 4 = right
+  
+  # Anteroposterior component of GRF graph
+  plot(myData$sweep[plotStart:plotEnd], myData$GRF_APSumCalib_N_Zero[plotStart:plotEnd], xlab='Sweep', ylab='GRF - Anteroposterior (N)', main='Zeroed GRF (Anteroposterior) Force', type="l", col="forestgreen")
+  #points(ImpPointsX[1,], ImpPoints_GRFHz[1,], type='p', pch='O', col='cyan')
+  #text(ImpPointsX[1,], ImpPoints_GRFHz[1,], labels=names(ImpPointsX), pos=3, font=2) # pos: 1 = below, 2 = left, 3 = above, 4 = right
+  
+  mtext(filename, line=0.5, outer=TRUE)  # writes an overall title over the graphs
+  
+  # Prepping the data to be filtered
+  cycleSweeps <- myData$sweep[startSweep:endSweep]
+  cycleGRFVert <- myData$GRF_vertSumCalib_N_Zero[startSweep:endSweep]
+  cycleGRFML <- myData$GRF_MLSumCalib_N_Zero[startSweep:endSweep]
+  cycleGRFAP <- myData$GRF_APSumCalib_N_Zero[startSweep:endSweep]
+  filterPrep <- data.frame(cycleSweeps,cycleGRFVert, cycleGRFML, cycleGRFAP)
+  names(filterPrep) <- c('sweep', 'GRF0SumVN', 'GRF0SumMLN', 'GRF0SumAPN')
+  
+  # Saving all of the data
+  if (!saveData == "no") {
+    today <- Sys.Date()
+    saveDate <- format(today, format="%y%m%d")
+    saveAllDataName <- paste(filename,"_allPrep_",saveDate, ".csv", sep="")
+    write.table(myData, file=saveAllDataName, sep =",", row.names=FALSE)
+    
+    # Saving the filter prep data
+    saveFileName <- paste(filename,"_filterPrep_", saveDate, ".csv", sep="")
+    write.table(filterPrep, file=saveFileName, sep =",", row.names=FALSE)
+  }
+  
+  # output the data
+  output <- list(
+    filterPrep = filterPrep,
+    filename = filename,
+    allData = myData
+  )
+
+}
+
+#### buttFilteR ####
+#' @title Apply a butterworth filter to data
+#'
+#' @name buttFilteR
+#'
+#' @description Applies a butterworth filter to data, using information about the data to determine what polynomial to use.
+#'
+#' @usage 
+#'
+#' @param \code{df} A list containing the file name and an array of data containing the independent varabile (time) as the first column that is followed by the dependent variables. Can take voltToForce output as an input.
+#' @param \code{Fs} A numeric value indicating the sampling frequency. 5000 Hz is set as a default.
+#' @param \code{PbF} A numeric value indicating the pass-band frequency. 6 is set as a default.
+#' @param \code{SbF} A numeric value indicating the stop-band frequency. 190 is set as a default.
+#' @param \code{Rp} A numeric value indicating passband ripple in dB; represents the max permissible passband loss. 2 dB is set as a default.
+#' @param \code{Rs} A numeric value indicating stopband attenuation in dB; respresents the dB the stopband is down from the passband. 40 dB is set as a default.
+
+#' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016. It is assumed that the output from the force platform contain 12 channels in the following order: trigger, four verticals, sum of the verticals, two mediolateral, sum of the mediolaterals, two anteroposterior, and the sum of the anteroposteriors.
+#' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
+#' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
+#'
+#' @examples
+#'
+#' @import signal
+#' @export
+
+buttFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...) {
+  # Assigning the filter specification variables
+  freq <- Fs # Frequency of data
+  freqN <- freq/2 # Frequency normalized to Nyquist frequency
+  passbandFreqN <- PbF/freqN  # Passband frequency AKA Wp; normalized to Nyquist frequency
+  stopbandFreqN <- SbF/freqN  # Stopband frequency AKA Ws; normalized to Nyquist frequency
+  passbandRip <- Rp # Passband Ripple (dB) AKA Rp
+  stopbandAtt <- Rs # Stopband Attenuation (dB) AKA Rs
+  
+  # Determing the order and cut-off frequency based on the filter specifications
+  buttOrderCut <- buttord(passbandFreqN, stopbandFreqN, passbandRip, stopbandAtt)
+  
+  # Creating low pass Butterworth filter of order n
+  buttFiltLP <- butter(buttOrderCut)
+  
+  # Normalized cut-off frequency
+  cutFreqN <- buttOrderCut$Wc/freqN
+
+  filename <- df$filename
+  
+  # Padding the edges to remove edge effects
+  # Doing this by mirroring the data on each side
+  pad <- data.frame(df[[1]][,1], rev(df[[1]][,2]), rev(df[[1]][,3]), rev(df[[1]][,4]))
+  names(pad) <- names(df[[1]]) 
+  paddedData <- rbind(pad, df[[1]], pad)
+  
+  # Using forward and reverse filtering to prevent phase shifts (i.e., making this a zero phase filter)
+  filterVPad <- filtfilt(buttFiltLP$b, buttFiltLP$a, paddedData[,2])
+  filterMLPad <- filtfilt(buttFiltLP$b, buttFiltLP$a, paddedData[,3])
+  filterAPPad <- filtfilt(buttFiltLP$b, buttFiltLP$a, paddedData[,4])
+  
+  # Now removing the padding
+  filterVN <- filterVPad[(nrow(pad)+1):(nrow(pad)*2)]
+  filterMLN <- filterMLPad[(nrow(pad)+1):(nrow(pad)*2)]
+  filterAPN <- filterAPPad[(nrow(pad)+1):(nrow(pad)*2)]
+  
+  # Plotting the data
+  # Opening up a new window that you can send figure/graphs to
+  dev.new(width = 11)
+
+  # par() allows you to customize your window (in this case, saying you want 1 row of 3 graphs arranged in columns)
+  par(mfrow=c(1,3), oma = c(3, 0, 2, 0))  # oma = outer margin with 2 lines above the top of the graphs
+  ## Vertical component of GRF graph
+  # Raw
+  plot(1:length(df[[1]][,2]), df[[1]][,2], xlab='Sweep', ylab='GRF - Vertical (N)', main='Zeroed GRF - Vertical', type="l", col="blue")
+  # Drawing the Filtered data as a line over the Raw data plot (type='l' is for drawing a line, col="black" draws that line in black)
+  lines(1:length(filterVN), filterVN, type='l' , col="black", lwd=2)
+
+  
+  ## Mediolateral component of GRF graph
+  # Raw
+  plot(1:length(df[[1]][,3]), df[[1]][,3], xlab='Sweep', ylab='GRF - Mediolateral (N)', main='Zeroed GRF - Mediolateral', type="l", col="red")
+  # Drawing the Filtered data as a line over the Raw data plot (type='l' is for drawing a line, col="black" draws that line in black)
+  lines(1:length(filterMLN), filterMLN, type='l' , col="black", lwd=2)
+  
+  ## Horizontal (Anteroposterior) component of GRF graph
+  plot(1:length(df[[1]][,4]), df[[1]][,4], xlab='Sweep', ylab='GRF - Anteroposterior (N)', main='Zeroed GRF - Anteroposterior', type="l", col="forestgreen")
+  
+  # Drawing the Filtered data as a line over the Raw data plot (type='l' is for drawing a line, col="black" draws that line in black)
+  lines(1:length(filterAPN), filterAPN, type='l' , col="black", lwd=2)
+  
+  # Creating a new variable Graph Title from the Trial name
+  GraphTitle <- filename
+  # writes an overall title over the graphs
+  mtext(GraphTitle, line=0.5, outer=TRUE)
+  mtext('Colored traces = Raw Data; Black trace = Filtered Data', side=1, line=1.5, outer=TRUE, col = "slategrey")
+  
+  output <- data.frame(sweep = df[[1]][,1], GRF0SumVN_filter = filterVN, GRF0SumMLN_filter = filterMLN, GRF0SumAPN_filter = filterAPN)
   return(output)
 }
