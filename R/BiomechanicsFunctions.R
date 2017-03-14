@@ -131,15 +131,16 @@ impulse <- function(time, GRF) {
 #'
 #' @usage voltToForce(calib, lightStartFrame, startFrame, endFrame, videoHz, forceHz, zeroStart)
 #'
+#' @param \code{df} A data.frame of data recorded from 12 channels of a force platform in the following order: 1 column trigger, 4 columns for the verticals, 1 column for the sum of the verticals, 2 columns for the mediolaterals, 1 column for the sum of the mediolaterals, 2 anteroposteriors, and 1 column for the sum of the anteroposteriors.
 #' @param \code{calib} A vector of numeric data containing the calibrations in the vertical, mediolateral, and anteroposterior directions, respectively.
 #' @param \code{lightStartFrame} A numeric / integer value depicting the frame in which the light is triggered on the high-speed video.
 #' @param \code{startFrame} A numeric / integer value depicting the frame number in which the behavior started (e.g., first contact of the foot onto the force plate)
-#' @param \code{endFrame} A numeric / integer value depicting the frame number in which the behavior ended (e.g., penultimate frame to the foot lifting off from the force plate)
-#' @param \code{videoHz} A numeric / integer value depicting the frame rate for the high-speed videos.
-#' @param \code{forceHz} A numeric / integer value depicting the recording rate for the force plate data.
+#' @param \code{endFrame} A numeric / integer value depicting the frame number in which the behavior ended (e.g., penultimate frame to the foot lifting off from the force plate.
 #' @param \code{zeroStart} A numeric / integer value depicting the sweep number in which to start zeroing the data (i.e., estimate the baseline). Should be at least 1000 sweeps away from any activity. 
+#' @param \code{videoHz} A numeric / integer value depicting the frame rate for the high-speed videos. 100 Hz set as a default.
+#' @param \code{forceHz} A numeric / integer value depicting the recording rate for the force plate data. 5000 Hz set as a default.
+#' @param \code{filename} Option to identify the name of the file for indexing later.
 #' @param \code{saveData} Option to save all of the data from this function as .csv files. Default is set to "no".
-#'
 #' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016. It is assumed that the output from the force platform contain 12 channels in the following order: trigger, four verticals, sum of the verticals, two mediolateral, sum of the mediolaterals, two anteroposterior, and the sum of the anteroposteriors.
 #' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
 #' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
