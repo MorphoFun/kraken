@@ -1,7 +1,7 @@
 ######### Analysis of FinLimb GRF data ##########
 ## All data were taken at the peak net GRF for each individual trial
 
-library(rstan)
+#library(rstan)
 library(devtools)
 
 # loading from remote folder
