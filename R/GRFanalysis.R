@@ -3,7 +3,6 @@
 
 library(rstan)
 library(devtools)
-library(psa)
 
 # loading from remote folder
 url <- ("https://raw.githubusercontent.com/MorphoFun/kraken/master/dataraw/PeakNetGRFData_150518.csv")

@@ -7,6 +7,12 @@ License: GPL-2
 BugReports: https://github.com/MorphoFun/kraken/issues
 URL: https://github.com/MorphoFun/kraken
 LazyData: TRUE
+Imports:
+    ggplot2,
+    rstan,
+    devtools,
+    fBasics,
+    vegan
 Suggests:
     knitr
 VignetteBuilder: knitr
