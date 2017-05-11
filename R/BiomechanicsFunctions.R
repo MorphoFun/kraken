@@ -235,7 +235,9 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, zeroSt
   output <- list(
     filterPrep = filterPrep,
     filename = filename,
-    allData = myData
+    allData = myData,
+    startSweep = startSweep,
+    endSweep = endSweep
   )
 
 }
@@ -335,6 +337,39 @@ buttFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...) 
   mtext(GraphTitle, line=0.5, outer=TRUE)
   mtext('Colored traces = Raw Data; Black trace = Filtered Data', side=1, line=1.5, outer=TRUE, col = "slategrey")
   
-  output <- data.frame(sweep = df[[1]][,1], GRF0SumVN_filter = filterVN, GRF0SumMLN_filter = filterMLN, GRF0SumAPN_filter = filterAPN)
+  ##### Interpotating the data to 101 points
+  # Want 101 points because want 0% -> 100% at 1% intervals
+  InterpN <- 100 # Establishing how many spaces between the points you want to interpolate to
+  N <- (df$endSweep - df$startSweep)/InterpN  # Determining the increments of data that would create 101 equidistant points
+  
+  # Set your new interval that you would like your data interpolated to using your
+  # new sample size (e.g., 101)
+  X <- seq(df$filterPrep[1,1], df$filterPrep[nrow(df$filterPrep),1], N)
+  
+  # Interpolate dataset to a new sample size (InterpN)
+  # Using spline b/c I have a polynomial function and spline has a better capability of capturing it
+  # Some have said that spline is also less prone to error as well
+  # while still maintaining efficiency (i.e., does not take forever to compute; at least in MATLAB)
+  InterpV_N <- interp1(df$filterPrep[,1], filterVN, X, 'spline')
+  InterpML_N <- interp1(df$filterPrep[,1], filterMLN, X, 'spline')
+  InterpAP_N <- interp1(df$filterPrep[,1], filterAPN, X, 'spline')
+  
+  # Organizing data
+  # Creating the increments of the stance in 1% increments
+  PercentStance <- seq(0,100,1)
+  # Creating a dataframe of all the Filtered data within stance
+  FilteredAll <- data.frame(sweep = df$filterPrep[,1], filterVN, filterMLN, filterAPN)
+  # Creating a dataframe of the Filtered data interpolated to 101 points for your jump
+  FilteredInterp <- data.frame(PercentStance, InterpV_N, InterpML_N, InterpAP_N)
+  # Creating a dataframe that includes both the raw and filtered data
+  RawAndFilterAll <- data.frame(df$filterPrep, filterVN, filterMLN, filterAPN)
+  
+  
+  output <- list(
+    GRF0Sum_filter_sweeps = FilteredAll,
+    GRF0Sum_filter_interp = FilteredInterp,
+    GRF0Sum_filter_all = RawAndFilterAll
+  )
+  
   return(output)
 }
