@@ -189,6 +189,9 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, zeroSt
   myData$GRF_MLSumCalib_N_Zero <- myData$GRF_MLSumCalib_N - GRF_MLSumCalib_N_Offset
   myData$GRF_APSumCalib_N_Zero <- myData$GRF_APSumCalib_N - GRF_APSumCalib_N_Offset
   
+  # Adding a time column
+  myData$Time_s <- c(0, cumsum(rep(1/5000, (nrow(myData)-1))))
+  
   # Plotting the force data that has been converted to Newtons and zero'd
   plotStart <- as.numeric(startSweep-1000)
   plotEnd <- as.numeric(endSweep+1000)
@@ -216,8 +219,9 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, zeroSt
   cycleGRFVert <- myData$GRF_vertSumCalib_N_Zero[startSweep:endSweep]
   cycleGRFML <- myData$GRF_MLSumCalib_N_Zero[startSweep:endSweep]
   cycleGRFAP <- myData$GRF_APSumCalib_N_Zero[startSweep:endSweep]
-  filterPrep <- data.frame(cycleSweeps,cycleGRFVert, cycleGRFML, cycleGRFAP)
-  names(filterPrep) <- c('sweep', 'GRF0SumVN', 'GRF0SumMLN', 'GRF0SumAPN')
+  cycleGRFTime <- myData$Time_s[startSweep:endSweep]
+  filterPrep <- data.frame(cycleSweeps,cycleGRFVert, cycleGRFML, cycleGRFAP, cycleGRFTime)
+  names(filterPrep) <- c('sweep', 'GRF0SumVN', 'GRF0SumMLN', 'GRF0SumAPN', 'Time_s')
   
   # Saving all of the data
   if (!saveData == "no") {
@@ -292,7 +296,7 @@ buttFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...) 
   
   # Padding the edges to remove edge effects
   # Doing this by mirroring the data on each side
-  pad <- data.frame(df[[1]][,1], rev(df[[1]][,2]), rev(df[[1]][,3]), rev(df[[1]][,4]))
+  pad <- data.frame(df[[1]][,1], rev(df[[1]][,2]), rev(df[[1]][,3]), rev(df[[1]][,4]), df[[1]][,5])
   names(pad) <- names(df[[1]]) 
   paddedData <- rbind(pad, df[[1]], pad)
   
@@ -372,4 +376,22 @@ buttFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...) 
   )
   
   return(output)
+}
+
+
+############# GRFangles ##########
+
+GRFangles <- function(myData, ...) {
+  # Calculating the angles of orientation
+  myData$GRF_vertSumCalib_N_Zero_Sq <- myData$GRF_vertSumCalib_N_Zero^2
+  myData$GRF_MLSumCalib_N_Zero_Sq <- myData$GRF_MLSumCalib_N_Zero^2
+  myData$GRF_APSumCalib_N_Zero_Sq <- myData$GRF_APSumCalib_N_Zero^2
+  myData$NetGRF_N <- sqrt(myData$GRF_vertSumCalib_N_Zero_Sq + myData$GRF_MLSumCalib_N_Zero_Sq + myData$GRF_APSumCalib_N_Zero_Sq)
+  myData$MLAngle <- (acos(myData$GRF_MLSumCalib_N_Zero/(sqrt(myData$GRF_MLSumCalib_N_Zero_Sq + myData$GRF_vertSumCalib_N_Zero_Sq))))*(180/pi)
+  myData$MLAngle_Convert <- 90 - myData$MLAngle
+  myData$APAngle <- (acos(myData$GRF_APSumCalib_N_Zero/(sqrt(myData$GRF_APSumCalib_N_Zero_Sq + myData$GRF_vertSumCalib_N_Zero_Sq))))*(180/pi)
+  myData$APAngle_Convert <- 90 - myData$Angle
+  
+  output <- data.frame(myData[,1:4], myData$NetGRF_N, myData$MLAngle, myData$MLAngle_Convert, myData$APAngle, myData$APAngle_Convert)
+  
 }
