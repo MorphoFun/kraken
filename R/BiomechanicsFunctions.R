@@ -178,8 +178,8 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, zeroSt
   endSweep <- lightOnset$sweep-((lightStartFrame-endFrame)*(forceHz/videoHz))
   
   # Correcting for the offset from the baseline (zero)
-  offsetCalcStart <- zeroStart-2000
-  offsetCalcEnd <- zeroStart-1000
+  offsetCalcStart <- startSweep-2000
+  offsetCalcEnd <- startSweep-1000
   GRF_vertSumCalib_N_Offset <- mean(myData$GRF_vertSumCalib_N[offsetCalcStart:offsetCalcEnd])
   GRF_MLSumCalib_N_Offset <- mean(myData$GRF_MLSumCalib_N[offsetCalcStart:offsetCalcEnd])
   GRF_APSumCalib_N_Offset <- mean(myData$GRF_APSumCalib_N[offsetCalcStart:offsetCalcEnd])
@@ -362,7 +362,7 @@ buttFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...) 
   # Creating the increments of the stance in 1% increments
   PercentStance <- seq(0,100,1)
   # Creating a dataframe of all the Filtered data within stance
-  FilteredAll <- data.frame(sweep = df$filterPrep[,1], filterVN, filterMLN, filterAPN)
+  FilteredAll <- data.frame(sweep = df$filterPrep[,1], filterVN, filterMLN, filterAPN, Time_s = df$filterPrep[,5])
   # Creating a dataframe of the Filtered data interpolated to 101 points for your jump
   FilteredInterp <- data.frame(PercentStance, InterpV_N, InterpML_N, InterpAP_N)
   # Creating a dataframe that includes both the raw and filtered data
@@ -380,18 +380,21 @@ buttFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...) 
 
 
 ############# GRFangles ##########
+## assumes that your time component is in the first column and is followed by three columns containing the components of the GRF
+## assumes that the order is Vert, ML, and AP
+## must be data.frame
 
 GRFangles <- function(myData, ...) {
   # Calculating the angles of orientation
-  myData$GRF_vertSumCalib_N_Zero_Sq <- myData$GRF_vertSumCalib_N_Zero^2
-  myData$GRF_MLSumCalib_N_Zero_Sq <- myData$GRF_MLSumCalib_N_Zero^2
-  myData$GRF_APSumCalib_N_Zero_Sq <- myData$GRF_APSumCalib_N_Zero^2
-  myData$NetGRF_N <- sqrt(myData$GRF_vertSumCalib_N_Zero_Sq + myData$GRF_MLSumCalib_N_Zero_Sq + myData$GRF_APSumCalib_N_Zero_Sq)
-  myData$MLAngle <- (acos(myData$GRF_MLSumCalib_N_Zero/(sqrt(myData$GRF_MLSumCalib_N_Zero_Sq + myData$GRF_vertSumCalib_N_Zero_Sq))))*(180/pi)
+  myData$GRF_Vert_Sq <- myData[,2]^2
+  myData$GRF_ML_Sq <- myData[,3]^2
+  myData$GRF_AP_Sq <- myData[,4]^2
+  myData$NetGRF_N <- sqrt(myData$GRF_Vert_Sq + myData$GRF_ML_Sq + myData$GRF_AP_Sq)
+  myData$MLAngle <- (acos(myData[,3]/(sqrt(myData$GRF_ML_Sq + myData$GRF_Vert_Sq))))*(180/pi)
   myData$MLAngle_Convert <- 90 - myData$MLAngle
-  myData$APAngle <- (acos(myData$GRF_APSumCalib_N_Zero/(sqrt(myData$GRF_APSumCalib_N_Zero_Sq + myData$GRF_vertSumCalib_N_Zero_Sq))))*(180/pi)
-  myData$APAngle_Convert <- 90 - myData$Angle
+  myData$APAngle <- (acos(myData[,4]/(sqrt(myData$GRF_AP_Sq + myData$GRF_Vert_Sq))))*(180/pi)
+  myData$APAngle_Convert <- 90 - myData$APAngle
   
-  output <- data.frame(myData[,1:4], myData$NetGRF_N, myData$MLAngle, myData$MLAngle_Convert, myData$APAngle, myData$APAngle_Convert)
+  output <- data.frame(myData[,1:5], myData$NetGRF_N, myData$MLAngle, myData$MLAngle_Convert, myData$APAngle, myData$APAngle_Convert)
   
 }
