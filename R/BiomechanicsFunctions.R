@@ -128,6 +128,8 @@ impulse <- function(time, GRF) {
 #' @name voltToForce
 #'
 #' @description Takes voltage data from a multi-axis force platform and then converts those data to ground reation forces.
+#' Note: this code was originally written with a force plate that was oriented with the following configuration: Front left = Yellow (Y), Front Right = Pink (P), Back Left = Orange (O), and Back Right = Green (G).
+#' Deviations from this configuration may require adjustments in the signage of the GRF data.
 #'
 #' @usage voltToForce(calib, lightStartFrame, startFrame, endFrame, videoHz, forceHz, zeroStart)
 #'
