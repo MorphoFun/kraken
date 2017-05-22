@@ -154,7 +154,7 @@ impulse <- function(time, GRF) {
 
 #### TO DO FOR voltToForce: add option to insert pectoral vs. pelvic vs. tail start and end points on the plot
 
-voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, zeroStart, videoHz = 100, forceHz= 5000, filename = NULL, saveData = "no", ...) {
+voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, videoHz = 100, forceHz= 5000, filename = NULL, BW = NULL, saveData = "no", ...) {
   myData <- df[,c(1:12)] # ensuring only the desired columns are used for analysis
   names(myData) <- c("light_Volts", "vert1_Volts", "vert2_Volts", "vert3_Volts", "vert4_Volts", "vertSum_Volts", "ML1_Volts", "ML2_Volts", "MLSum_Volts", "AP1_Volts", "AP2_Volts", "APSum_Volts")
   myData$sweep <- 1:nrow(myData)
@@ -167,7 +167,7 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, zeroSt
   # Putting forces in terms of GRF (which is opposite in direction to the force produced by the limb onto the force plate)
   myData$GRF_vertSumCalib_N <- myData$vertSumCalib_N # Already made negative based on the calibration calculations conducted earlier in the excel calibration files
   myData$GRF_MLSumCalib_N <- -myData$MLSumCalib_N
-  myData$GRF_APSumCalib_N <- -myData$APSumCalib_N
+  myData$GRF_APSumCalib_N <- myData$APSumCalib_N
   
   # Determining what sweep number the light is turned on, so we can sync with video frames
   lightSwitch <- myData[which(myData$light_Volts<0),]
@@ -234,15 +234,29 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, zeroSt
     saveFileName <- paste(filename,"_filterPrep_", saveDate, ".csv", sep="")
     write.table(filterPrep, file=saveFileName, sep =",", row.names=FALSE)
   }
+
   
   # output the data
-  output <- list(
-    filterPrep = filterPrep,
-    filename = filename,
-    allData = myData,
-    startSweep = startSweep,
-    endSweep = endSweep
-  )
+  if (is.null(BW) == TRUE) {
+    output <- list(
+      filterPrep = filterPrep,
+      filename = filename,
+      allData = myData,
+      startSweep = startSweep,
+      endSweep = endSweep
+    )
+  } else {
+    BW_N <- BW*9.8 
+    filterPrep_BW <- data.frame(sweep = filterPrep[,1], (filterPrep[,2:4]/BW_N), Time_s = filterPrep[,5])
+    output <- list(
+      filterPrep = filterPrep,
+      filterPrep_BW = filterPrep_BW,
+      filename = filename,
+      allData = myData,
+      startSweep = startSweep,
+      endSweep = endSweep
+    )
+  }
 
 }
 
