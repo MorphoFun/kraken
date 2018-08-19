@@ -262,10 +262,10 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, videoH
 
 }
 
-#### buttFilteR ####
+#### butterFilteR ####
 #' @title Apply a butterworth filter to data
 #'
-#' @name buttFilteR
+#' @name butterFilteR
 #'
 #' @description Applies a butterworth filter to data, using information about the data to determine what polynomial to use.
 #'
@@ -290,7 +290,7 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, videoH
 #' @import signal
 #' @export
 
-buttFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...) {
+butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...) {
   # Assigning the filter specification variables
   freq <- Fs # Frequency of data
   freqN <- freq/2 # Frequency normalized to Nyquist frequency
