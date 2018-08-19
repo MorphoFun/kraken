@@ -448,7 +448,7 @@ jointAngle <- function(P1, P2, P3, ...) {
   
   P32 <- matrix(0, 3, 3)
   P12 <- matrix(0, 3, 3)
-  
+  angle_degrees <- numeric(length = nrow(P1))
   
   for (i in 1:nrow(P1)) {
     if (isTRUE(is.vector(P1))) {
