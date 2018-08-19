@@ -7,31 +7,37 @@
 voltToForce(calib, lightStartFrame, startFrame, endFrame, videoHz, forceHz, zeroStart)
 }
 \arguments{
+\item{\code{df}}{A data.frame of data recorded from 12 channels of a force platform in the following order: 1 column trigger, 4 columns for the verticals, 1 column for the sum of the verticals, 2 columns for the mediolaterals, 1 column for the sum of the mediolaterals, 2 anteroposteriors, and 1 column for the sum of the anteroposteriors.}
+
 \item{\code{calib}}{A vector of numeric data containing the calibrations in the vertical, mediolateral, and anteroposterior directions, respectively.}
 
 \item{\code{lightStartFrame}}{A numeric / integer value depicting the frame in which the light is triggered on the high-speed video.}
 
 \item{\code{startFrame}}{A numeric / integer value depicting the frame number in which the behavior started (e.g., first contact of the foot onto the force plate)}
 
-\item{\code{endFrame}}{A numeric / integer value depicting the frame number in which the behavior ended (e.g., penultimate frame to the foot lifting off from the force plate)}
-
-\item{\code{videoHz}}{A numeric / integer value depicting the frame rate for the high-speed videos.}
-
-\item{\code{forceHz}}{A numeric / integer value depicting the recording rate for the force plate data.}
+\item{\code{endFrame}}{A numeric / integer value depicting the frame number in which the behavior ended (e.g., penultimate frame to the foot lifting off from the force plate.}
 
 \item{\code{zeroStart}}{A numeric / integer value depicting the sweep number in which to start zeroing the data (i.e., estimate the baseline). Should be at least 1000 sweeps away from any activity.}
+
+\item{\code{videoHz}}{A numeric / integer value depicting the frame rate for the high-speed videos. 100 Hz set as a default.}
+
+\item{\code{forceHz}}{A numeric / integer value depicting the recording rate for the force plate data. 5000 Hz set as a default.}
+
+\item{\code{filename}}{Option to identify the name of the file for indexing later.}
 
 \item{\code{saveData}}{Option to save all of the data from this function as .csv files. Default is set to "no".}
 }
 \description{
 Takes voltage data from a multi-axis force platform and then converts those data to ground reation forces.
+Note: this code was originally written with a force plate that was oriented with the following configuration: Front left = Yellow (Y), Front Right = Pink (P), Back Left = Orange (O), and Back Right = Green (G).
+Deviations from this configuration may require adjustments in the signage of the GRF data.
 }
 \details{
 These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016. It is assumed that the output from the force platform contain 12 channels in the following order: trigger, four verticals, sum of the verticals, two mediolateral, sum of the mediolaterals, two anteroposterior, and the sum of the anteroposteriors.
 }
 \examples{
 
-voltToForce(calib, lightStartFrame, startFrame, endFrame, videoHz, forceHz, zeroStart, saveData)
+voltToForce(df, calib = c(-0.710, 1.337, 1.563), lightStartFrame = 248, startFrame = 20, endFrame = 196, zeroStart = 22000)
 
 }
 \references{

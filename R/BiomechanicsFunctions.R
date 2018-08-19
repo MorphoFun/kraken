@@ -23,7 +23,7 @@
 #'
 #' pcsa(0.3788, 0, 0.174)
 #'
-#' @export
+#' @export 
 
 pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
   d <- (mass * cos(pennationAngle))/(fascicleLength*density)
@@ -424,7 +424,7 @@ butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...
 #' 
 #' elbowAngle <- jointAngle(P1 = shoulder, P2 = elbow, P3 = wrist)
 #'
-#' @export
+#' 
 
 
 jointAngle <- function(P1, P2, P3, ...) {
