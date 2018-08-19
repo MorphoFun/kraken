@@ -415,7 +415,6 @@ butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...
 #' @references "R - Comute Cross Product of Vectors (Physics)" answer posted by user Kevin on April 22, 2016. https://stackoverflow.com/questions/36798301/r-compute-cross-product-of-vectors-physics
 #' @references "how to calculate the Euclidean norm of a vector in R?" answer posted by user joran on June 7, 2012. https://stackoverflow.com/questions/10933945/how-to-calculate-the-euclidean-norm-of-a-vector-in-r
 #' 
-#'
 #' @examples
 #' 
 #' shoulder <- matrix(c(0.006305306, 0.006526961, 0.006747555, -0.08206114, -0.08207707, -0.08207049, 0.006997669, 0.006980824, 0.006975157), 3, 3)
@@ -424,7 +423,7 @@ butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...
 #' 
 #' elbowAngle <- jointAngle(P1 = shoulder, P2 = elbow, P3 = wrist)
 #'
-#' 
+#' @export
 
 
 jointAngle <- function(P1, P2, P3, ...) {
