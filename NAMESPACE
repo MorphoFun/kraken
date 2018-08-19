@@ -2,6 +2,7 @@
 
 export(butterFilteR)
 export(impulse)
+export(jointAngle)
 export(pcsa)
 export(profilePlotR)
 export(voltToForce)
