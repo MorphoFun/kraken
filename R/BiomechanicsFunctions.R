@@ -285,7 +285,7 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, videoH
 #' @examples
 #' 
 #' GRF <- voltToForce(df, calib = c(-0.710, 1.337, 1.563), lightStartFrame = 248, startFrame = 20, endFrame = 196, zeroStart = 22000)
-#' GRF_filtered <- buttFilteR(GRF)
+#' GRF_filtered <- butterFilteR(GRF)
 #'
 #' @import signal
 #' @export
@@ -392,6 +392,82 @@ butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...
   )
   
   return(output)
+}
+
+
+
+#### jointAngle ####
+#' @title Calculate joint angles (in degrees) from XYZ coordinate data
+#'
+#' @name jointAngle
+#'
+#' @description Calculaes the angle of a joint (in degrees), formed by three points with XYZ coordinates.
+#'
+#' @usage 
+#'
+#' @param \code{P1} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the shoulder)
+#' @param \code{P2} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the elbow)
+#' @param \code{P3} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the wrist)
+
+#' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016 to calculate angles formed about the limb joints in animals. 
+#' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
+#' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
+#' @references "R - Comute Cross Product of Vectors (Physics)" answer posted by user Kevin on April 22, 2016. https://stackoverflow.com/questions/36798301/r-compute-cross-product-of-vectors-physics
+#' @references "how to calculate the Euclidean norm of a vector in R?" answer posted by user joran on June 7, 2012. https://stackoverflow.com/questions/10933945/how-to-calculate-the-euclidean-norm-of-a-vector-in-r
+#' 
+#'
+#' @examples
+#' 
+#' shoulder <- matrix(c(0.006305306, 0.006526961, 0.006747555, -0.08206114, -0.08207707, -0.08207049, 0.006997669, 0.006980824, 0.006975157), 3, 3)
+#' elbow <- matrix(c(0.007826633, 0.007959096, 0.008068560, -0.07183020, -0.07185459, -0.07186337, 0.005754819, 0.005764666, 0.005774707), 3, 3)
+#' wrist <- matrix(c(0.01164592, 0.01160690, 0.01157642, -0.07348876, -0.07345559, -0.07342105, -0.000631402, -0.000671288, -0.000709513), 3, 3)
+#' 
+#' elbowAngle <- jointAngle(P1 = shoulder, P2 = elbow, P3 = wrist)
+#'
+#' @export
+
+
+jointAngle <- function(P1, P2, P3, ...) {
+  #### Create vectors of the XYZ coordinates for each anatomical landmark ####
+  # Assume that P2 is the vertex and P1 and P3 are the other two points that form the angle
+  # data are storted in df
+  # Most proximal joint (e.g., Shoulder, S) XYZ are columns 1 - 3, 
+  # Middle joint (e.g., elbow, E) XYZ are 4-6, and 
+  # most distal joint (e.g., wrist, W) XYZ are 7 - 9
+  # Only focusing on first row for now
+  
+  # norm is the Euclidean norm of a vector, which can be calculated in R using
+  Euc_norm <- function(x) sqrt(sum(x^2))
+  
+  # To produce a vector cross-product: 
+  vec_cross <- function(ab,ac){
+    abci = ab[2] * ac[3] - ac[2] * ab[3];
+    abcj = ac[1] * ab[3] - ab[1] * ac[3];
+    abck = ab[1] * ac[2] - ac[1] * ab[2];
+    return (c(abci, abcj, abck))
+  }
+  
+  P32 <- matrix(0, 3, 3)
+  P12 <- matrix(0, 3, 3)
+  
+  
+  for (i in 1:nrow(P1)) {
+    if (isTRUE(is.vector(P1))) {
+      # Create vectors of the P3-P2 and P1-P2 segments
+      P32 <- as.numeric(P3 - P2)
+      P12 <- as.numeric(P1 - P2)
+      
+      angle_degrees <- atan2(Euc_norm(vec_cross(P32, P12)), sum(P32 * P12))*(180/pi)
+      
+    } else {
+      # Create vectors of the P3-P2 and P1-P2 segments
+      P32[i,] <- as.numeric(P3[i,] - P2[i,])
+      P12[i,] <- as.numeric(P1[i,] - P2[i,])
+      
+      angle_degrees[i] <- atan2(Euc_norm(vec_cross(P32[i,], P12[i,])), sum(P32[i,] * P12[i,]))*(180/pi)
+    }
+  }
+  print(angle_degrees)
 }
 
 
