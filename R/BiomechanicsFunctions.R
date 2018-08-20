@@ -466,6 +466,7 @@ jointAngle <- function(P1, P2, P3, ...) {
       angle_degrees[i] <- atan2(Euc_norm(vec_cross(P32[i,], P12[i,])), sum(P32[i,] * P12[i,]))*(180/pi)
     }
   }
+  return(angle_degrees)
 }
 
 
