@@ -412,8 +412,8 @@ butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...
 #' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016 to calculate angles formed about the limb joints in animals. 
 #' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
 #' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
-#' @references "R - Comute Cross Product of Vectors (Physics)" answer posted by user Kevin on April 22, 2016. https://stackoverflow.com/questions/36798301/r-compute-cross-product-of-vectors-physics
-#' @references "how to calculate the Euclidean norm of a vector in R?" answer posted by user joran on June 7, 2012. https://stackoverflow.com/questions/10933945/how-to-calculate-the-euclidean-norm-of-a-vector-in-r
+#' @references "R - Comute Cross Product of Vectors (Physics)" answer posted by user Kevin on April 22, 2016. \url{https://stackoverflow.com/questions/36798301/r-compute-cross-product-of-vectors-physics}
+#' @references "how to calculate the Euclidean norm of a vector in R?" answer posted by user joran on June 7, 2012. \url{https://stackoverflow.com/questions/10933945/how-to-calculate-the-euclidean-norm-of-a-vector-in-r}
 #' 
 #' @examples
 #' 
