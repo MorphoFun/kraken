@@ -406,8 +406,8 @@ butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...
 #' @usage 
 #'
 #' @param \code{P1} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the shoulder)
-#' @param \code{P2} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the elbow)
-#' @param \code{P3} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the wrist)
+#' @param \code{P2} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the second point, which is assumed to be the vertex of the angle (e.g, the elbow)
+#' @param \code{P3} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the third point (e.g, the wrist)
 
 #' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016 to calculate angles formed about the limb joints in animals. 
 #' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
@@ -466,7 +466,6 @@ jointAngle <- function(P1, P2, P3, ...) {
       angle_degrees[i] <- atan2(Euc_norm(vec_cross(P32[i,], P12[i,])), sum(P32[i,] * P12[i,]))*(180/pi)
     }
   }
-  print(angle_degrees)
 }
 
 
