@@ -9,9 +9,9 @@
 \arguments{
 \item{\code{P1}}{A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the shoulder)}
 
-\item{\code{P2}}{A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the elbow)}
+\item{\code{P2}}{A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the second point, which is assumed to be the vertex of the angle (e.g, the elbow)}
 
-\item{\code{P3}}{A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the wrist)}
+\item{\code{P3}}{A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the third point (e.g, the wrist)}
 }
 \description{
 Calculaes the angle of a joint (in degrees), formed by three points with XYZ coordinates.
