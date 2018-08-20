@@ -33,7 +33,7 @@ Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander li
 
 Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
 
-"R - Comute Cross Product of Vectors (Physics)" answer posted by user Kevin on April 22, 2016. https://stackoverflow.com/questions/36798301/r-compute-cross-product-of-vectors-physics
+"R - Comute Cross Product of Vectors (Physics)" answer posted by user Kevin on April 22, 2016. \url{https://stackoverflow.com/questions/36798301/r-compute-cross-product-of-vectors-physics}
 
-"how to calculate the Euclidean norm of a vector in R?" answer posted by user joran on June 7, 2012. https://stackoverflow.com/questions/10933945/how-to-calculate-the-euclidean-norm-of-a-vector-in-r
+"how to calculate the Euclidean norm of a vector in R?" answer posted by user joran on June 7, 2012. \url{https://stackoverflow.com/questions/10933945/how-to-calculate-the-euclidean-norm-of-a-vector-in-r}
 }
