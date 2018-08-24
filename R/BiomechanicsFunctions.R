@@ -446,8 +446,11 @@ jointAngle <- function(P1, P2, P3, ...) {
     return (c(abci, abcj, abck))
   }
   
-  P32 <- matrix(0, 3, 3)
-  P12 <- matrix(0, 3, 3)
+  # P32 <- matrix(0, 3, 3)
+  # P12 <- matrix(0, 3, 3)
+  
+  P32 <- matrix(0, nrow(P2), 3)
+  P12 <- matrix(0, nrow(P2), 3)
   angle_degrees <- numeric(length = nrow(P1))
   
   for (i in 1:nrow(P1)) {
