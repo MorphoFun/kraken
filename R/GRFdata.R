@@ -33,7 +33,8 @@
 #' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land.  \emph{Integrative and Comparative Biology} 53(2): 283-294.
 #' @usage FinLimbGRFs
 #' @keywords datasets
-#' @export fBasics, devtools
+#' @export fBasics
+#' @export devtools
 #'
 #' @examples 
 #' data(FinLimbGRFs)
