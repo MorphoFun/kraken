@@ -401,7 +401,7 @@ butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...
 #'
 #' @name jointAngle
 #'
-#' @description Calculaes the angle of a joint (in degrees), formed by three points with XYZ coordinates.
+#' @description Calculates the angle of a joint (in degrees), formed by three points with XYZ coordinates.
 #'
 #' @usage 
 #'
@@ -471,6 +471,85 @@ jointAngle <- function(P1, P2, P3, ...) {
   }
   return(angle_degrees)
 }
+
+
+
+#### yaw ####
+#' @title Calculate yaw (in degrees) from XY coordinate data
+#'
+#' @name yaw
+#'
+#' @description Calculates the yaw angle (in degrees), formed by two segments produced by the X and Y coordiantes of two points.
+#'
+#' @usage 
+#'
+#' @param \code{P1} A data.frame of numeric values containing the X and Y coordinate data, respectively, for the first point (e.g, point along the midline)
+#' @param \code{P2} A data.frame of numeric values containing the X and Y coordinate data, respectively, for the second point (e.g., pelvic girdle)
+
+#' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016 to calculate angles formed about the limb joints in animals. 
+#' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
+#' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
+ 
+#' @examples
+#' 
+
+#' P1 <- data.frame(X = c(0.004978444,
+#'                     0.005226819,
+#'                     0.005483069,
+#'                     0.005747358,
+#'                     0.006019848,
+#'                     0.006300701,
+#'                     0.006590101,
+#'                     0.00688825,
+#'                     0.007195354, 
+#'                     0.007511617),
+#'               Y = c(-0.09374413,
+#'                     -0.09380451,
+#'                     -0.09382974,
+#'                     -0.09382203,
+#'                     -0.09378361,
+#'                     -0.09371668,
+#'                     -0.09362362,
+#'                     -0.09350694,
+#'                     -0.09336917, 
+#'                     -0.09321286
+#'               ))
+#'
+#'P2 <- data.frame(X = c(0.001005251,
+#'                     0.001195392,
+#'                     0.001406054,
+#'                     0.001636047,
+#'                     0.001884185,
+#'                     0.002149271,
+#'                     0.002429912,
+#'                     0.002724486,
+#'                     0.003031363,
+#'                     0.003348911),
+#'               Y = c(-0.09343679,
+#'                     -0.09347614,
+#'                     -0.09350069,
+#'                     -0.09350983,
+#'                     -0.09350293,
+#'                     -0.09347937,
+#'                     -0.09343846,
+#'                     -0.09337947,
+#'                     -0.09330165,
+#'                     -0.09320426
+#'               ))
+#'
+#' yawAngle <- yaw(P1, P2)
+#' 
+#' @export
+
+yaw <- function(P1, P2, ...) {
+  SegVectorBackY <- P1[,2] - P2[,2]
+  SegVectorBackX <- P1[,1] - P2[,1]
+  TanYaw <- SegVectorBackY/SegVectorBackX
+  yaw <- (atan(TanYaw))*(180/pi)
+  return(yaw)
+}
+  
+
 
 
 ############# GRFangles ##########
