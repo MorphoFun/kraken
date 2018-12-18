@@ -28,6 +28,11 @@ d[,2:3] <- FinLimbGRFs[,2:3]*(pi/180)
 
 
 ######## TESTING FOR OMNIBUS ##########
+## If you need an automated way to install packages if they're not already installed, you can use this code:
+if (!require("fBasics")) {
+  install.packages("fBasics", dependencies = TRUE)
+}
+
 library(fBasics)
 # omnibus null = data are normal
 fullDago <- sapply(d[,1:7], function(x) dagoTest(x))
