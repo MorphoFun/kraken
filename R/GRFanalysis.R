@@ -63,7 +63,7 @@ indCoV <- aggregate(d[,1:7], by = list(d$Ind), function(x) {c(CoV = (sd(x)/mean(
 # For these data, the "sites" in vegan are actually individual trials,
 # and the "Species" are the variables that are being compared amongst the species 
 
-library(vegan)
+#library(vegan)
 
 ###### RDA: pectoral appendages of the three species ####
 pecrda <- rda(subset(d, Appendage=="Pec")[,1:7] ~ Species, data = subset(d, Appendage=="Pec"))
