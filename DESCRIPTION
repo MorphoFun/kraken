@@ -10,8 +10,7 @@ LazyData: TRUE
 Imports:
     ggplot2,
     devtools,
-    fBasics,
-    vegan
+    fBasics
 Suggests:
     knitr
 VignetteBuilder: knitr
