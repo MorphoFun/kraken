@@ -8,8 +8,9 @@ BugReports: https://github.com/MorphoFun/kraken/issues
 URL: https://github.com/MorphoFun/kraken
 LazyData: TRUE
 Imports:
+    devtools,
     ggplot2,
-    devtools
+    zoo
 Suggests:
     knitr
 VignetteBuilder: knitr

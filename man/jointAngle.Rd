@@ -14,7 +14,7 @@
 \item{\code{P3}}{A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the third point (e.g, the wrist)}
 }
 \description{
-Calculaes the angle of a joint (in degrees), formed by three points with XYZ coordinates.
+Calculates the angle of a joint (in degrees), formed by three points with XYZ coordinates.
 }
 \details{
 These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016 to calculate angles formed about the limb joints in animals.
