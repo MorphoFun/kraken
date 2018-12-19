@@ -579,6 +579,7 @@ yawAngle <- function(P1, P2, ...) {
 #'
 #' protractionAngle <- protraction(shoulder, elbow, wrist, yaw)
 #' 
+#' @importFrom pracma cross
 #' @export
 
 protraction <- function(P1,P2,P3, Yaw, ...) {
@@ -614,7 +615,7 @@ protraction <- function(P1,P2,P3, Yaw, ...) {
   ## Cross rpdouct between two row vectors 
   library(pracma) # for the cross() function that returns a vector
   wcross <- function(a, b) {
-    c <- t(cross(t(a),t(b)))
+    c <- t(pracma::cross(t(a),t(b)))
     return(c)
   }
   
@@ -653,6 +654,113 @@ protraction <- function(P1,P2,P3, Yaw, ...) {
     
     return(FemTVAng)
   }
+
+
+
+
+#### Pitch ####
+#' @title Calculate pitch angle (in degrees) from XYZ coordinate data of two points
+#'
+#' @name pitchAngle
+#'
+#' @description Calculates the pitch angle (in degrees), from the XYZ coordinates of two points 
+#'
+#' @usage pitchAngle(P1, P2)
+#'
+#' @param \code{P1} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the hip)
+#' @param \code{P2} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the second point, which is assumed to be the vertex of the angle (e.g, the knee)
+
+#' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016 to calculate angles formed about the limb joints in animals. 
+#' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
+#' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
+
+#' @examples
+#' 
+
+#' P1 <- matrix(c(0.001005251,	-0.09343679,	0.01603717, 0.001195392,	-0.09347614,	0.0161097, 0.001406054,	-0.09350069,	0.01616693), 3, 3)
+#' P2 <- matrix(c(0.006305306,	-0.08206114,	0.006997669, 0.006526961,	-0.08207707,	0.006980824, 0.006747555,	-0.08207049,	0.006975157), 3, 3)
+#' 
+#' pitch <- pitchAngle(P1, P2)
+#' 
+#' @importFrom pracma cross
+#' @export
+
+
+pitchAngle <- function(P1, P2, ...) {
+  SacPointX <- P1[,1]
+  SacPointZ <- P1[,3]
+  HipPointX <- P2[,1]
+  HipPointZ <- P2[,3]
+  ShiftPelvisPlaneX <- SacPointX - HipPointX
+  ShiftPelvisPlaneZ <- SacPointZ - HipPointZ
+  
+  ## dot product between two row vectors
+  wdot <- function(a, b) {
+    y <- a*b
+    y <- t(sum(t(y)))
+    return(y)
+  }
+  
+  ## Cross rpdouct between two row vectors 
+  library(pracma) # for the cross() function that returns a vector
+  wcross <- function(a, b) {
+    c <- t(pracma::cross(t(a),t(b)))
+    return(c)
+  }
+  
+  ## vlength
+  vlength <- function(x) {
+    v <- (wdot(x, x))^0.5
+    return(v)
+  }
+  
+  ## ABDUCTION/ADDUCTION OF FEMUR: MOVEMENT IN THE DORSOVENTRAL DIRECTION ABSOLUTE FRAME OF REFERENCE
+  
+  # Roll calculations
+  
+  # Definitions of normal vectors to planes for calculation of segment angles to those vectors &, thereby, those planes
+  
+  # define horizontal plane and normal to it:  (wcross equals a cross product function written by Will Corning for convenient orientation)
+  HZPlane1 <- c(0, 0, 0)
+  HZPlane2 <- c(.1, 0, 0)
+  HZPlane3 <- c(0, .1, 0)
+  HZVector1 <- HZPlane2 - HZPlane1
+  HZVector2 <- HZPlane3 - HZPlane1
+  # had to take the tranpose to get this to work with wdot
+  HZNorm <- t(wcross(HZVector1,HZVector2))
+
+  # define pitch-adjusted horizontal plane and normal to it:
+  # define plane of body based on sacral point and hip point, defining based on ilium rather than trunk
+  
+  HZPlane2Pitch <- matrix(NA, length(ShiftPelvisPlaneX), 3)
+  HZNormPitch <- matrix(NA, length(ShiftPelvisPlaneX), 3)
+  HZNormPitchMatrix <- matrix(NA, length(ShiftPelvisPlaneX), 3)
+  MagHZNormPitch <- matrix(NA, length(ShiftPelvisPlaneX), 1)
+  MagPitchVector <- matrix(NA, length(ShiftPelvisPlaneX), 1)
+  CosdotPitch <- matrix(NA, length(ShiftPelvisPlaneX), 1)
+  PitchAng <- matrix(NA, length(ShiftPelvisPlaneX), 1)
+  
+  for (i in 1:length(ShiftPelvisPlaneX)) {
+    HZPlane1Pitch <- c(0, 0, 0)
+    HZPlane2Pitch[i,] <- c(ShiftPelvisPlaneX[i], 0, ShiftPelvisPlaneZ[i])
+    HZPlane3Pitch <- c(0, .1, 0)
+    HZVector1Pitch <- HZPlane2Pitch - HZPlane1Pitch
+    HZVector2Pitch <- HZPlane3Pitch - HZPlane1Pitch
+    HZNormPitch[i,] <- wcross(HZVector1Pitch[i,], HZVector2Pitch)
+    HZNormPitchMatrix[i,] <- HZNormPitch[i,]
+    
+    dotPitch <- wdot(HZNormPitch[i,],HZNorm)
+    MagHZNormPitch[i] <- vlength(HZNormPitch[i,])
+    MagHZNorm <- vlength(HZNorm)
+    MagPitchVector[i] <- MagHZNormPitch[i,]*MagHZNorm
+    CosdotPitch[i] <- dotPitch/MagPitchVector[i]
+    PitchAng[i] <- (acos(CosdotPitch[i]))*(180/pi)
+    Pitch <- PitchAng
+  }
+  return(Pitch)
+}
+
+
 
 
 
