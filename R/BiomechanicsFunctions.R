@@ -477,11 +477,11 @@ jointAngle <- function(P1, P2, P3, ...) {
 #### yaw ####
 #' @title Calculate yaw (in degrees) from XY coordinate data
 #'
-#' @name yaw
+#' @name yawAngle
 #'
 #' @description Calculates the yaw angle (in degrees), formed by two segments produced by the X and Y coordiantes of two points.
 #'
-#' @usage yaw(P1, P2)
+#' @usage yawAngle(P1, P2)
 #'
 #' @param \code{P1} A data.frame of numeric values containing the X and Y coordinate data, respectively, for the first point (e.g, point along the midline)
 #' @param \code{P2} A data.frame of numeric values containing the X and Y coordinate data, respectively, for the second point (e.g., pelvic girdle)
@@ -537,11 +537,11 @@ jointAngle <- function(P1, P2, P3, ...) {
 #'                     -0.09320426
 #'               ))
 #'
-#' yawAngle <- yaw(P1, P2)
+#' Yaw <- yawAngle(P1, P2)
 #' 
 #' @export
 
-yaw <- function(P1, P2, ...) {
+yawAngle <- function(P1, P2, ...) {
   SegVectorBackY <- P1[,2] - P2[,2]
   SegVectorBackX <- P1[,1] - P2[,1]
   TanYaw <- SegVectorBackY/SegVectorBackX
@@ -575,6 +575,7 @@ yaw <- function(P1, P2, ...) {
 #' shoulder <- matrix(c(0.006305306, 0.006526961, 0.006747555, -0.08206114, -0.08207707, -0.08207049, 0.006997669, 0.006980824, 0.006975157), 3, 3)
 #' elbow <- matrix(c(0.007826633, 0.007959096, 0.008068560, -0.07183020, -0.07185459, -0.07186337, 0.005754819, 0.005764666, 0.005774707), 3, 3)
 #' wrist <- matrix(c(0.01164592, 0.01160690, 0.01157642, -0.07348876, -0.07345559, -0.07342105, -0.000631402, -0.000671288, -0.000709513), 3, 3)
+#' yaw <- c(-4.4232170, -4.6566089, -4.6142598)
 #'
 #' protractionAngle <- protraction(P1, P2, P3, Yaw)
 #' 
