@@ -554,9 +554,9 @@ yaw <- function(P1, P2, ...) {
 #### Protraction versus retraction ####
 #' @title Calculate protraction versus retraction (in degrees) from XYZ coordinate data
 #'
-#' @name yaw
+#' @name protraction
 #'
-#' @description Calculates the yaw angle (in degrees), formed by two segments produced by the X and Y coordiantes of two points.
+#' @description Calculates the protraction angle (in degrees), of a limb based on the XYZ coordinates of three points along the limb. 
 #'
 #' @usage 
 #'
