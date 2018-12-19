@@ -28,7 +28,7 @@ elbow <- matrix(c(0.007826633, 0.007959096, 0.008068560, -0.07183020, -0.0718545
 wrist <- matrix(c(0.01164592, 0.01160690, 0.01157642, -0.07348876, -0.07345559, -0.07342105, -0.000631402, -0.000671288, -0.000709513), 3, 3)
 yaw <- c(-4.4232170, -4.6566089, -4.6142598)
 
-protractionAngle <- protraction(P1, P2, P3, Yaw)
+protractionAngle <- protraction(shoulder, elbow, wrist, yaw)
 
 }
 \references{
