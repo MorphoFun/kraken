@@ -2,19 +2,34 @@
 % Please edit documentation in R/BiomechanicsFunctions.R
 \name{yaw}
 \alias{yaw}
+\alias{protraction}
 \title{Calculate yaw (in degrees) from XY coordinate data}
 \usage{
+
+
 
 }
 \arguments{
 \item{\code{P1}}{A data.frame of numeric values containing the X and Y coordinate data, respectively, for the first point (e.g, point along the midline)}
 
 \item{\code{P2}}{A data.frame of numeric values containing the X and Y coordinate data, respectively, for the second point (e.g., pelvic girdle)}
+
+\item{\code{P1}}{A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the hip)}
+
+\item{\code{P2}}{A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the second point, which is assumed to be the vertex of the angle (e.g, the knee)}
+
+\item{\code{P3}}{A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the third point (e.g, the ankle)}
+
+\item{\code{Yaw}}{A vector of numeric values containing the yaw angle values}
 }
 \description{
 Calculates the yaw angle (in degrees), formed by two segments produced by the X and Y coordiantes of two points.
+
+Calculates the yaw angle (in degrees), formed by two segments produced by the X and Y coordiantes of two points.
 }
 \details{
+These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016 to calculate angles formed about the limb joints in animals.
+
 These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016 to calculate angles formed about the limb joints in animals.
 }
 \examples{
@@ -65,8 +80,19 @@ P2 <- data.frame(X = c(0.001005251,
 
 yawAngle <- yaw(P1, P2)
 
+
+shoulder <- matrix(c(0.006305306, 0.006526961, 0.006747555, -0.08206114, -0.08207707, -0.08207049, 0.006997669, 0.006980824, 0.006975157), 3, 3)
+elbow <- matrix(c(0.007826633, 0.007959096, 0.008068560, -0.07183020, -0.07185459, -0.07186337, 0.005754819, 0.005764666, 0.005774707), 3, 3)
+wrist <- matrix(c(0.01164592, 0.01160690, 0.01157642, -0.07348876, -0.07345559, -0.07342105, -0.000631402, -0.000671288, -0.000709513), 3, 3)
+
+protractionAngle <- protraction(P1, P2, P3, Yaw)
+
 }
 \references{
+Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
+
+Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
+
 Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
 
 Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}

@@ -551,6 +551,109 @@ yaw <- function(P1, P2, ...) {
   
 
 
+#### Protraction versus retraction ####
+#' @title Calculate protraction versus retraction (in degrees) from XYZ coordinate data
+#'
+#' @name yaw
+#'
+#' @description Calculates the yaw angle (in degrees), formed by two segments produced by the X and Y coordiantes of two points.
+#'
+#' @usage 
+#'
+#' @param \code{P1} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the hip)
+#' @param \code{P2} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the second point, which is assumed to be the vertex of the angle (e.g, the knee)
+#' @param \code{P3} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the third point (e.g, the ankle)
+#' @param \code{Yaw} A vector of numeric values containing the yaw angle values
+
+#' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016 to calculate angles formed about the limb joints in animals. 
+#' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
+#' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
+
+#' @examples
+#' 
+
+#' shoulder <- matrix(c(0.006305306, 0.006526961, 0.006747555, -0.08206114, -0.08207707, -0.08207049, 0.006997669, 0.006980824, 0.006975157), 3, 3)
+#' elbow <- matrix(c(0.007826633, 0.007959096, 0.008068560, -0.07183020, -0.07185459, -0.07186337, 0.005754819, 0.005764666, 0.005774707), 3, 3)
+#' wrist <- matrix(c(0.01164592, 0.01160690, 0.01157642, -0.07348876, -0.07345559, -0.07342105, -0.000631402, -0.000671288, -0.000709513), 3, 3)
+#'
+#' protractionAngle <- protraction(P1, P2, P3, Yaw)
+#' 
+#' @export
+
+protraction <- function(P1,P2,P3, Yaw, ...) {
+  HipPoint <- P1
+  KneePoint <- P2
+  AnklePoint <- P3
+  
+  FemurVector <- HipPoint - KneePoint
+  HipPointTrans <- HipPoint - HipPoint
+  KneePointTrans1A <- KneePoint - HipPoint 
+  KneePointTrans1B <- KneePoint - HipPoint
+  FemurVectorTrans1A <- HipPointTrans - KneePointTrans1A
+  FemurVectorTrans1B <- HipPointTrans - KneePointTrans1B
+  
+  TibiaVector <- KneePoint - AnklePoint
+  KneePointTrans2A <- KneePoint - KneePoint
+  AnklePointTransA <- AnklePoint - KneePoint
+  KneePointTrans2B <- KneePoint - KneePoint
+  AnklePointTransB <- AnklePoint-KneePoint
+  KneePointTrans2C <- KneePoint-KneePoint
+  AnklePointTransC <- AnklePoint-KneePoint
+  TibiaVectorTransA <- KneePointTrans2A - AnklePointTransA
+  TibiaVectorTransB <- KneePointTrans2B-AnklePointTransB
+  TibiaVectorTransC <- KneePointTrans2C-AnklePointTransC
+  
+  ## dot product between two row vectors
+  wdot <- function(a, b) {
+    y <- a*b
+    y <- t(sum(t(y)))
+    return(y)
+  }
+  
+  ## Cross rpdouct between two row vectors 
+  library(pracma) # for the cross() function that returns a vector
+  wcross <- function(a, b) {
+    c <- t(cross(t(a),t(b)))
+    return(c)
+  }
+  
+  ## vlength
+  vlength <- function(x) {
+    v <- (wdot(x, x))^0.5
+    return(v)
+  }
+  
+  ## Setting up Transverse Plane
+  TVPlane1 <- c(0, 0, 0)
+  TVPlane2 <- c(0, .1, 0)
+  TVPlane3 <- c(0, 0, .1)
+  TVVector1 <- TVPlane2 - TVPlane1
+  TVVector2 <- TVPlane3 - TVPlane1
+  # had to take the transpose to get it into row-form instead of column form
+  TVNorm <- t(wcross(TVVector1,TVVector2))
+  
+  FemTVAngInit <- matrix()
+  for (i in 1:nrow(KneePointTrans1A)) {
+    FemurVectorTrans1AA <- FemurVectorTrans1A[i,]
+    dotFemurVectorTV <- wdot(FemurVectorTrans1AA,TVNorm)
+    MagFemurVectorTV <- vlength(FemurVectorTrans1AA)
+    MagTVNorm <- vlength(TVNorm)
+    MagFemurVectorTVNorm <- MagFemurVectorTV*MagTVNorm
+    CosdotFemurVectorTV <- dotFemurVectorTV/MagFemurVectorTVNorm
+    FemTVAngA <- (acos(CosdotFemurVectorTV))*RAD2DEG
+    # %makes a one column matrix of angles of the protraction/retraction angle
+    FemTVAngInit[i] <- FemTVAngA
+  }
+  
+    FemTVAng <- abs(FemTVAngInit)
+    #setting the zero of the angles to be perpendicular to x axis
+    FemTVAng <- (90-FemTVAng)
+    FemTVAng <- (90-FemTVAng)+Yaw -90
+    
+    return(FemTVAng)
+  }
+
+
 
 ############# GRFangles ##########
 ## assumes that your time component is in the first column and is followed by three columns containing the components of the GRF
