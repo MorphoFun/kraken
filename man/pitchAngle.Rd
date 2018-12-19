@@ -7,9 +7,9 @@
 pitchAngle(P1, P2)
 }
 \arguments{
-\item{\code{P1}}{A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the hip)}
+\item{\code{P1}}{A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the pelvic girdle)}
 
-\item{\code{P2}}{A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the second point, which is assumed to be the vertex of the angle (e.g, the knee)}
+\item{\code{P2}}{A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the second point (e.g., the hip)}
 }
 \description{
 Calculates the pitch angle (in degrees), from the XYZ coordinates of two points
