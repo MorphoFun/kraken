@@ -403,7 +403,7 @@ butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...
 #'
 #' @description Calculates the angle of a joint (in degrees), formed by three points with XYZ coordinates.
 #'
-#' @usage 
+#' @usage  jointAngle(P1, P2, P3)
 #'
 #' @param \code{P1} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the shoulder)
 #' @param \code{P2} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the second point, which is assumed to be the vertex of the angle (e.g, the elbow)
@@ -481,7 +481,7 @@ jointAngle <- function(P1, P2, P3, ...) {
 #'
 #' @description Calculates the yaw angle (in degrees), formed by two segments produced by the X and Y coordiantes of two points.
 #'
-#' @usage 
+#' @usage yaw(P1, P2)
 #'
 #' @param \code{P1} A data.frame of numeric values containing the X and Y coordinate data, respectively, for the first point (e.g, point along the midline)
 #' @param \code{P2} A data.frame of numeric values containing the X and Y coordinate data, respectively, for the second point (e.g., pelvic girdle)
@@ -558,7 +558,7 @@ yaw <- function(P1, P2, ...) {
 #'
 #' @description Calculates the protraction angle (in degrees), of a limb based on the XYZ coordinates of three points along the limb. 
 #'
-#' @usage 
+#' @usage protraction(P1, P2, P3, yaw)
 #'
 #' @param \code{P1} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the hip)
 #' @param \code{P2} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the second point, which is assumed to be the vertex of the angle (e.g, the knee)
