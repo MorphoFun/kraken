@@ -138,7 +138,6 @@ impulse <- function(time, GRF) {
 #' @param \code{lightStartFrame} A numeric / integer value depicting the frame in which the light is triggered on the high-speed video.
 #' @param \code{startFrame} A numeric / integer value depicting the frame number in which the behavior started (e.g., first contact of the foot onto the force plate)
 #' @param \code{endFrame} A numeric / integer value depicting the frame number in which the behavior ended (e.g., penultimate frame to the foot lifting off from the force plate.
-#' @param \code{zeroStart} A numeric / integer value depicting the sweep number in which to start zeroing the data (i.e., estimate the baseline). Should be at least 1000 sweeps away from any activity. 
 #' @param \code{videoHz} A numeric / integer value depicting the frame rate for the high-speed videos. 100 Hz set as a default.
 #' @param \code{forceHz} A numeric / integer value depicting the recording rate for the force plate data. 5000 Hz set as a default.
 #' @param \code{filename} Option to identify the name of the file for indexing later.
@@ -149,12 +148,10 @@ impulse <- function(time, GRF) {
 #'
 #' @examples
 #' 
-#' voltToForce(df, calib = c(-0.710, 1.337, 1.563), lightStartFrame = 248, startFrame = 20, endFrame = 196, zeroStart = 22000)
+#' voltToForce(df, calib = c(-0.710, 1.337, 1.563), lightStartFrame = 248, startFrame = 20, endFrame = 196, filename = "af01f01")
 #'
 #' @export
 #' 
-
-#### TO DO FOR voltToForce: add option to insert pectoral vs. pelvic vs. tail start and end points on the plot
 
 voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, videoHz = 100, forceHz= 5000, filename = NULL, BW = NULL, saveData = "no", ...) {
   myData <- df[,c(1:12)] # ensuring only the desired columns are used for analysis
