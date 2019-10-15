@@ -17,6 +17,7 @@ if (!require("devtools")) {
   install.packages("devtools", dependencies = TRUE)
   library(devtools)
 }
+devtools::install_github("r-lib/rlang")
 install_github("MorphoFun/kraken")
 library(kraken)
 
@@ -27,7 +28,7 @@ CalibFile <- data.frame(read.csv("./dataraw/FinLimbGRFs_Calibs.csv", header=TRUE
 # Read the most recent Video Info file
 VideoFile <- data.frame(read.csv("./dataraw/FinLimbGRFs_VideoInfo.csv", header=TRUE))
 
-setwd('./dataraw/Force_LabView_Output')
+setwd("../dataraw")
 
 myFile <- file.choose()
 myData <- read.table(myFile, header=FALSE)
@@ -47,13 +48,15 @@ VideoInfo$Pelvic.Start.Frame <- as.numeric(VideoInfo$Pelvic.Start.Frame)
 VideoInfo$Pelvic.End.Frame <- as.numeric(VideoInfo$Pelvic.End.Frame)
 Date <- format(as.Date(VideoInfo$Date.Filmed, format = "%m/%d/%y"), format="%y%m%d")
 
+
+CalibInfo <- CalibFile[CalibFile$Date %in% Date,]
+
 ## Converting the voltage readings from the force plate to measures of force
 
-forces <- voltToForce
+Pec_Forces <- voltToForce(myData, CalibInfo[,3:5], VideoInfo$Light.Start, VideoInfo$Pectoral.Start.Frame, VideoInfo$Pectoral.End.Frame, filename = Trial, BW = VideoInfo$Body.Weight.kg)
 
  
 # Calibrating the raw force data and converting to newtons (if needed)
-CalibInfo <- CalibFile[CalibFile$Date %in% Date,]
 myData$VertSumCalib.N <- myData$VertSum.Volts*CalibInfo$Vert.Calib
 myData$MLSumCalib.N <- myData$MLSum.Volts*CalibInfo$ML.Calib
 myData$HzSumCalib.N <- myData$HzSum.Volts*CalibInfo$Hz.Calib
