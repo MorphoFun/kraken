@@ -135,6 +135,7 @@ impulse <- function(time, GRF) {
 #'
 #' @param \code{df} A data.frame of data recorded from 12 channels of a force platform in the following order: 1 column trigger, 4 columns for the verticals, 1 column for the sum of the verticals, 2 columns for the mediolaterals, 1 column for the sum of the mediolaterals, 2 anteroposteriors, and 1 column for the sum of the anteroposteriors.
 #' @param \code{calib} A vector of numeric data containing the calibrations in the vertical, mediolateral, and anteroposterior directions, respectively.
+#' @param \code{zeroStart} A numeric / integer value depicting the frame number in which the data move away from the baseline. The data will be zero'd about 1000 sweeps prior to this frame. 
 #' @param \code{lightStartFrame} A numeric / integer value depicting the frame in which the light is triggered on the high-speed video.
 #' @param \code{startFrame} A numeric / integer value depicting the frame number in which the behavior started (e.g., first contact of the foot onto the force plate)
 #' @param \code{endFrame} A numeric / integer value depicting the frame number in which the behavior ended (e.g., penultimate frame to the foot lifting off from the force plate.
@@ -153,7 +154,7 @@ impulse <- function(time, GRF) {
 #' @export
 #' 
 
-voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, videoHz = 100, forceHz= 5000, filename = NULL, BW = NULL, saveData = "no", ...) {
+voltToForce <- function(df, calib, zeroStart, lightStartFrame, startFrame, endFrame, videoHz = 100, forceHz= 5000, filename = NULL, BW = NULL, saveData = "no", ...) {
   myData <- df[,c(1:12)] # ensuring only the desired columns are used for analysis
   names(myData) <- c("light_Volts", "vert1_Volts", "vert2_Volts", "vert3_Volts", "vert4_Volts", "vertSum_Volts", "ML1_Volts", "ML2_Volts", "MLSum_Volts", "AP1_Volts", "AP2_Volts", "APSum_Volts")
   myData$sweep <- 1:nrow(myData)
@@ -166,7 +167,7 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, videoH
   # Putting forces in terms of GRF (which is opposite in direction to the force produced by the limb onto the force plate)
   myData$GRF_vertSumCalib_N <- myData$vertSumCalib_N # Already made negative based on the calibration calculations conducted earlier in the excel calibration files
   myData$GRF_MLSumCalib_N <- -myData$MLSumCalib_N
-  myData$GRF_APSumCalib_N <- myData$APSumCalib_N
+  myData$GRF_APSumCalib_N <- -myData$APSumCalib_N
   
   # Determining what sweep number the light is turned on, so we can sync with video frames
   lightSwitch <- myData[which(myData$light_Volts<0),]
@@ -175,10 +176,11 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, videoH
   # Synching video frames with force sweep numbers
   startSweep <- lightOnset$sweep-((lightStartFrame-startFrame)*(forceHz/videoHz))
   endSweep <- lightOnset$sweep-((lightStartFrame-endFrame)*(forceHz/videoHz))
+  zeroSweep <- lightOnset$sweep-((lightStartFrame-zeroStart)*(forceHz/videoHz))
   
   # Correcting for the offset from the baseline (zero)
-  offsetCalcStart <- startSweep-2000
-  offsetCalcEnd <- startSweep-1000
+  offsetCalcStart <- zeroSweep-2000
+  offsetCalcEnd <- zeroSweep-1000
   GRF_vertSumCalib_N_Offset <- mean(myData$GRF_vertSumCalib_N[offsetCalcStart:offsetCalcEnd])
   GRF_MLSumCalib_N_Offset <- mean(myData$GRF_MLSumCalib_N[offsetCalcStart:offsetCalcEnd])
   GRF_APSumCalib_N_Offset <- mean(myData$GRF_APSumCalib_N[offsetCalcStart:offsetCalcEnd])
