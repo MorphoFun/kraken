@@ -3,6 +3,7 @@ Title: Analyses for bone biomechanics
 Version: 0.0.0.9000
 Authors@R: person("Sandy", "Kawano", email = "sandy.kawano@gmail.com", role = c("aut", "cre"))
 Description: Evaluations of bone biomechanics.
+Depends: R >= 3.5.0
 License: GPL-2
 BugReports: https://github.com/MorphoFun/kraken/issues
 URL: https://github.com/MorphoFun/kraken
