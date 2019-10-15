@@ -39,7 +39,7 @@
 #' data(FinLimbGRFs)
 
 # setwd(paste(getwd(),"/dataraw",sep=""))
-# FinLimbGRFs <- read.csv("PeakNetGRFData_150518.csv", sep=",")
+# FinLimbGRFs <- read.csv("PeakNetGRFData.csv", sep=",")
 # 
 #  setwd("../data")
 #  save(FinLimbGRFs, file="FinLimbGRFs.rda")
