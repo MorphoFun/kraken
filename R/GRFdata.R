@@ -38,8 +38,7 @@
 #' @examples 
 #' data(FinLimbGRFs)
 
-setwd(paste(getwd(),"/dataraw",sep=""))
-FinLimbGRFs <- read.csv("PeakNetGRFData.csv", sep=",")
+FinLimbGRFs <- read.csv("./dataraw/PeakNetGRFData.csv", sep=",")
 
-setwd("../data")
+setwd("./data")
 save(FinLimbGRFs, file="FinLimbGRFs.rda")
