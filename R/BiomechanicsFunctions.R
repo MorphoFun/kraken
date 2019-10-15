@@ -197,22 +197,27 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, videoH
   # Plotting the force data that has been converted to Newtons and zero'd
   plotStart <- as.numeric(startSweep-1000)
   plotEnd <- as.numeric(endSweep+1000)
+  
+  ImpPoints_X <- data.frame(startSweep, endSweep)
+  ImpPoints_GRFVert <- data.frame(myData$GRF_vertSumCalib_N_Zero[startSweep], myData$GRF_vertSumCalib_N_Zero[endSweep])
+  ImpPoints_GRFML <- data.frame(myData$GRF_MLSumCalib_N_Zero[startSweep], myData$GRF_MLSumCalib_N_Zero[endSweep])
+  ImpPoints_GRFAP <- data.frame(myData$GRF_APSumCalib_N_Zero[startSweep], myData$GRF_APSumCalib_N_Zero[endSweep])
 
   par(mfrow=c(1,3), oma = c(0, 0, 2, 0))  # oma = outer margin with 2 lines above the top of the graphs
   # Vertical component of GRF graph
   plot(myData$sweep[plotStart:plotEnd], myData$GRF_vertSumCalib_N_Zero[plotStart:plotEnd], xlab='Sweep', ylab='GRF - Vertical (N)', main='Zeroed GRF (Vertical) Force', type="l", col="blue")
-  #points(ImpPointsX[1,], ImpPoints_GRFVert[1,], type='p', pch='O', col='cyan')
-  #text(ImpPointsX[1,], ImpPoints_GRFVert[1,], labels=names(ImpPointsX), pos=3, font=2) # pos: 1 = below, 2 = left, 3 = above, 4 = right
+  points(ImpPoints_X[1,], ImpPoints_GRFVert[1,], type='p', pch='O', col='cyan')
+  text(ImpPoints_X[1,], ImpPoints_GRFVert[1,], labels=names(ImpPoints_X), pos=3, font=2) # pos: 1 = below, 2 = left, 3 = above, 4 = right
   
   # Mediolateral component of GRF graph
   plot(myData$sweep[plotStart:plotEnd], myData$GRF_MLSumCalib_N_Zero[plotStart:plotEnd], xlab='Sweep', ylab='GRF - Mediolateral (N)', main='Zeroed GRF (Mediolateral) Force', type="l", col="red")
-  #points(ImpPointsX[1,], ImpPoints_GRFML[1,], type='p', pch='O', col='cyan')
-  #text(ImpPointsX[1,], ImpPoints_GRFML[1,], labels=names(ImpPointsX), pos=3, font=2) # pos: 1 = below, 2 = left, 3 = above, 4 = right
+  points(ImpPoints_X[1,], ImpPoints_GRFML[1,], type='p', pch='O', col='cyan')
+  text(ImpPoints_X[1,], ImpPoints_GRFML[1,], labels=names(ImpPoints_X), pos=3, font=2) # pos: 1 = below, 2 = left, 3 = above, 4 = right
   
   # Anteroposterior component of GRF graph
   plot(myData$sweep[plotStart:plotEnd], myData$GRF_APSumCalib_N_Zero[plotStart:plotEnd], xlab='Sweep', ylab='GRF - Anteroposterior (N)', main='Zeroed GRF (Anteroposterior) Force', type="l", col="forestgreen")
-  #points(ImpPointsX[1,], ImpPoints_GRFHz[1,], type='p', pch='O', col='cyan')
-  #text(ImpPointsX[1,], ImpPoints_GRFHz[1,], labels=names(ImpPointsX), pos=3, font=2) # pos: 1 = below, 2 = left, 3 = above, 4 = right
+  points(ImpPoints_X[1,], ImpPoints_GRFAP[1,], type='p', pch='O', col='cyan')
+  text(ImpPoints_X[1,], ImpPoints_GRFAP[1,], labels=names(ImpPoints_X), pos=3, font=2) # pos: 1 = below, 2 = left, 3 = above, 4 = right
   
   mtext(filename, line=0.5, outer=TRUE)  # writes an overall title over the graphs
   
