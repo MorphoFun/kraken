@@ -197,7 +197,7 @@ voltToForce <- function(df, calib, lightStartFrame, startFrame, endFrame, videoH
   # Plotting the force data that has been converted to Newtons and zero'd
   plotStart <- as.numeric(startSweep-1000)
   plotEnd <- as.numeric(endSweep+1000)
-  windows(width=10)
+  if(.Platform$OS.type=="windows") {
   par(mfrow=c(1,3), oma = c(0, 0, 2, 0))  # oma = outer margin with 2 lines above the top of the graphs
   # Vertical component of GRF graph
   plot(myData$sweep[plotStart:plotEnd], myData$GRF_vertSumCalib_N_Zero[plotStart:plotEnd], xlab='Sweep', ylab='GRF - Vertical (N)', main='Zeroed GRF (Vertical) Force', type="l", col="blue")
