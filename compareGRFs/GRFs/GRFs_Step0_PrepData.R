@@ -12,6 +12,14 @@ rm(list=ls(all=TRUE))
 today <- Sys.Date()
 SaveDate <- format(today, format="%y%m%d")
 
+#### Loading libraries ####
+if (!require("devtools")) {
+  install.packages("devtools", dependencies = TRUE)
+  library(devtools)
+}
+install_github("MorphoFun/kraken")
+library(kraken)
+
 # Read in values to calibrate each GRF component by; uses most recent Calibration Overview file
 # when using list.files, need to use setwd as an assigned variable and also by itlself (see below) or it won't work
 CalibFile <- data.frame(read.csv("./dataraw/FinLimbGRFs_Calibs.csv", header=TRUE))
@@ -19,7 +27,7 @@ CalibFile <- data.frame(read.csv("./dataraw/FinLimbGRFs_Calibs.csv", header=TRUE
 # Read the most recent Video Info file
 VideoFile <- data.frame(read.csv("./dataraw/FinLimbGRFs_VideoInfo.csv", header=TRUE))
 
-setwd('./dataraw')
+setwd('./dataraw/Force_LabView_Output')
 
 myFile <- file.choose()
 myData <- read.table(myFile, header=FALSE)
@@ -27,9 +35,8 @@ myData <- myData[,c(1:12)] # Last 4 columns/channels were unused, so only subset
 names(myData) <- c("Light.Volts", "Vert1.Volts", "Vert2.Volts", "Vert3.Volts", "Vert4.Volts", "VertSum.Volts", "ML1.Volts", "ML2.Volts", "MLSum.Volts", "Hz1.Volts", "Hz2.Volts", "HzSum.Volts")
 myData$Sweep <- 1:nrow(myData)
 
-# Determining trial name and data collectiond date
-Trial <- substring(myFile, 87, 93)
-Date <- substring(myFile, 75, 80)
+# Determining trial name
+Trial <-  substring(myFile, nchar(myFile)-10, nchar(myFile)-4)
 
 # Looking up video info
 # Appendages listed as "Both" have both pectoral and pelvic appendage data
@@ -38,9 +45,12 @@ VideoInfo$Pectoral.Start.Frame <- as.numeric(VideoInfo$Pectoral.Start.Frame)
 VideoInfo$Pectoral.End.Frame <- as.numeric(VideoInfo$Pectoral.End.Frame)
 VideoInfo$Pelvic.Start.Frame <- as.numeric(VideoInfo$Pelvic.Start.Frame)
 VideoInfo$Pelvic.End.Frame <- as.numeric(VideoInfo$Pelvic.End.Frame)
-#PecFiles.All <- VideoFile[which(!VideoFile$Appendages == 'Pelvic'),]
-#PelvicFiles.All <- VideoFile[which(!VideoFile$Appendages == 'Pectoral'),]
-# These last two lines of code aren't used
+Date <- format(as.Date(VideoInfo$Date.Filmed, format = "%m/%d/%y"), format="%y%m%d")
+
+## Converting the voltage readings from the force plate to measures of force
+
+forces <- voltToForce
+
  
 # Calibrating the raw force data and converting to newtons (if needed)
 CalibInfo <- CalibFile[CalibFile$Date %in% Date,]
@@ -89,13 +99,7 @@ LastTrace <- Last[which(Last==max(Last))]
 PlotStart <- FirstTrace[1,1]-1000
 PlotEnd <- LastTrace[1,1]+1000
 
-# Putting together the start and end points for the appendage cycles
-#ifelse ((!is.na(VideoInfo$Pelvic.Start.Frame)), ImpPointsX <- data.frame(PectoralStartSweep, PectoralEndSweep,PelvicStartSweep, PelvicEndSweep), ImpPointsX <- data.frame(PectoralStartSweep, PectoralEndSweep))
-#  ifelse ((!is.na(VideoInfo$Pelvic.Start.Frame)), names(ImpPointsX) <- c('Pectoral Start', 'Pectoral End','Pelvic Start', 'Pelvic End'), names(ImpPointsX) <- c('Pectoral Start', 'Pectoral End'))
-#
-#ifelse ((!is.na(VideoInfo$Pectoral.Start.Frame)), ImpPointsX <- data.frame(PectoralStartSweep, PectoralEndSweep,PelvicStartSweep, PelvicEndSweep), ImpPointsX <- data.frame(PelvicStartSweep, PelvicEndSweep))
-#  ifelse ((!is.na(VideoInfo$Pectoral.Start.Frame)), names(ImpPointsX) <- c('Pectoral Start', 'Pectoral End','Pelvic Start', 'Pelvic End'), names(ImpPointsX) <- c('Pelvic Start', 'Pelvic End'))
-#
+
 if (!is.na(VideoInfo$Pectoral.Start.Frame) & !is.na(VideoInfo$Pelvic.Start.Frame)) {
 ImpPointsX <- data.frame(PectoralStartSweep, PectoralEndSweep,PelvicStartSweep, PelvicEndSweep)
 names(ImpPointsX) <- c('Pectoral Start', 'Pectoral End','Pelvic Start', 'Pelvic End') }
@@ -220,3 +224,4 @@ if (!VideoInfo$Appendages == 'Pectoral') write.table(FilterPrep.Pel, file=SaveFi
 
 # Changing directory for saving the figure of the graphs
 setwd('/Users/SandyMKawano/Desktop/Research/Forelimbs on Force Plates/Force Data/R Analysis/Step 1 Calibrate and Organize Data/Save All Data')
+
