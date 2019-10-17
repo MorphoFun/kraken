@@ -167,7 +167,7 @@ voltToForce <- function(df, calib, zeroStart, lightStartFrame, startFrame, endFr
   # Putting forces in terms of GRF (which is opposite in direction to the force produced by the limb onto the force plate)
   myData$GRF_vertSumCalib_N <- myData$vertSumCalib_N # Already made negative based on the calibration calculations conducted earlier in the excel calibration files
   myData$GRF_MLSumCalib_N <- -myData$MLSumCalib_N
-  myData$GRF_APSumCalib_N <- -myData$APSumCalib_N
+  myData$GRF_APSumCalib_N <- myData$APSumCalib_N
   
   # Determining what sweep number the light is turned on, so we can sync with video frames
   lightSwitch <- myData[which(myData$light_Volts<0),]
