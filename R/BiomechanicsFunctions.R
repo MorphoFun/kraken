@@ -191,7 +191,7 @@ voltToForce <- function(df, calib, zeroStart, lightStartFrame, startFrame, endFr
   myData$GRF_APSumCalib_N_Zero <- myData$GRF_APSumCalib_N - GRF_APSumCalib_N_Offset
   
   # Adding a time column
-  myData$Time_s <- c(0, cumsum(rep(1/5000, (nrow(myData)-1))))
+  myData$Time_s <- c(0, cumsum(rep(1/forceHz, (nrow(myData)-1))))
   
   # Plotting the force data that has been converted to Newtons and zero'd
   plotStart <- as.numeric(startSweep-1000)
@@ -773,7 +773,7 @@ pitchAngle <- function(P1, P2, ...) {
 ## assumes that the order is Vert, ML, and AP
 ## must be data.frame
 
-GRFangles <- function(myData, ...) {
+GRFAngles <- function(myData, ...) {
   # Calculating the angles of orientation
   myData$GRF_Vert_Sq <- myData[,2]^2
   myData$GRF_ML_Sq <- myData[,3]^2
@@ -784,7 +784,7 @@ GRFangles <- function(myData, ...) {
   myData$APAngle <- (acos(myData[,4]/(sqrt(myData$GRF_AP_Sq + myData$GRF_Vert_Sq))))*(180/pi)
   myData$APAngle_Convert <- 90 - myData$APAngle
   
-  output <- data.frame(myData[,1:5], myData$NetGRF_N, myData$MLAngle, myData$MLAngle_Convert, myData$APAngle, myData$APAngle_Convert)
+  output <- data.frame(myData[,1:5], "NetGRF_N" = myData$NetGRF_N, "MLAngle_deg" = myData$MLAngle, "MLAngle_Convert_deg" = myData$MLAngle_Convert, "APAngle_deg" = myData$APAngle, "APAngle_Convert_deg" = myData$APAngle_Convert)
   
 }
 
