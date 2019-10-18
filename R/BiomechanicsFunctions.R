@@ -275,7 +275,7 @@ voltToForce <- function(df, calib, zeroStart, lightStartFrame, startFrame, endFr
 #'
 #' @usage 
 #'
-#' @param \code{df} A list containing the file name and an array of data containing the independent varabile (time) as the first column that is followed by the dependent variables. Can take voltToForce output as an input.
+#' @param \code{df} A list containing the file name and an array of data containing the independent variable (time) as the first column that is followed by the dependent variables. Can take voltToForce output as an input.
 #' @param \code{Fs} A numeric value indicating the sampling frequency. 5000 Hz is set as a default.
 #' @param \code{PbF} A numeric value indicating the pass-band frequency. 6 is set as a default.
 #' @param \code{SbF} A numeric value indicating the stop-band frequency. 190 is set as a default.
@@ -772,6 +772,26 @@ pitchAngle <- function(P1, P2, ...) {
 ## assumes that your time component is in the first column and is followed by three columns containing the components of the GRF
 ## assumes that the order is Vert, ML, and AP
 ## must be data.frame
+
+#' @title Calculate angles of orientation for ground reaction forces
+#'
+#' @name GRFAngles
+#'
+#' @description Calculates the net ground reaction force (GRF) and angles of the GRF orientation using information about the vertical, mediolaterl, and anteroposterior components of the GRF.
+#'
+#' @usage GRFAngles <- function(myData, ...)
+#'
+#' @param \code{myData} A data.frame of four columns of numeric data in the following order: Measure of time (e.g., seconds, percent of stance), vertical component of the GRF, mediolateral component of the GRF, and anteroposterior component of the GRF.
+#' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016.
+#' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
+#' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
+#'
+#' @examples
+#' 
+#' GRFAngles(GRFs_Filtered$GRF0Sum_filter_interp)
+#'
+#' @export
+#' 
 
 GRFAngles <- function(myData, ...) {
   # Calculating the angles of orientation
