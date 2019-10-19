@@ -83,7 +83,7 @@ save(FinLimbGRFs_Peak, file="FinLimbGRFs_Peak.rda")
 #' data(af01f18)
 
 af01f18 <- read.table("./dataraw/af01f18.txt")
-names(af01f18) <- c("light_Volts", "Vert1.Volts", "Vert2.Volts", "Vert3.Volts", "Vert4.Volts", "VertSum.Volts", "ML1.Volts", "ML2.Volts", "MLSum.Volts", "Hz1.Volts", "Hz2.Volts", "HzSum.Volts")
+names(af01f18) <- c("light_Volts", "Vert1.Volts", "Vert2.Volts", "Vert3.Volts", "Vert4.Volts", "VertSum.Volts", "ML1.Volts", "ML2.Volts", "MLSum.Volts", "Hz1.Volts", "Hz2.Volts", "HzSum.Volts", "BLANK", "BLANK", "BLANK", "BLANK", "BLANK")
 af01f18$Sweep <- 1:nrow(af01f18)
 
 
