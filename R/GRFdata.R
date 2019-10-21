@@ -44,7 +44,7 @@ setwd("./data")
 save(FinLimbGRFs_Peak, file="FinLimbGRFs_Peak.rda")
 
 
-#' @title Example of raw data file for 
+#' @title Example of raw data file for salaamander ground reaction force analysis 
 #'
 #' @name af01f18
 #'

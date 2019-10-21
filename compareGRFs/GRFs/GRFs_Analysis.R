@@ -51,17 +51,24 @@ VideoInfo$Pelvic.End.Frame <- as.numeric(VideoInfo$Pelvic.End.Frame)
 Date <- format(as.Date(VideoInfo$Date.Filmed, format = "%m/%d/%y"), format="%y%m%d")
 
 
+#### LOOKING UP THE CALIB INFO ####
 CalibInfo <- CalibFile[CalibFile$Date %in% Date,]
+
 
 #### CONVERTING LABVIEW OUTPUT TO GRFS ####
 
-if (!VideoInfo$Appendages == 'Pelvic') Pec_GRFs <- voltToForce(myData, CalibInfo[,3:5], VideoInfo$Pectoral.Start.Frame, VideoInfo$Light.Start, VideoInfo$Pectoral.Start.Frame, VideoInfo$Pectoral.End.Frame, filename = Trial, BW = VideoInfo$Body.Weight.kg)
+if (!VideoInfo$Appendages == 'Pelvic') Pec_GRFs <- voltToForce(myData, CalibInfo[,3:5], zeroStart = VideoInfo$Pectoral.Start.Frame, lightStartFrame = VideoInfo$Light.Start, startFrame = VideoInfo$Pectoral.Start.Frame, endFrame = VideoInfo$Pectoral.End.Frame, filename = Trial, BW = VideoInfo$Body.Weight.kg)
 if (!VideoInfo$Appendages == 'Pectoral') Pel_GRFs <- voltToForce(myData, CalibInfo[,3:5], VideoInfo$Pectoral.Start.Frame, VideoInfo$Light.Start, VideoInfo$Pelvic.Start.Frame, VideoInfo$Pelvic.End.Frame, filename = Trial, BW = VideoInfo$Body.Weight.kg)
 
 
 #### FILTERING THE DATA ####
 if (!VideoInfo$Appendages == 'Pelvic') Pec_GRFs_Filtered <- butterFilteR(Pec_GRFs)
 if (!VideoInfo$Appendages == 'Pectoral') Pel_GRFs_Filtered <- butterFilteR(Pel_GRFs)
+
+
+#### CALCULATING ANGLES OF GRF ORIENTATION ####
+if (!VideoInfo$Appendages == 'Pelvic') Pec_GRFs_Filtered_dataset <- GRFAngles(Pec_GRFs_Filtered$GRF0Sum_filter_interp)
+if (!VideoInfo$Appendages == 'Pectoral') Pel_GRFs_Filtered_dataset <- GRFAngles(Pel_GRFs_Filtered$GRF0Sum_filter_interp)
 
 
 #### SAVING THE DATA ####
