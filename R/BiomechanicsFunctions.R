@@ -808,7 +808,36 @@ GRFAngles <- function(myData, ...) {
   
 }
 
+############# Yank ##########
 
+
+#' @title Calculating yank for force data
+#'
+#' @name yank
+#'
+#' @description Calculates yank as a measure of the change in force per unit of time.
+#'
+#' @usage yank <- function(myData, ...)
+#'
+#' @param \code{time} Numeric values representing the time elapsed in units of seconds.
+#' @param \code{force} Numeric values representing the force measured at each time point.
+#' @details These procedures follow the methodology used in Lin et al. 2019.
+#' @references Lin DC, McGowan CP, Blum KP, Ting LH. Yank: the time derivative of force is an important biomechanical variable in sensorimotor systems. Journal of Experimental Biology 222: jeb180414. \url{https://jeb.biologists.org/content/222/18/jeb180414}
+#'
+#' @examples
+#' 
+#' yank(seq(1:10), rnorm(10, 1, 1), )
+#'
+#' @export
+#' 
+
+yank <- function(time, force, ...) {
+  dt <- c(NA, diff(time))
+  df <- c(NA, diff(force))
+  dy <- df/dt
+  dataset <- data.frame(time = time, force = force, delta_force = df, yank = dy)
+  return(dataset)
+}
 
 
 ############################################################################################################################
