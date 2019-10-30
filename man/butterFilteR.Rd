@@ -7,7 +7,7 @@
 
 }
 \arguments{
-\item{\code{df}}{A list containing the file name and an array of data containing the independent varabile (time) as the first column that is followed by the dependent variables. Can take voltToForce output as an input.}
+\item{\code{df}}{A list containing the file name and an array of data containing the independent variable (time) as the first column that is followed by the dependent variables. Can take voltToForce output as an input.}
 
 \item{\code{Fs}}{A numeric value indicating the sampling frequency. 5000 Hz is set as a default.}
 

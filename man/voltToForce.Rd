@@ -11,13 +11,13 @@ voltToForce(calib, lightStartFrame, startFrame, endFrame, videoHz, forceHz, zero
 
 \item{\code{calib}}{A vector of numeric data containing the calibrations in the vertical, mediolateral, and anteroposterior directions, respectively.}
 
+\item{\code{zeroStart}}{A numeric / integer value depicting the frame number in which the data move away from the baseline. The data will be zero'd about 1000 sweeps prior to this frame.}
+
 \item{\code{lightStartFrame}}{A numeric / integer value depicting the frame in which the light is triggered on the high-speed video.}
 
 \item{\code{startFrame}}{A numeric / integer value depicting the frame number in which the behavior started (e.g., first contact of the foot onto the force plate)}
 
 \item{\code{endFrame}}{A numeric / integer value depicting the frame number in which the behavior ended (e.g., penultimate frame to the foot lifting off from the force plate.}
-
-\item{\code{zeroStart}}{A numeric / integer value depicting the sweep number in which to start zeroing the data (i.e., estimate the baseline). Should be at least 1000 sweeps away from any activity.}
 
 \item{\code{videoHz}}{A numeric / integer value depicting the frame rate for the high-speed videos. 100 Hz set as a default.}
 
@@ -37,7 +37,7 @@ These procedures follow the methodology used in Kawano and Blob (2013) and Kawan
 }
 \examples{
 
-voltToForce(df, calib = c(-0.710, 1.337, 1.563), lightStartFrame = 248, startFrame = 20, endFrame = 196, zeroStart = 22000)
+voltToForce(df, calib = c(-0.710, 1.337, 1.563), lightStartFrame = 248, startFrame = 20, endFrame = 196, filename = "af01f01")
 
 }
 \references{
