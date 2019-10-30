@@ -5,7 +5,7 @@
 #' @name FinLimbGRFs_Peak
 #'
 #' @description Ground reaction force (GRF) data from isolated appendages of mudskipper fish (\emph{Periophthalmus barbarus}), tiger salamanders (\emph{Ambystoma tigrinum}), and Iberian ribbed newts (\emph{Pleurodeles waltl}).
-#'
+#' @format A data frame with 248 rows and 21 variables.
 #'  \describe{
 #'			\item{\code{PercentStance}}{The percentage of the stance phase when the peak net GRF occurs for that trial.}
 #'      \item{\code{APAngle.Convert}}{Angle of the GRF in the anteroposterior direction, in the -90 (posterior) to +90 (posterior) degree range so that 0 degrees represent the transition between anterorior and posterior.}
@@ -33,7 +33,7 @@
 #' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land.  \emph{Integrative and Comparative Biology} 53(2): 283-294.
 #' @usage FinLimbGRFs_Peak
 #' @keywords datasets
-#' @export FinLimbGRFs_Peak
+#' 
 #'
 #' @examples 
 #' data(FinLimbGRFs_Peak)
@@ -43,13 +43,15 @@
 # setwd("./data")
 # save(FinLimbGRFs_Peak, file="FinLimbGRFs_Peak.rda")
 
+"FinLimbGRFs_Peak"
+
 
 #' @title Example of raw data file for salaamander ground reaction force analysis 
 #'
 #' @name af01f18
 #'
 #' @description Example LabView output collected while a tiger salamander (\emph{Ambystoma tigrinum}) was walking on a force plate. The name of this trial is af01f18. Includes data from the forelimb and hind limb. 
-#'
+#' @format A data.frame with 40000 rows and 18 variables.
 #'  \describe{
 #'			\item{\code{PercentStance}}{The percentage of the stance phase when the peak net GRF occurs for that trial.}
 #'      \item{\code{APAngle.Convert}}{Angle of the GRF in the anteroposterior direction, in the -90 (posterior) to +90 (posterior) degree range so that 0 degrees represent the transition between anterorior and posterior.}
@@ -77,7 +79,7 @@
 #' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land.  \emph{Integrative and Comparative Biology} 53(2): 283-294.
 #' @usage af01f18
 #' @keywords datasets
-#' @export af01f18
+#' 
 #'
 #' @examples 
 #' data(af01f18)
@@ -89,3 +91,5 @@
 # 
 # setwd("./data")
 # save(af01f18, file="af01f18.rda")
+
+"af01f18"
