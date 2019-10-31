@@ -103,10 +103,7 @@ GRFoverlaps <- function(df, primary, secondary, filmRate, ...) {
   
     LimbCycleLength <- primary[,2]-primary[,1]
     OverlapStart <- floor(((secondary[,1]-primary[,1])/LimbCycleLength)*filmRate)  # want everything before overlap starts
-    ImpPoints.Overlap <- data.frame(OverlapStart, df$InterpV_BW[OverlapStart+1], df$InterpML_BW[OverlapStart+1], df$InterpAP_BW[OverlapStart+1], df$NetGRF_BW[OverlapStart+1], row.names='Overlap Start')
-    # need to include +1 within square brackets b/c obs rows are 1 value greater than the % stance (i.e., 0% stance = row 1)
-    names(ImpPoints.Overlap) <- c('Percent Stance', 'Vertical (BW)', 'Mediolateral (BW)', 'Horizontal (BW)', 'Net GRF (BW)')
-    
+
     # Taking data points at every 5% of stance
     UsableRows <- df[[1]][1:(OverlapStart+1)]+1 # hindlimb overlap tends to occur towards the end
     df_noOverlap <- df[UsableRows,]
@@ -114,9 +111,7 @@ GRFoverlaps <- function(df, primary, secondary, filmRate, ...) {
     # Making cells within the overlap as "NA" so the data.frame maintains the same dimensions with all 0 -> 101 pts at 5% increments included
     UnusableRows <- df[[1]][-c(1:(OverlapStart+1))]+1
 
-    NAs <- rep("NA", length(seq(1,101,1)))  
-    StanceWithOverlap.Percent <- UnusableRows-1
-    NA.Fillers <- data.frame(StanceWithOverlap.Percent)
+    NA.Fillers <- data.frame(UnusableRows-1)
     NA.Fillers[ , paste("x", 1:(length(df_noOverlap)-1), sep = "")] <- NA
     names(NA.Fillers) <- names(df_noOverlap)
     
@@ -125,6 +120,31 @@ GRFoverlaps <- function(df, primary, secondary, filmRate, ...) {
     
     output <- df_WFill
   }
+  
+  ### For files that have the secondary appendage hitting the plate 1st
+  if (is.na(secondary[,1])==FALSE & as.numeric(primary[,1])>as.numeric(secondary[,1]))
+  {
+    LimbCycleLength <- primary[,2]-primary[,1]
+    OverlapEnd <- ceiling(((secondary[,2]-primary[,1])/LimbCycleLength)*filmRate) # Rounding up because want data after overlap is done
+
+    # Taking data points at every 5% of stance
+    UsableRows <- df[[1]][-c(0:OverlapEnd)]+1 # overlap tends to occur towards the beginning # adding 1 b/c data rows don't start until row 2
+    
+    df_noOverlap <- df[UsableRows,]
+    
+    # Making cells within the overlap as "NA" so the data.frame maintains the same dimensions with all 0 -> 101 pts at 5% increments included
+    UnusableRows <- df[[1]][c(0:(OverlapEnd))]+1
+    NA.Fillers <- data.frame(UnusableRows-1)
+    NA.Fillers[ , paste("x", 1:(length(df_noOverlap)-1), sep = "")] <- NA
+    names(NA.Fillers) <- names(df_noOverlap) # need to have the same variable names to rbind
+    
+    # Adding filler NA's to actual data to keep/analyze
+    df_WFill <- rbind(NA.Fillers, df_noOverlap)
+    
+    output <- df_WFill
+    
+  }
+  
   return(output)
 }
     
