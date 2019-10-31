@@ -92,57 +92,40 @@ if (!VideoInfo$Appendages == 'Pectoral') {
 
 ###################  PECTORAL APPENDAGE BEFORE PELVIC APPENDAGE FOR PECTORAL FILES #################
 
-GRFoverlaps <- function(df, focalAppendage = c("pec", "pel"), VideoInfo, ...) {
-  ### Pectoral trials
-  ## only pectoral 
-  if (!VideoInfo$Appendages == 'Pelvic' & is.na(VideoInfo$Pelvic.Start.Frame)==TRUE) {
-    LimbCycleLength <- VideoInfo$Pectoral.End.Frame-VideoInfo$Pectoral.Start.Frame
-    OverlapStart <- floor(((VideoInfo$Pelvic.Start.Frame-VideoInfo$Pectoral.Start.Frame)/LimbCycleLength)*VideoInfo$Filming.Rate.Hz)  # want everything before overlap starts
+GRFoverlaps <- function(df, primary, secondary, filmRate, ...) {
+  ### isolated footfalls
+  if (is.na(secondary[,1])==TRUE) {
+    output <- df
+  }
+  
+  ### For files that have the primary appendage hitting the plate 1st
+  if (is.na(secondary[,1])==FALSE & as.numeric(primary[,1])<as.numeric(secondary[,1])) {
+  
+    LimbCycleLength <- primary[,2]-primary[,1]
+    OverlapStart <- floor(((secondary[,1]-primary[,1])/LimbCycleLength)*filmRate)  # want everything before overlap starts
     ImpPoints.Overlap <- data.frame(OverlapStart, df$InterpV_BW[OverlapStart+1], df$InterpML_BW[OverlapStart+1], df$InterpAP_BW[OverlapStart+1], df$NetGRF_BW[OverlapStart+1], row.names='Overlap Start')
     # need to include +1 within square brackets b/c obs rows are 1 value greater than the % stance (i.e., 0% stance = row 1)
     names(ImpPoints.Overlap) <- c('Percent Stance', 'Vertical (BW)', 'Mediolateral (BW)', 'Horizontal (BW)', 'Net GRF (BW)')
     
     # Taking data points at every 5% of stance
-    IncrementRows <- seq(1,101,5) # row 1 = 0% stance, so essentially need to do row#-1 for each percentage of stance
-    UsableRows <- df$PercentStance[1:(OverlapStart+1)]+1 # hindlimb overlap tends to occur towards the end
-    StanceWithoutOverlap.Increment <- IncrementRows[IncrementRows %in% UsableRows] 
-    
-    df_noOverlap_noIncrement <- df[UsableRows,]
-    df_noOverlap_increment <- df[StanceWithoutOverlap.Increment,]
-    
+    UsableRows <- df[[1]][1:(OverlapStart+1)]+1 # hindlimb overlap tends to occur towards the end
+    df_noOverlap <- df[UsableRows,]
+
     # Making cells within the overlap as "NA" so the data.frame maintains the same dimensions with all 0 -> 101 pts at 5% increments included
-    UnusableRows <- df$PercentStance[-c(1:(OverlapStart+1))]+1
-    StanceWithOverlap.Increment <- IncrementRows[IncrementRows %in% UnusableRows]
-    NA.Increment <- rep("NA", length(StanceWithOverlap.Increment))
-    StanceWithOverlap.IncrementPercent <- StanceWithOverlap.Increment-1
-    NA.Fillers <- data.frame(StanceWithOverlap.IncrementPercent)
-    NA.Fillers[ , paste("x", 1:(length(df_noOverlap_increment)-1), sep = "")] <- NA
-    names(NA.Fillers) <- names(df_noOverlap_increment) # need to have the same variable names to rbind
-    
-    NA.NoIncrement <- rep("NA", length(seq(1,101,1)))  
+    UnusableRows <- df[[1]][-c(1:(OverlapStart+1))]+1
+
+    NAs <- rep("NA", length(seq(1,101,1)))  
     StanceWithOverlap.Percent <- UnusableRows-1
-    NA.Fillers_NoIncrement <- data.frame(StanceWithOverlap.Percent)
-    NA.Fillers_NoIncrement[ , paste("x", 1:(length(df_noOverlap_noIncrement)-1), sep = "")] <- NA
-    names(NA.Fillers_NoIncrement) <- names(df_noOverlap_noIncrement)
+    NA.Fillers <- data.frame(StanceWithOverlap.Percent)
+    NA.Fillers[ , paste("x", 1:(length(df_noOverlap)-1), sep = "")] <- NA
+    names(NA.Fillers) <- names(df_noOverlap)
     
     # Adding filler NA's to actual data to keep/analyze
-    df_IncrementWFill <- rbind(df_noOverlap_increment, NA.Fillers)
-    df_NoIncrementWFill <- rbind(df_noOverlap_noIncrement, NA.Fillers_NoIncrement)
+    df_WFill <- rbind(df_noOverlap, NA.Fillers)
     
-    # Evaluating at peak/max net GRF
-    # Also making sure that I'm only including data points that occurred before overlap with other structures started
-    PeakNetGRF <- df_noOverlap_noIncrement[which(df_noOverlap_noIncrement$NetGRF_BW==max(df_noOverlap_noIncrement$NetGRF_BW[1:OverlapStart+1])),]
-    
-    # Creating file names for saving as .csv
-    SaveFilteredNoIncrement <- paste(Trial,"_Pec_NoIncrement_", SaveDate, ".csv", sep="")
-    SaveFilteredIncrement <- paste(Trial,"_Pec_Increment_", SaveDate, ".csv", sep="")
-    SaveFilteredPeakNet<- paste(Trial,"_Pec_PeakNetGRF_", SaveDate, ".csv", sep="")
-    
-    output <- list(
-      
-    )
-    return(output)
+    output <- df_WFill
   }
+  return(output)
 }
     
     
