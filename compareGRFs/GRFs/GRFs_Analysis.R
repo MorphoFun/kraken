@@ -92,61 +92,7 @@ if (!VideoInfo$Appendages == 'Pectoral') {
 
 ###################  PECTORAL APPENDAGE BEFORE PELVIC APPENDAGE FOR PECTORAL FILES #################
 
-GRFoverlaps <- function(df, primary, secondary, filmRate, ...) {
-  ### isolated footfalls
-  if (is.na(secondary[,1])==TRUE) {
-    output <- df
-  }
-  
-  ### For files that have the primary appendage hitting the plate 1st
-  if (is.na(secondary[,1])==FALSE & as.numeric(primary[,1])<as.numeric(secondary[,1])) {
-  
-    LimbCycleLength <- primary[,2]-primary[,1]
-    OverlapStart <- floor(((secondary[,1]-primary[,1])/LimbCycleLength)*filmRate)  # want everything before overlap starts
 
-    # Taking data points at every 5% of stance
-    UsableRows <- df[[1]][1:(OverlapStart+1)]+1 # hindlimb overlap tends to occur towards the end
-    df_noOverlap <- df[UsableRows,]
-
-    # Making cells within the overlap as "NA" so the data.frame maintains the same dimensions with all 0 -> 101 pts at 5% increments included
-    UnusableRows <- df[[1]][-c(1:(OverlapStart+1))]+1
-
-    NA.Fillers <- data.frame(UnusableRows-1)
-    NA.Fillers[ , paste("x", 1:(length(df_noOverlap)-1), sep = "")] <- NA
-    names(NA.Fillers) <- names(df_noOverlap)
-    
-    # Adding filler NA's to actual data to keep/analyze
-    df_WFill <- rbind(df_noOverlap, NA.Fillers)
-    
-    output <- df_WFill
-  }
-  
-  ### For files that have the secondary appendage hitting the plate 1st
-  if (is.na(secondary[,1])==FALSE & as.numeric(primary[,1])>as.numeric(secondary[,1]))
-  {
-    LimbCycleLength <- primary[,2]-primary[,1]
-    OverlapEnd <- ceiling(((secondary[,2]-primary[,1])/LimbCycleLength)*filmRate) # Rounding up because want data after overlap is done
-
-    # Taking data points at every 5% of stance
-    UsableRows <- df[[1]][-c(0:OverlapEnd)]+1 # overlap tends to occur towards the beginning # adding 1 b/c data rows don't start until row 2
-    
-    df_noOverlap <- df[UsableRows,]
-    
-    # Making cells within the overlap as "NA" so the data.frame maintains the same dimensions with all 0 -> 101 pts at 5% increments included
-    UnusableRows <- df[[1]][c(0:(OverlapEnd))]+1
-    NA.Fillers <- data.frame(UnusableRows-1)
-    NA.Fillers[ , paste("x", 1:(length(df_noOverlap)-1), sep = "")] <- NA
-    names(NA.Fillers) <- names(df_noOverlap) # need to have the same variable names to rbind
-    
-    # Adding filler NA's to actual data to keep/analyze
-    df_WFill <- rbind(NA.Fillers, df_noOverlap)
-    
-    output <- df_WFill
-    
-  }
-  
-  return(output)
-}
     
     
 

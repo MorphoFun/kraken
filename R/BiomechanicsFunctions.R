@@ -808,6 +808,94 @@ GRFAngles <- function(myData, ...) {
   
 }
 
+
+############# removeOverlaps ##########
+
+
+#' @title Remove sections of the data where there is overlap
+#'
+#' @name removeOverlaps
+#'
+#' @description Identifies portions of the dataset where two occurrences overlap and replaces with NAs.
+#'
+#' @usage removeOverlaps <- function(df, primary, secondary, filmRate, ...) 
+#'
+#' @param \code{df} A data.frame containing variables of interest.
+#' @param \code{primary} A data.frame containing two numeric values that correspond to the beginning and end of an event (e.g., stance phase of forelimb).
+#' @param \code{secondary} A data.frame containing two numeric values that correspond to the beginning and end of an event (e.g., stance phase of hind limb) that would affect interpretations of the primary event.
+#' @param \code{filmRaate} A numeric value of the filming rate. 
+#' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016.
+#' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
+#' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
+#'
+#' @examples
+#' 
+#' primary <- data.frame(35, 148)
+#' secondary <- data.frame(128, 244)
+#' removeOverlaps(Pel_GRFs_Filtered_dataset, primary, secondary, 100)
+#'
+#' @export
+#' 
+
+
+removeOverlaps <- function(df, primary, secondary, filmRate, ...) {
+  ### isolated footfalls
+  if (is.na(secondary[,1])==TRUE) {
+    output <- df
+  }
+  
+  ### For files that have the primary appendage hitting the plate 1st
+  if (is.na(secondary[,1])==FALSE & as.numeric(primary[,1])<as.numeric(secondary[,1])) {
+    
+    LimbCycleLength <- primary[,2]-primary[,1]
+    OverlapStart <- floor(((secondary[,1]-primary[,1])/LimbCycleLength)*filmRate)  # want everything before overlap starts
+    
+    # Taking data points at every 5% of stance
+    UsableRows <- df[[1]][1:(OverlapStart+1)]+1 # hindlimb overlap tends to occur towards the end
+    df_noOverlap <- df[UsableRows,]
+    
+    # Making cells within the overlap as "NA" so the data.frame maintains the same dimensions with all 0 -> 101 pts at 5% increments included
+    UnusableRows <- df[[1]][-c(1:(OverlapStart+1))]+1
+    
+    NA.Fillers <- data.frame(UnusableRows-1)
+    NA.Fillers[ , paste("x", 1:(length(df_noOverlap)-1), sep = "")] <- NA
+    names(NA.Fillers) <- names(df_noOverlap)
+    
+    # Adding filler NA's to actual data to keep/analyze
+    df_WFill <- rbind(df_noOverlap, NA.Fillers)
+    
+    output <- df_WFill
+  }
+  
+  ### For files that have the secondary appendage hitting the plate 1st
+  if (is.na(secondary[,1])==FALSE & as.numeric(primary[,1])>as.numeric(secondary[,1]))
+  {
+    LimbCycleLength <- primary[,2]-primary[,1]
+    OverlapEnd <- ceiling(((secondary[,2]-primary[,1])/LimbCycleLength)*filmRate) # Rounding up because want data after overlap is done
+    
+    # Taking data points at every 5% of stance
+    UsableRows <- df[[1]][-c(0:OverlapEnd)]+1 # overlap tends to occur towards the beginning # adding 1 b/c data rows don't start until row 2
+    
+    df_noOverlap <- df[UsableRows,]
+    
+    # Making cells within the overlap as "NA" so the data.frame maintains the same dimensions with all 0 -> 101 pts at 5% increments included
+    UnusableRows <- df[[1]][c(0:(OverlapEnd))]+1
+    NA.Fillers <- data.frame(UnusableRows-1)
+    NA.Fillers[ , paste("x", 1:(length(df_noOverlap)-1), sep = "")] <- NA
+    names(NA.Fillers) <- names(df_noOverlap) # need to have the same variable names to rbind
+    
+    # Adding filler NA's to actual data to keep/analyze
+    df_WFill <- rbind(NA.Fillers, df_noOverlap)
+    
+    output <- df_WFill
+    
+  }
+  
+  return(output)
+}
+
+
+
 ############# Yank ##########
 
 
