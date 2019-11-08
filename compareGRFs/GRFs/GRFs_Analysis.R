@@ -90,25 +90,50 @@ if (!VideoInfo$Appendages == 'Pectoral') {
 #### REMOVING AREAS OF OVERLAP ####
 ## This is done to exclude the parts of stance where two appendages were contacting the plate at the same time
 
-###################  PECTORAL APPENDAGE BEFORE PELVIC APPENDAGE FOR PECTORAL FILES #################
+Pec_GRFs_Filtered_dataset_noOverlap <- removeOverlaps(Pec_GRFs_Filtered_dataset, VideoInfo[,2:3], VideoInfo[,4:5], VideoInfo$Filming.Rate.Hz)
+Pel_GRFs_Filtered_dataset_noOverlap <- removeOverlaps(Pel_GRFs_Filtered_dataset, VideoInfo[,4:5], VideoInfo[,2:3], VideoInfo$Filming.Rate.Hz)
 
 
-    
-    
+
+#### DETERMINING VALUES AT THE PEAK NET GRF ####
+## Evaluating at peak/max net GRF
+## Also making sure that the peak does not occur during portions where the limbs overlap on the force plate
+Pec_GRFs_Filtered_dataset_noOverlap_Peak <- Pec_GRFs_Filtered_dataset_noOverlap[which.max(Pec_GRFs_Filtered_dataset_noOverlap$NetGRF_BW),]
+Pel_GRFs_Filtered_dataset_noOverlap_Peak <- Pel_GRFs_Filtered_dataset_noOverlap[which.max(Pel_GRFs_Filtered_dataset_noOverlap$NetGRF_BW),]
+
 
 
 #### SAVING THE DATA ####
-SaveAllDataName <- paste(Trial,"_AllPrep_",SaveDate, ".csv", sep="")
-write.table(myData_Forces$allData, file=SaveAllDataName, sep =",", row.names=FALSE)
 
-# Saving the filter prep data
-# Butterworth filtering will be conducted using another set of R code
-# First, code the date that the file is being saved
-if (!VideoInfo$Appendages == 'Pelvic') SaveFileName.Pec <- paste(Trial,"_FilterPrepPec_", SaveDate, ".csv", sep="")
-if (!VideoInfo$Appendages == 'Pectoral') SaveFileName.Pel <- paste(Trial,"_FilterPrepPel_", SaveDate, ".csv", sep="")
+## Pectoral data
+if (!VideoInfo$Appendages == 'Pelvic') {
+  ## Save the dataset that was filtered and had areas of overlap excluded
+  Save_FilterAll_Pec <- paste(Trial,"_Pec_Filtered_All_",SaveDate, ".csv", sep="")
+  write.table(Pec_GRFs_Filtered_dataset, file = Save_FilterAll_Pec, sep =",", row.names=FALSE)
+  
+  ## Save the dataset that was filtered and had areas of overlap excluded
+  Save_FilterNoOverlap_Pec <- paste(Trial,"_Pec_Filtered_noOverlap_",SaveDate, ".csv", sep="")
+  write.table(Pec_GRFs_Filtered_dataset_noOverlap, file = Save_FilterNoOverlap_Pec, sep =",", row.names=FALSE)
+  
+  ## Save the data taken at the peak Net GRF
+  Save_FilterNoOverlap_PeakNet_Pec <- paste(Trial,"_Pec_Filtered_noOverlap_Peak",SaveDate, ".csv", sep="")
+  write.table(Pec_GRFs_Filtered_dataset_noOverlap_Peak, file = Save_FilterNoOverlap_PeakNet_Pec, sep =",", row.names=FALSE)
+}
 
-if (!VideoInfo$Appendages == 'Pelvic') write.table(Pec_Forces$filterPrep, file=SaveFileName.Pec, sep =",", row.names=FALSE)
-if (!VideoInfo$Appendages == 'Pectoral') write.table(Pel_Forces$filterPrep, file=SaveFileName.Pel, sep =",", row.names=FALSE)
+## Pelvic data
+if (!VideoInfo$Appendages == 'Pectoral') {
+  ## Save the dataset that was filtered and had areas of overlap excluded
+  Save_FilterAll_Pel <- paste(Trial,"_Pel_Filtered_All_",SaveDate, ".csv", sep="")
+  write.table(Pel_GRFs_Filtered_dataset, file = Save_FilterAll_Pel, sep =",", row.names=FALSE)
+  
+  ## Save the dataset that was filtered and had areas of overlap excluded
+  Save_FilterNoOverlap_Pel <- paste(Trial,"_Pel_Filtered_noOverlap_",SaveDate, ".csv", sep="")
+  write.table(Pel_GRFs_Filtered_dataset_noOverlap, file = Save_FilterNoOverlap_Pel, sep =",", row.names=FALSE)
+  
+  ## Save the data taken at the peak Net GRF
+  Save_FilterNoOverlap_PeakNet_Pel <- paste(Trial,"_Pel_Filtered_noOverlap_Peak",SaveDate, ".csv", sep="")
+  write.table(Pel_GRFs_Filtered_dataset_noOverlap_Peak, file = Save_FilterNoOverlap_PeakNet_Pel, sep =",", row.names=FALSE)
+}
 
 
-#### 
+
