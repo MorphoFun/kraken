@@ -150,7 +150,7 @@ if (!VideoInfo$Appendages == 'Pelvic') {
   abline(v=Pec_GRFs_Filtered_dataset_noOverlap_Peak$PercentStance, col='grey30', lty=2, lwd=2)
   GraphTitle <- pdfSave
   mtext(GraphTitle, line=0.5, outer=TRUE)  # writes an overall title over the graphs
-  mtext('Dashed pink line = % Stance for Peak Net GRF', side=1, outer=TRUE, col = 'magenta')
+  mtext('Dashed grey line = % Stance for Peak Net GRF', side=1, outer=TRUE, col = 'grey30')
   mtext('Black lines indicate times with more than 1 structure on plate', side=1, line=1.5, outer=TRUE, col = 'black')
   dev.off()
 }
@@ -195,7 +195,7 @@ if (!VideoInfo$Appendages == 'Pectoral') {
   abline(v=Pel_GRFs_Filtered_dataset_noOverlap_Peak$PercentStance, col='magenta', lty=2, lwd=2)
   GraphTitle <- pdfSave
   mtext(GraphTitle, line=0.5, outer=TRUE)  # writes an overall title over the graphs
-  mtext('Dashed pink line = % Stance for Peak Net GRF', side=1, outer=TRUE, col = 'magenta')
+  mtext('Dashed grey line = % Stance for Peak Net GRF', side=1, outer=TRUE, col = 'grey30')
   mtext('Black lines indicate times with more than 1 structure on plate', side=1, line=1.5, outer=TRUE, col = 'black')
   dev.off()
 }
