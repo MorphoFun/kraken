@@ -281,7 +281,8 @@ voltToForce <- function(df, calib, zeroStart, lightStartFrame, startFrame, endFr
 #' @param \code{SbF} A numeric value indicating the stop-band frequency. 190 is set as a default.
 #' @param \code{Rp} A numeric value indicating passband ripple in dB; represents the max permissible passband loss. 2 dB is set as a default.
 #' @param \code{Rs} A numeric value indicating stopband attenuation in dB; respresents the dB the stopband is down from the passband. 40 dB is set as a default.
-
+#' @param \code{saveAs} A character string containing the name for the resulting graph.
+#' @param \code{saveGraph} A character string (options = "yes" or "no") to indicate whether you want to save the graph as a PDF or not.
 #' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016. It is assumed that the output from the force platform contain 12 channels in the following order: trigger, four verticals, sum of the verticals, two mediolateral, sum of the mediolaterals, two anteroposterior, and the sum of the anteroposteriors.
 #' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
 #' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
@@ -289,12 +290,15 @@ voltToForce <- function(df, calib, zeroStart, lightStartFrame, startFrame, endFr
 #' @examples
 #' 
 #' GRF <- voltToForce(df, calib = c(-0.710, 1.337, 1.563), lightStartFrame = 248, startFrame = 20, endFrame = 196, zeroStart = 22000)
-#' GRF_filtered <- butterFilteR(GRF)
+#' GRF_filtered <- butterFilteR(GRF, saveAs = "af01f18_Pec_Filter.pdf", saveGraph = "yes")
 #'
 #' @import signal
 #' @export
+#' 
 
-butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...) {
+### Include description of output?
+
+butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, saveAs = NULL, saveGraph = c("yes", "no"), ...) {
   # Assigning the filter specification variables
   freq <- Fs # Frequency of data
   freqN <- freq/2 # Frequency normalized to Nyquist frequency
@@ -330,7 +334,9 @@ butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...
   filterMLN <- filterMLPad[(nrow(pad)+1):(nrow(pad)*2)]
   filterAPN <- filterAPPad[(nrow(pad)+1):(nrow(pad)*2)]
   
+  if (saveGraph == "yes") {
   # Plotting the data
+  pdf(saveAs)
 
   # par() allows you to customize your window (in this case, saying you want 1 row of 3 graphs arranged in columns)
   par(mfrow=c(1,3), oma = c(3, 0, 2, 0))  # oma = outer margin with 2 lines above the top of the graphs
@@ -358,6 +364,8 @@ butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, ...
   # writes an overall title over the graphs
   mtext(GraphTitle, line=0.5, outer=TRUE)
   mtext('Colored traces = Raw Data; Black trace = Filtered Data', side=1, line=1.5, outer=TRUE, col = "slategrey")
+  dev.off()
+  }
   
   ##### Interpotating the data to 101 points
   # Want 101 points because want 0% -> 100% at 1% intervals
