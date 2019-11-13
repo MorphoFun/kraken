@@ -31,28 +31,50 @@ VideoFile <- data.frame(read.csv("./dataraw/FinLimbGRFs_VideoInfo.csv", header=T
 #### LOADING THE DATA ####
 setwd("./dataraw")
 
-myFile <- file.choose()
-myData <- read.table(myFile, header=FALSE)
-myData <- myData[,c(1:12)] # Last 4 columns/channels were unused, so only subsetting what I need
-names(myData) <- c("light_Volts", "Vert1.Volts", "Vert2.Volts", "Vert3.Volts", "Vert4.Volts", "VertSum.Volts", "ML1.Volts", "ML2.Volts", "MLSum.Volts", "Hz1.Volts", "Hz2.Volts", "HzSum.Volts")
-myData$Sweep <- 1:nrow(myData)
+fileList <- list.files(pattern = ".txt", full.names = FALSE)
+myFiles <- lapply(fileList, FUN = read.table)
+names(myFiles) <- lapply(fileList, FUN = function(x) substring(x, 1,7))
 
-# Determining trial name
-Trial <-  substring(myFile, nchar(myFile)-10, nchar(myFile)-4)
-
-
-#### LOOKING UP THE VIDEO INFO ####
-# Appendages listed as "Both" have both pectoral and pelvic appendage data
-VideoInfo <- VideoFile[VideoFile$File.name %in% Trial,]
-VideoInfo$Pectoral.Start.Frame <- as.numeric(VideoInfo$Pectoral.Start.Frame)
-VideoInfo$Pectoral.End.Frame <- as.numeric(VideoInfo$Pectoral.End.Frame)
-VideoInfo$Pelvic.Start.Frame <- as.numeric(VideoInfo$Pelvic.Start.Frame)
-VideoInfo$Pelvic.End.Frame <- as.numeric(VideoInfo$Pelvic.End.Frame)
-Date <- format(as.Date(VideoInfo$Date.Filmed, format = "%m/%d/%y"), format="%y%m%d")
+myData <- lapply(myFiles, function(x) {
+  # remove unnecessary rows
+  x <- x[,c(1:12)] 
+  
+  # add row for the sweep number
+  x <- cbind(x, 1:nrow(x))  
+  
+  # rename column names
+  colnames <- c("light_Volts", "Vert1.Volts", "Vert2.Volts", "Vert3.Volts", "Vert4.Volts", "VertSum.Volts", "ML1.Volts", "ML2.Volts", "MLSum.Volts", "Hz1.Volts", "Hz2.Volts", "HzSum.Volts", "Sweep")
+  setNames(x, colnames)
+  }
+)
 
 
-#### LOOKING UP THE CALIB INFO ####
-CalibInfo <- CalibFile[CalibFile$Date %in% Date,]
+
+GRFanalysis <- function(myData) {
+ Trial <- names(myData)
+ 
+ #### LOOKING UP THE VIDEO INFO ####
+ # Appendages listed as "Both" have both pectoral and pelvic appendage dat
+ VideoInfo <- VideoFile[VideoFile$File.name %in% Trial,]
+ VideoInfo$Pectoral.Start.Frame <- as.numeric(VideoInfo$Pectoral.Start.Frame)
+ VideoInfo$Pectoral.End.Frame <- as.numeric(VideoInfo$Pectoral.End.Frame)
+ VideoInfo$Pelvic.Start.Frame <- as.numeric(VideoInfo$Pelvic.Start.Frame)
+ VideoInfo$Pelvic.End.Frame <- as.numeric(VideoInfo$Pelvic.End.Frame)
+ Date <- format(as.Date(VideoInfo$Date.Filmed, format = "%m/%d/%y"), format="%y%m%d")
+ 
+ #### LOOKING UP THE CALIB INFO ####
+ CalibInfo <- CalibFile[CalibFile$Date %in% Date,]
+ 
+ output <- list(
+   VideoInfo = VideoInfo,
+   CalibInfo = CalibInfo
+ )
+ 
+ return(output)
+}
+
+ok <- GRFanalysis(myData)
+
 
 
 #### CONVERTING LABVIEW OUTPUT TO GRFS ####
