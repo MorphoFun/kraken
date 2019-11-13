@@ -340,6 +340,7 @@ butterFilteR <- function(df, Fs = 5000, PbF = 6, SbF = 190, Rp = 2, Rs = 40, sav
 
   # par() allows you to customize your window (in this case, saying you want 1 row of 3 graphs arranged in columns)
   par(mfrow=c(1,3), oma = c(3, 0, 2, 0))  # oma = outer margin with 2 lines above the top of the graphs
+  
   ## Vertical component of GRF graph
   # Raw
   plot(1:length(df[[1]][,2]), df[[1]][,2], xlab='Sweep', ylab='GRF - Vertical (N)', main='Zeroed GRF - Vertical', type="l", col="blue")
