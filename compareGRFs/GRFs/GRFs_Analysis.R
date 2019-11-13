@@ -62,8 +62,15 @@ if (!VideoInfo$Appendages == 'Pectoral') Pel_GRFs <- voltToForce(myData, CalibIn
 
 
 #### FILTERING THE DATA ####
-if (!VideoInfo$Appendages == 'Pelvic') Pec_GRFs_Filtered <- butterFilteR(Pec_GRFs)
-if (!VideoInfo$Appendages == 'Pectoral') Pel_GRFs_Filtered <- butterFilteR(Pel_GRFs)
+if (!VideoInfo$Appendages == 'Pelvic') {
+  saveAs <- paste(Trial, "_Pec_Filtered.pdf", sep = "")
+  Pec_GRFs_Filtered <- butterFilteR(Pec_GRFs, saveAs = saveAs, saveGraph = "yes")
+}
+
+if (!VideoInfo$Appendages == 'Pectoral') {
+  saveAs <- paste(Trial, "_Pel_Filtered.pdf", sep = "")
+  Pel_GRFs_Filtered <- butterFilteR(Pel_GRFs, saveAs = saveAs, saveGraph = "yes")
+} 
 
 
 #### CALCULATING ANGLES OF GRF ORIENTATION ####
@@ -94,13 +101,104 @@ Pec_GRFs_Filtered_dataset_noOverlap <- removeOverlaps(Pec_GRFs_Filtered_dataset,
 Pel_GRFs_Filtered_dataset_noOverlap <- removeOverlaps(Pel_GRFs_Filtered_dataset, VideoInfo[,4:5], VideoInfo[,2:3], VideoInfo$Filming.Rate.Hz)
 
 
-
 #### DETERMINING VALUES AT THE PEAK NET GRF ####
 ## Evaluating at peak/max net GRF
 ## Also making sure that the peak does not occur during portions where the limbs overlap on the force plate
 Pec_GRFs_Filtered_dataset_noOverlap_Peak <- Pec_GRFs_Filtered_dataset_noOverlap[which.max(Pec_GRFs_Filtered_dataset_noOverlap$NetGRF_BW),]
 Pel_GRFs_Filtered_dataset_noOverlap_Peak <- Pel_GRFs_Filtered_dataset_noOverlap[which.max(Pel_GRFs_Filtered_dataset_noOverlap$NetGRF_BW),]
 
+#### SAVING THE GRAPHS ####
+
+### Graphing post-processed data
+## Pectoral appendage
+if (!VideoInfo$Appendages == 'Pelvic') {
+  pdfSave <- paste(Trial, "_Pec_PostProcess.pdf", sep = "")
+  pdf(pdfSave)
+  
+  par(mfrow=c(2,2), oma = c(3, 0, 2, 0))  # oma = outer margin with 2 lines above the top of the graphs
+  
+  # Vertical component of GRF graph
+  plot(Pec_GRFs_Filtered_dataset$PercentStance, Pec_GRFs_Filtered_dataset$InterpV_BW, xlab='Percent Stance', ylab='GRF - Vertical (BW)', main='Zeroed GRF (Vertical) Force', type="l", col="black")
+  if (VideoInfo$Appendages == "Both")
+  {
+    lines(Pec_GRFs_Filtered_dataset_noOverlap$PercentStance, Pec_GRFs_Filtered_dataset_noOverlap$InterpV_BW, type="l", col="blue", lwd = 4)
+  }
+  abline(v=Pec_GRFs_Filtered_dataset_noOverlap_Peak$PercentStance, col='magenta', lty=2, lwd=2) # Plotting vertical line at Peak Net GRF
+  
+  # Mediolateral component of GRF graph
+  plot(Pec_GRFs_Filtered_dataset$PercentStance, Pec_GRFs_Filtered_dataset$InterpML_BW, xlab='Percent Stance', ylab='GRF - Mediolateral (BW)', main='Zeroed GRF (Mediolateral) Force', type="l", col="black")
+  if (VideoInfo$Appendages == "Both")
+  {
+    lines(Pec_GRFs_Filtered_dataset_noOverlap$PercentStance, Pec_GRFs_Filtered_dataset_noOverlap$InterpML_BW, type="l", col="red", lwd = 4)
+  }
+  abline(v=Pec_GRFs_Filtered_dataset_noOverlap_Peak$PercentStance, col='magenta', lty=2, lwd=2)
+  
+  # Horizontal (Anteroposterior) component of GRF graph
+  plot(Pec_GRFs_Filtered_dataset$PercentStance, Pec_GRFs_Filtered_dataset$InterpAP_BW, xlab='Percent Stance', ylab='GRF - Anteroposterior (BW)', main='Zeroed GRF (Anteroposterior) Force', type="l", col="black")
+  if (VideoInfo$Appendages == "Both")
+  {
+    lines(Pec_GRFs_Filtered_dataset_noOverlap$PercentStance, Pec_GRFs_Filtered_dataset_noOverlap$InterpAP_BW, type="l", col="forestgreen", lwd = 4)
+  }
+  abline(v=Pec_GRFs_Filtered_dataset_noOverlap_Peak$PercentStance, col='magenta', lty=2, lwd=2)
+  
+  # Net GRF graph
+  plot(Pec_GRFs_Filtered_dataset$PercentStance, Pec_GRFs_Filtered_dataset$NetGRF_BW, xlab='Percent Stance', ylab='Net GRF (BW)', main='Zeroed Net GRF Force', type="l", col="black")
+  if (VideoInfo$Appendages == "Both")
+  {
+    lines(Pec_GRFs_Filtered_dataset_noOverlap$PercentStance, Pec_GRFs_Filtered_dataset_noOverlap$NetGRF_BW, type="l", col="purple", lwd = 4)
+  }
+  abline(v=Pec_GRFs_Filtered_dataset_noOverlap_Peak$PercentStance, col='magenta', lty=2, lwd=2)
+  GraphTitle <- pdfSave
+  mtext(GraphTitle, line=0.5, outer=TRUE)  # writes an overall title over the graphs
+  mtext('Dashed pink line = % Stance for Peak Net GRF', side=1, outer=TRUE, col = 'magenta')
+  mtext('Black lines indicate times with more than 1 structure on plate', side=1, line=1.5, outer=TRUE, col = 'black')
+  dev.off()
+}
+
+## Pelvic Appendage
+if (!VideoInfo$Appendages == 'Pectoral') {
+  pdfSave <- paste(Trial, "_Pel_PostProcess.pdf", sep = "")
+  pdf(pdfSave)
+  
+  par(mfrow=c(2,2), oma = c(3, 0, 2, 0))  # oma = outer margin with 2 lines above the top of the graphs
+  
+  # Vertical component of GRF graph
+  plot(Pel_GRFs_Filtered_dataset$PercentStance, Pel_GRFs_Filtered_dataset$InterpV_BW, xlab='Percent Stance', ylab='GRF - Vertical (BW)', main='Zeroed GRF (Vertical) Force', type="l", col="black")
+  if (VideoInfo$Appendages == "Both")
+  {
+    lines(Pel_GRFs_Filtered_dataset_noOverlap$PercentStance, Pel_GRFs_Filtered_dataset_noOverlap$InterpV_BW, type="l", col="blue", lwd = 4)
+  }
+  abline(v=Pel_GRFs_Filtered_dataset_noOverlap_Peak$PercentStance, col='magenta', lty=2, lwd=2) # Plotting vertical line at Peak Net GRF
+  
+  # Mediolateral component of GRF graph
+  plot(Pel_GRFs_Filtered_dataset$PercentStance, Pel_GRFs_Filtered_dataset$InterpML_BW, xlab='Percent Stance', ylab='GRF - Mediolateral (BW)', main='Zeroed GRF (Mediolateral) Force', type="l", col="black")
+  if (VideoInfo$Appendages == "Both")
+  {
+    lines(Pel_GRFs_Filtered_dataset_noOverlap$PercentStance, Pel_GRFs_Filtered_dataset_noOverlap$InterpML_BW, type="l", col="red", lwd = 4)
+  }
+  abline(v=Pel_GRFs_Filtered_dataset_noOverlap_Peak$PercentStance, col='magenta', lty=2, lwd=2)
+  
+  # Horizontal (Anteroposterior) component of GRF graph
+  plot(Pel_GRFs_Filtered_dataset$PercentStance, Pel_GRFs_Filtered_dataset$InterpAP_BW, xlab='Percent Stance', ylab='GRF - Anteroposterior (BW)', main='Zeroed GRF (Anteroposterior) Force', type="l", col="black")
+  if (VideoInfo$Appendages == "Both")
+  {
+    lines(Pel_GRFs_Filtered_dataset_noOverlap$PercentStance, Pel_GRFs_Filtered_dataset_noOverlap$InterpAP_BW, type="l", col="forestgreen", lwd = 4)
+  }
+  abline(v=Pel_GRFs_Filtered_dataset_noOverlap_Peak$PercentStance, col='magenta', lty=2, lwd=2)
+  
+  # Net GRF graph
+  plot(Pel_GRFs_Filtered_dataset$PercentStance, Pel_GRFs_Filtered_dataset$NetGRF_BW, xlab='Percent Stance', ylab='Net GRF (BW)', main='Zeroed Net GRF Force', type="l", col="black")
+  if (VideoInfo$Appendages == "Both")
+  {
+    lines(Pel_GRFs_Filtered_dataset_noOverlap$PercentStance, Pel_GRFs_Filtered_dataset_noOverlap$NetGRF_BW, type="l", col="purple", lwd = 4)
+  }
+  abline(v=Pel_GRFs_Filtered_dataset_noOverlap_Peak$PercentStance, col='magenta', lty=2, lwd=2)
+  GraphTitle <- pdfSave
+  mtext(GraphTitle, line=0.5, outer=TRUE)  # writes an overall title over the graphs
+  mtext('Dashed pink line = % Stance for Peak Net GRF', side=1, outer=TRUE, col = 'magenta')
+  mtext('Black lines indicate times with more than 1 structure on plate', side=1, line=1.5, outer=TRUE, col = 'black')
+  dev.off()
+}
 
 
 #### SAVING THE DATA ####
