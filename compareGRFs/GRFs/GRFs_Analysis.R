@@ -112,10 +112,12 @@ GRFanalysis <- function(myData) {
     
     ## Remove data when pectoral and pelvic appendages overlap
     Pec_GRFs_Filtered_dataset_noOverlap[[i]] <- removeOverlaps(Pec_GRFs_Filtered_dataset[[i]], Pec_VideoInfo_Trial[[i]][2:3], Pec_VideoInfo_Trial[[i]][4:5], Pec_VideoInfo_Trial[[i]]$Filming.Rate.Hz)
+    names(Pec_GRFs_Filtered_dataset_noOverlap)[[i]] <- names(Pec_Data)[[i]]
     
     ## Evaluating at peak/max net GRF
     ## Also making sure that the peak does not occur during portions where the limbs overlap on the force plate
     Pec_GRFs_Filtered_dataset_noOverlap_Peak[[i]] <- Pec_GRFs_Filtered_dataset_noOverlap[[i]][which.max(Pec_GRFs_Filtered_dataset_noOverlap[[i]]$NetGRF_BW),]
+    Pec_GRFs_Filtered_dataset_noOverlap_Peak[[i]]$filename <- names(Pec_Data)[[i]]
     
     ## Saving the graphs
     pdfSave[i] <- paste(Pec_VideoInfo_Trial[[i]]$File.name, "_Pec_PostProcess.pdf", sep = "")
@@ -152,7 +154,7 @@ GRFanalysis <- function(myData) {
   }
   
   ## Collapsing data at the peak net GRF into a single data.frame
-  Pec_GRFs_Filtered_dataset_noOverlap_Peak <- data.frame(do.call(rbind, Pec_GRFs_Filtered_dataset_noOverlap_Peak))
+  Pec_GRFs_Filtered_dataset_noOverlap_Peak <- do.call(rbind, Pec_GRFs_Filtered_dataset_noOverlap_Peak)
   
   
   #### PELVIC APPENDAGE ####
@@ -198,10 +200,13 @@ GRFanalysis <- function(myData) {
     
     ## Remove data when pectoral and pelvic appendages overlap
     Pel_GRFs_Filtered_dataset_noOverlap[[i]] <- removeOverlaps(Pel_GRFs_Filtered_dataset[[i]], Pel_VideoInfo_Trial[[i]][4:5], Pel_VideoInfo_Trial[[i]][2:3], Pel_VideoInfo_Trial[[i]]$Filming.Rate.Hz)
+    names(Pel_GRFs_Filtered_dataset_noOverlap)[[i]] <- names(Pel_Data)[[i]]
+
     
     ## Evaluating at peak/max net GRF
     ## Also making sure that the peak does not occur during portions where the limbs overlap on the force plate
     Pel_GRFs_Filtered_dataset_noOverlap_Peak[[i]] <- Pel_GRFs_Filtered_dataset_noOverlap[[i]][which.max(Pel_GRFs_Filtered_dataset_noOverlap[[i]]$NetGRF_BW),]
+    Pel_GRFs_Filtered_dataset_noOverlap_Peak[[i]]$filename <- names(Pel_Data)[[i]]
     
     ## Saving the graphs
     pdfSave[i] <- paste(Pel_VideoInfo_Trial[[i]]$File.name, "_Pel_PostProcess.pdf", sep = "")
@@ -236,9 +241,9 @@ GRFanalysis <- function(myData) {
     dev.off()
 
   }
-  
+
   ## Collapsing data at the peak net GRF into a single data.frame
-  Pel_GRFs_Filtered_dataset_noOverlap_Peak <- data.frame(do.call(rbind, Pel_GRFs_Filtered_dataset_noOverlap_Peak))
+  Pel_GRFs_Filtered_dataset_noOverlap_Peak <- do.call(rbind, Pel_GRFs_Filtered_dataset_noOverlap_Peak)
   
   
   ### GENERATE OUTPUT #### 
@@ -246,14 +251,16 @@ GRFanalysis <- function(myData) {
     Pec_GRFs = Pec_GRFs,
     Pec_GRFs_Filtered = Pec_GRFs_Filtered,
     Pec_GRFs_Filtered_dataset = Pec_GRFs_Filtered_dataset,
-    Pec_GRFs_Filtered_dataset_noOverlap = Pec_GRFs_Filtered_dataset_noOverlap
+    Pec_GRFs_Filtered_dataset_noOverlap = Pec_GRFs_Filtered_dataset_noOverlap,
+    Pec_GRFs_Filtered_PeakNet = Pec_GRFs_Filtered_dataset_noOverlap_Peak
   )
   
   Pel_output <- list(
     Pel_GRFs = Pel_GRFs,
     Pel_GRFs_Filtered = Pel_GRFs_Filtered,
     Pel_GRFs_Filtered_dataset = Pel_GRFs_Filtered_dataset,
-    Pel_GRFs_Filtered_dataset_noOverlap = Pel_GRFs_Filtered_dataset_noOverlap
+    Pel_GRFs_Filtered_dataset_noOverlap = Pel_GRFs_Filtered_dataset_noOverlap,
+    Pel_GRFs_Filtered_PeakNet = Pel_GRFs_Filtered_dataset_noOverlap_Peak
   )
   
   output <- list(
@@ -270,10 +277,11 @@ GRFs <- GRFanalysis(myData)
 
 
 
+
 #### SAVING THE DATA ####
 
 ## Pectoral data
-if (!VideoInfo$Appendages == 'Pelvic') {
+
   ## Save the dataset that was filtered and had areas of overlap excluded
   Save_FilterAll_Pec <- paste(Trial,"_Pec_Filtered_All_",SaveDate, ".csv", sep="")
   write.table(Pec_GRFs_Filtered_dataset, file = Save_FilterAll_Pec, sep =",", row.names=FALSE)
@@ -283,12 +291,11 @@ if (!VideoInfo$Appendages == 'Pelvic') {
   write.table(Pec_GRFs_Filtered_dataset_noOverlap, file = Save_FilterNoOverlap_Pec, sep =",", row.names=FALSE)
   
   ## Save the data taken at the peak Net GRF
-  Save_FilterNoOverlap_PeakNet_Pec <- paste(Trial,"_Pec_Filtered_noOverlap_Peak",SaveDate, ".csv", sep="")
-  write.table(Pec_GRFs_Filtered_dataset_noOverlap_Peak, file = Save_FilterNoOverlap_PeakNet_Pec, sep =",", row.names=FALSE)
-}
+  Save_FilterNoOverlap_PeakNet_Pec <- paste("FinLimbs_Pec_Filtered_noOverlap_Peak",SaveDate, ".csv", sep="")
+  write.table(GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet, file = Save_FilterNoOverlap_PeakNet_Pec, sep =",", row.names=FALSE)
+
 
 ## Pelvic data
-if (!VideoInfo$Appendages == 'Pectoral') {
   ## Save the dataset that was filtered and had areas of overlap excluded
   Save_FilterAll_Pel <- paste(Trial,"_Pel_Filtered_All_",SaveDate, ".csv", sep="")
   write.table(Pel_GRFs_Filtered_dataset, file = Save_FilterAll_Pel, sep =",", row.names=FALSE)
@@ -300,7 +307,7 @@ if (!VideoInfo$Appendages == 'Pectoral') {
   ## Save the data taken at the peak Net GRF
   Save_FilterNoOverlap_PeakNet_Pel <- paste(Trial,"_Pel_Filtered_noOverlap_Peak",SaveDate, ".csv", sep="")
   write.table(Pel_GRFs_Filtered_dataset_noOverlap_Peak, file = Save_FilterNoOverlap_PeakNet_Pel, sep =",", row.names=FALSE)
-}
+
 
 
 
