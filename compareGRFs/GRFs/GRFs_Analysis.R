@@ -13,12 +13,13 @@ today <- Sys.Date()
 SaveDate <- format(today, format="%y%m%d")
 
 #### LOAD THE LIBRARIES ####
-if (!require(c("devtools", "signal"))) {
-  install.packages(c("devtools", "signal"), dependencies = TRUE)
-  library(c(devtools, signal))
-}
+# if (!require(c("devtools", "signal"))) {
+#   install.packages(c("devtools", "signal"), dependencies = TRUE)
+#   library(c(devtools, signal))
+# }
 library(devtools)
-install_github("MorphoFun/kraken")
+
+#install_github("MorphoFun/kraken")
 library(kraken)
 
 #### LOAD THE CALIBRATION FILE ####
@@ -80,6 +81,8 @@ GRFanalysis <- function(myData) {
   BW_N <- NULL
   Pec_GRFs_Filtered_dataset_noOverlap <- NULL
   Pec_GRFs_Filtered_dataset_noOverlap_Peak <- NULL
+  pdfSave <- NULL
+  GraphTitle <- NULL
   
   for (i in 1:length(Pec_Data)) {
     ## Converting LabView output to GRFs ##
