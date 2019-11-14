@@ -194,8 +194,8 @@ voltToForce <- function(df, calib, zeroStart, lightStartFrame, startFrame, endFr
   myData$Time_s <- c(0, cumsum(rep(1/forceHz, (nrow(myData)-1))))
   
   # Plotting the force data that has been converted to Newtons and zero'd
-  plotStart <- as.numeric(startSweep-1000)
-  plotEnd <- as.numeric(endSweep+1000)
+  plotStart <- as.numeric(startSweep)
+  plotEnd <- as.numeric(endSweep)
   
   ImpPoints_X <- data.frame(startSweep, endSweep)
   ImpPoints_GRFVert <- data.frame(myData$GRF_vertSumCalib_N_Zero[startSweep], myData$GRF_vertSumCalib_N_Zero[endSweep])
