@@ -19,7 +19,7 @@ SaveDate <- format(today, format="%y%m%d")
 # }
 library(devtools)
 
-#install_github("MorphoFun/kraken")
+install_github("MorphoFun/kraken")
 library(kraken)
 
 #### LOAD THE CALIBRATION FILE ####
@@ -31,6 +31,8 @@ VideoFile <- data.frame(read.csv("./dataraw/FinLimbGRFs_VideoInfo.csv", header=T
 
 #### LOADING THE DATA ####
 setwd("./dataraw/force_Raw")
+
+#setwd("./dataraw/force_Raw/problemTrials/pec")
 
 fileList <- list.files(pattern = ".txt", full.names = FALSE)
 myFiles <- lapply(fileList, FUN = read.table)
@@ -49,13 +51,14 @@ myData <- lapply(myFiles, function(x) {
   }
 )
 
-
+#### NEED TO ADD COLUMN IN VIDEOINFO FOR WHEN TO START ZEROING THE FORCE DATA ####
+## Then edit code, so the zero start begins at this value and not just when the pectoral or pelvic appendage starts
 
 GRFanalysis <- function(myData) {
   Trial <- names(myData)
   
   #### LOOKING UP THE VIDEO INFO ####
-  # Appendages listed as "Both" have both pectoral and pelvic appendage dat
+  # Appendages listed as "Both" have both pectoral and pelvic appendage data
   VideoInfo <- VideoFile[VideoFile$File.name %in% Trial,]
   # VideoInfo$Pectoral.Start.Frame <- as.numeric(VideoInfo$Pectoral.Start.Frame)
   # VideoInfo$Pectoral.End.Frame <- as.numeric(VideoInfo$Pectoral.End.Frame)
@@ -66,10 +69,11 @@ GRFanalysis <- function(myData) {
   #### LOOKING UP THE CALIB INFO ####
   CalibInfo <- CalibFile[CalibFile$Date %in% Date,]
   
+
   #### PECTORAL APPENDAGE ####
   
   ## Selecting pectoral trials
-  Pec_VideoInfo <- VideoInfo[!VideoInfo$Appendages == "Pelvic",]
+  Pec_VideoInfo <- VideoInfo[VideoInfo$TrialsToUse == "both"|VideoInfo$TrialsToUse == "pec",]
   Pec_Data <- myData[names(myData) %in% Pec_VideoInfo$File.name]
 
   
@@ -86,8 +90,10 @@ GRFanalysis <- function(myData) {
   GraphTitle <- NULL
   
   for (i in 1:length(Pec_Data)) {
+    
     Pec_VideoInfo_Trial[[i]] <- data.frame(Pec_VideoInfo[Pec_VideoInfo$File.name == names(Pec_Data)[i],])
     Pec_CalibInfo_Trial[[i]] <- CalibInfo[as.character(CalibInfo$Filename) == as.character(Pec_VideoInfo_Trial[[i]]$Calib_Force),]
+
     
     ## Converting LabView output to GRFs ##
     Pec_GRFs[[i]] <- voltToForce(Pec_Data[[i]], calib = Pec_CalibInfo_Trial[[i]][3:5], zeroStart = Pec_VideoInfo_Trial[[i]]$Pectoral.Start.Frame, lightStartFrame = Pec_VideoInfo_Trial[[i]]$Light.Start, 
@@ -160,7 +166,7 @@ GRFanalysis <- function(myData) {
   #### PELVIC APPENDAGE ####
   
   ## Selecting pelvic trials
-  Pel_VideoInfo <- VideoInfo[!VideoInfo$Appendages == "Pectoral",]
+  Pel_VideoInfo <- VideoInfo[VideoInfo$TrialsToUse == "both"|VideoInfo$TrialsToUse == "pel",]
   Pel_Data <- myData[names(myData) %in% Pel_VideoInfo$File.name]
   
   Pel_VideoInfo_Trial <- NULL
@@ -283,31 +289,46 @@ GRFs <- GRFanalysis(myData)
 ## Pectoral data
 
   ## Save the dataset that was filtered and had areas of overlap excluded
-  Save_FilterAll_Pec <- paste(Trial,"_Pec_Filtered_All_",SaveDate, ".csv", sep="")
-  write.table(Pec_GRFs_Filtered_dataset, file = Save_FilterAll_Pec, sep =",", row.names=FALSE)
+  Save_FilterAll_Pec <- NULL
+  for (i in 1:length(GRFs$Pectoral$Pec_GRFs_Filtered_dataset)) {
+    Save_FilterAll_Pec[[i]] <- paste(names(GRFs$Pectoral$Pec_GRFs_Filtered_dataset)[[i]], "_Pec_Filtered_",SaveDate, ".csv", sep="")    
+    write.table(GRFs$Pectoral$Pec_GRFs_Filtered_dataset[[i]], file = Save_FilterAll_Pec[[i]], sep =",", row.names=FALSE)
+  }
   
   ## Save the dataset that was filtered and had areas of overlap excluded
-  Save_FilterNoOverlap_Pec <- paste(Trial,"_Pec_Filtered_noOverlap_",SaveDate, ".csv", sep="")
-  write.table(Pec_GRFs_Filtered_dataset_noOverlap, file = Save_FilterNoOverlap_Pec, sep =",", row.names=FALSE)
+  Save_FilterNoOverlap_Pec <- NULL
+  for (i in 1:length(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap)) {
+    Save_FilterNoOverlap_Pec[[i]] <- paste(names(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap)[[i]], "_Pec_Filtered_noOverlap_",SaveDate, ".csv", sep="")    
+    write.table(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap[[i]], file = Save_FilterNoOverlap_Pec[[i]], sep =",", row.names=FALSE)
+  }
   
   ## Save the data taken at the peak Net GRF
-  Save_FilterNoOverlap_PeakNet_Pec <- paste("FinLimbs_Pec_Filtered_noOverlap_Peak",SaveDate, ".csv", sep="")
+  Save_FilterNoOverlap_PeakNet_Pec <- paste("FinLimbs_Pec_Filtered_noOverlap_Peak_",SaveDate, ".csv", sep="")
   write.table(GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet, file = Save_FilterNoOverlap_PeakNet_Pec, sep =",", row.names=FALSE)
 
 
 ## Pelvic data
   ## Save the dataset that was filtered and had areas of overlap excluded
-  Save_FilterAll_Pel <- paste(Trial,"_Pel_Filtered_All_",SaveDate, ".csv", sep="")
-  write.table(Pel_GRFs_Filtered_dataset, file = Save_FilterAll_Pel, sep =",", row.names=FALSE)
+  Save_FilterAll_Pel <- NULL
+  for (i in 1:length(GRFs$Pelvic$Pel_GRFs_Filtered_dataset)) {
+    Save_FilterAll_Pel[[i]] <- paste(names(GRFs$Pelvic$Pel_GRFs_Filtered_dataset)[[i]], "_Pel_Filtered_",SaveDate, ".csv", sep="")    
+    write.table(GRFs$Pevlic$Pel_GRFs_Filtered_dataset[[i]], file = Save_FilterAll_Pel[[i]], sep =",", row.names=FALSE)
+  }
   
   ## Save the dataset that was filtered and had areas of overlap excluded
-  Save_FilterNoOverlap_Pel <- paste(Trial,"_Pel_Filtered_noOverlap_",SaveDate, ".csv", sep="")
-  write.table(Pel_GRFs_Filtered_dataset_noOverlap, file = Save_FilterNoOverlap_Pel, sep =",", row.names=FALSE)
+  Save_FilterNoOverlap_Pel <- NULL
+  for (i in 1:length(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap)) {
+    Save_FilterNoOverlap_Pel[[i]] <- paste(names(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap)[[i]], "_Pel_Filtered_noOverlap_",SaveDate, ".csv", sep="")    
+    write.table(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap[[i]], file = Save_FilterNoOverlap_Pel[[i]], sep =",", row.names=FALSE)
+  }
   
   ## Save the data taken at the peak Net GRF
-  Save_FilterNoOverlap_PeakNet_Pel <- paste(Trial,"_Pel_Filtered_noOverlap_Peak",SaveDate, ".csv", sep="")
-  write.table(Pel_GRFs_Filtered_dataset_noOverlap_Peak, file = Save_FilterNoOverlap_PeakNet_Pel, sep =",", row.names=FALSE)
+  Save_FilterNoOverlap_PeakNet_Pel <- paste("FinLimbs_Pel_Filtered_noOverlap_Peak_",SaveDate, ".csv", sep="")
+  write.table(GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet, file = Save_FilterNoOverlap_PeakNet_Pel, sep =",", row.names=FALSE)
+  
 
-
-
-
+  
+#### DIAGNOSING PROBLEM TRIALS #####
+  
+pb03f39 <- read.table(file.choose())
+pb03f39_GRF <- GRFanalysis(pb03f39)
