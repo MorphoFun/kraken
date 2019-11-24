@@ -285,6 +285,10 @@ GRFs <- GRFanalysis(myData)
 
 
 #### SAVING THE DATA ####
+## go to the parent directory then save output in 'output' folder
+setwd('..')
+setwd('..')
+setwd('./output')
 
 ## Pectoral data
 
