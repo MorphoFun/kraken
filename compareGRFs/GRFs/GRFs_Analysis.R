@@ -51,13 +51,12 @@ myData <- lapply(myFiles, function(x) {
   }
 )
 
-#### NEED TO ADD COLUMN IN VIDEOINFO FOR WHEN TO START ZEROING THE FORCE DATA ####
-## Then edit code, so the zero start begins at this value and not just when the pectoral or pelvic appendage starts
+#### QUANTIFY GROUND REACTION FORCES ####
 
 GRFanalysis <- function(myData) {
   Trial <- names(myData)
   
-  #### LOOKING UP THE VIDEO INFO ####
+  ## LOOKING UP THE VIDEO INFO ##
   # Appendages listed as "Both" have both pectoral and pelvic appendage data
   VideoInfo <- VideoFile[VideoFile$File.name %in% Trial,]
   # VideoInfo$Pectoral.Start.Frame <- as.numeric(VideoInfo$Pectoral.Start.Frame)
@@ -66,7 +65,7 @@ GRFanalysis <- function(myData) {
   # VideoInfo$Pelvic.End.Frame <- as.numeric(VideoInfo$Pelvic.End.Frame)
   Date <- format(as.Date(VideoInfo$Date.Filmed, format = "%m/%d/%y"), format="%y%m%d")
   
-  #### LOOKING UP THE CALIB INFO ####
+  ## LOOKING UP THE CALIB INFO ##
   CalibInfo <- CalibFile[CalibFile$Date %in% Date,]
   
 
@@ -252,7 +251,7 @@ GRFanalysis <- function(myData) {
   Pel_GRFs_Filtered_dataset_noOverlap_Peak <- do.call(rbind, Pel_GRFs_Filtered_dataset_noOverlap_Peak)
   
   
-  ### GENERATE OUTPUT #### 
+  #### GENERATE OUTPUT #### 
   Pec_output <- list(
     Pec_GRFs = Pec_GRFs,
     Pec_GRFs_Filtered = Pec_GRFs_Filtered,
@@ -316,7 +315,7 @@ setwd('./output')
   Save_FilterAll_Pel <- NULL
   for (i in 1:length(GRFs$Pelvic$Pel_GRFs_Filtered_dataset)) {
     Save_FilterAll_Pel[[i]] <- paste(names(GRFs$Pelvic$Pel_GRFs_Filtered_dataset)[[i]], "_Pel_Filtered_",SaveDate, ".csv", sep="")    
-    write.table(GRFs$Pevlic$Pel_GRFs_Filtered_dataset[[i]], file = Save_FilterAll_Pel[[i]], sep =",", row.names=FALSE)
+    write.table(GRFs$Pelvic$Pel_GRFs_Filtered_dataset[[i]], file = Save_FilterAll_Pel[[i]], sep =",", row.names=FALSE)
   }
   
   ## Save the dataset that was filtered and had areas of overlap excluded
@@ -331,4 +330,4 @@ setwd('./output')
   write.table(GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet, file = Save_FilterNoOverlap_PeakNet_Pel, sep =",", row.names=FALSE)
   
 
-  
+  #### DISCRIMINANT FUNCTION ANALYSIS ####
