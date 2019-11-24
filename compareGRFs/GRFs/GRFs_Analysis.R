@@ -19,7 +19,7 @@ SaveDate <- format(today, format="%y%m%d")
 # }
 library(devtools)
 
-install_github("MorphoFun/kraken")
+# install_github("MorphoFun/kraken") # uncomment if this is the first time using kraken or if you need to update
 library(kraken)
 
 #### LOAD THE CALIBRATION FILE ####
@@ -96,7 +96,7 @@ GRFanalysis <- function(myData) {
 
     
     ## Converting LabView output to GRFs ##
-    Pec_GRFs[[i]] <- voltToForce(Pec_Data[[i]], calib = Pec_CalibInfo_Trial[[i]][3:5], zeroStart = Pec_VideoInfo_Trial[[i]]$Pectoral.Start.Frame, lightStartFrame = Pec_VideoInfo_Trial[[i]]$Light.Start, 
+    Pec_GRFs[[i]] <- voltToForce(Pec_Data[[i]], calib = Pec_CalibInfo_Trial[[i]][3:5], zeroStart = Pec_VideoInfo_Trial[[i]]$ForceZeroStart, lightStartFrame = Pec_VideoInfo_Trial[[i]]$Light.Start, 
                                  startFrame = Pec_VideoInfo_Trial[[i]]$Pectoral.Start.Frame, endFrame = Pec_VideoInfo_Trial[[i]]$Pectoral.End.Frame, filename = Pec_VideoInfo_Trial[[i]]$File.name, BW = Pec_VideoInfo_Trial[[i]]$Body.Weight.kg)
     names(Pec_GRFs)[[i]] <- names(Pec_Data)[[i]]
     
@@ -184,7 +184,7 @@ GRFanalysis <- function(myData) {
     Pel_CalibInfo_Trial[[i]] <- CalibInfo[as.character(CalibInfo$Filename) == as.character(Pel_VideoInfo_Trial[[i]]$Calib_Force),]
     
     ## Converting LabView output to GRFs ##
-    Pel_GRFs[[i]] <- voltToForce(Pel_Data[[i]], Pel_CalibInfo_Trial[[i]][3:5], zeroStart = Pel_VideoInfo_Trial[[i]]$Pelvic.Start.Frame, lightStartFrame = Pel_VideoInfo_Trial[[i]]$Light.Start, 
+    Pel_GRFs[[i]] <- voltToForce(Pel_Data[[i]], Pel_CalibInfo_Trial[[i]][3:5], zeroStart = Pel_VideoInfo_Trial[[i]]$ForceZeroStart, lightStartFrame = Pel_VideoInfo_Trial[[i]]$Light.Start, 
                                  startFrame = Pel_VideoInfo_Trial[[i]]$Pelvic.Start.Frame, endFrame = Pel_VideoInfo_Trial[[i]]$Pelvic.End.Frame, filename = Pel_VideoInfo_Trial[[i]]$File.name, BW = Pel_VideoInfo_Trial[[i]]$Body.Weight.kg)
     names(Pel_GRFs)[[i]] <- names(Pel_Data)[[i]]
     
@@ -328,7 +328,3 @@ GRFs <- GRFanalysis(myData)
   
 
   
-#### DIAGNOSING PROBLEM TRIALS #####
-  
-pb03f39 <- read.table(file.choose())
-pb03f39_GRF <- GRFanalysis(pb03f39)

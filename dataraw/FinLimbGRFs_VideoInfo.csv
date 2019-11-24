@@ -544,7 +544,7 @@ pw03f25,46,109,,,331,238,Pectoral,10/11/13,cal34,cal33,,,,,0.018,19.5,8.5,1120,1
 pw03f26,47,89,80,134,351,255,Both,10/11/13,cal34,cal33,,,,,0.018,19.5,8.5,1120,1710,740,180,100,Pleurodeles_waltl,diagonal,both,45
 pw03f27,54,106,87,164,361,278,Pectoral,10/11/13,cal34,cal33,,,,,0.018,19.5,8.5,1120,1710,740,180,100,Pleurodeles_waltl,rolled over on HL,pec,52
 pw05f01,71,115,110,164,401,319,Both,10/9/13,cal32,cal31,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,diagonal; high steps,both,69
-pw05f02,,,122,175,401,309,Pelvic,10/9/13,cal32,cal31,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,isolated and straight,pel,173
+pw05f02,,,122,175,401,309,Pelvic,10/9/13,cal32,cal31,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,isolated and straight,pel,120
 pw05f03,32,104,96,164,461,344,Pelvic,10/9/13,cal32,cal31,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,"diagonal; FL could potentially be used, but looks like it turned a little",none,30
 pw05f04,89,162,146,239,521,413,Pelvic,10/9/13,cal32,cal31,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,diagonal,pel,87
 pw05f05,48,110,,,431,329,Pectoral,10/9/13,cal32,cal31,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,isolated; might have turned a tiny bit; diagonal,pec,46
@@ -552,9 +552,9 @@ pw05f06,46,106,93,170,381,283,Pectoral,10/9/13,cal32,cal31,,,,,0.017,18.5,8.25,1
 pw05f07,55,121,103,182,441,340,Pectoral,10/9/13,cal32,cal31,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,might have turned a little bit; diagonal; FL slides; not great,none,53
 pw05f08,52,108,91,164,471,388,Pectoral,10/9/13,cal32,cal31,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,might have turned a little bit; diagonal; FL slides; not great,none,50
 pw05f09,39,75,66,112,321,222,Both,10/9/13,cal32,cal31,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,a little diagonal; falls on FL a bit,both,37
-pw05f10,,,90,166,371,275,Pelvic,10/9/13,cal32,cal31,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,isolated; relatively straight,pel,164
+pw05f10,,,90,166,371,275,Pelvic,10/9/13,cal32,cal31,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,isolated; relatively straight,pel,88
 pw05f11,22,44,39,68,251,179,Both,10/10/13,cal33,cal32,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,fast; a little diagonal; HL doesn't flatten out; tail covers HL ,none,20
-pw05f12,,,53,91,291,204,Pelvic,10/10/13,cal33,cal32,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,isolated and straight,pel,89
+pw05f12,,,53,91,291,204,Pelvic,10/10/13,cal33,cal32,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,isolated and straight,pel,51
 pw05f13,28,60,55,90,301,207,Both,10/10/13,cal33,cal32,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,straight; fast,pel,26
 pw05f14,31,73,,,291,211,Pectoral,10/10/13,cal33,cal32,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,isolated; a little diagonal,pec,29
 pw05f15,40,90,82,131,341,263,Both,10/10/13,cal33,cal32,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,a little diagonal,both,38
@@ -563,19 +563,19 @@ pw05f17,28,64,56,90,311,217,Pectoral,10/11/13,cal34,cal33,,,,,0.017,18.5,8.25,11
 pw05f18,39,91,79,140,371,279,Both,10/11/13,cal34,cal33,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,straight,both,37
 pw05f19,32,66,61,99,311,219,Both,10/11/13,cal34,cal33,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,a little diagonal,both,30
 pw05f20,28,52,49,77,251,169,Both,10/11/13,cal34,cal33,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,a little diagonal,pel,26
-pw05f21,,,49,80,271,188,Pelvic,10/11/13,cal34,cal33,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,islated; HL on edge; exclude?,none,78
+pw05f21,,,49,80,271,188,Pelvic,10/11/13,cal34,cal33,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,islated; HL on edge; exclude?,none,47
 pw05f22,32,71,63,99,291,206,Both,10/11/13,cal34,cal33,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,a little diagonal,pec,30
 pw05f23,24,52,48,78,261,179,Both,10/11/13,cal34,cal33,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,a little diagonal,none,22
 pw05f24,46,108,,,321,242,Pectoral,10/11/13,cal34,cal33,,,,,0.017,18.5,8.25,1120,1710,740,180,100,Pleurodeles_waltl,isolated; a little diagonal,pec,44
 pw06f01,39,70,68,103,301,205,Both,10/9/13,cal32,cal31,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,straight; falls on FL a little though,pel,37
 pw06f02,27,76,,,331,246,Pectoral,10/9/13,cal32,cal31,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,isolated; falls on FL a little though,none,25
-pw06f03,,,68,109,331,223,Pelvic,10/9/13,cal32,cal31,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,,pel,107
+pw06f03,,,68,109,331,223,Pelvic,10/9/13,cal32,cal31,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,,pel,66
 pw06f04,41,89,78,132,341,246,Both,10/9/13,cal32,cal31,74,77,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,HL slowly lowers onto plate (frames 74-78); falls on FL; FL close to edge; not great,pel,39
 pw06f05,63,126,109,190,401,299,Both,10/9/13,cal32,cal31,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,a little diagonal,both,61
-pw06f06,,,134,188,391,314,Pelvic,10/10/13,cal33,cal32,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,diagonal,pel,186
+pw06f06,,,134,188,391,314,Pelvic,10/10/13,cal33,cal32,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,diagonal,pel,132
 pw06f07,32,65,61,94,321,245,Pectoral,10/10/13,cal33,cal32,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,a little diagonal; falls on FL,none,30
 pw06f08,44,78,77,124,321,239,Pelvic,10/10/13,cal33,cal32,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,diagonal,pel,42
-pw06f09,,,75,132,341,260,Pelvic,10/10/13,cal33,cal32,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,isolated; a little diagonal,pel,130
+pw06f09,,,75,132,341,260,Pelvic,10/10/13,cal33,cal32,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,isolated; a little diagonal,pel,73
 pw06f10,52,116,98,169,361,290,Pectoral,10/10/13,cal33,cal32,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,,none,50
 pw06f11,31,78,,,371,250,Pectoral,10/11/13,cal34,cal33,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,isolated; a little diagonal,pec,29
 pw06f12,28,63,53,101,331,254,Pectoral,10/11/13,cal34,cal33,,,,,0.016,18,8.5,1120,1710,740,180,100,Pleurodeles_waltl,falls on FL,none,26
