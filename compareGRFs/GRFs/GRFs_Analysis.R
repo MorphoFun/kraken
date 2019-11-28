@@ -21,6 +21,14 @@ library(devtools)
 
 # install_github("MorphoFun/kraken") # uncomment if this is the first time using kraken or if you need to update
 library(kraken)
+library(lme4) # for lmer()
+library(MuMIn) # for r.squaredGLMM()
+library(emmeans) # for emmean() and contrast()
+
+
+library(EMAtools) # for lme.dscore(); although, may not use this
+library(effsize) # for cohen.d(); although, may not use this
+
 
 #### LOAD THE CALIBRATION FILE ####
 CalibFile <- data.frame(read.csv("./dataraw/FinLimbGRFs_Calibs.csv", header=TRUE))
@@ -331,3 +339,87 @@ setwd('./output')
   
 
   #### DISCRIMINANT FUNCTION ANALYSIS ####
+  ## Determine the traits that differentiate the locomotor biomechanics between fins and limbs
+  
+  ## Need to add duty factor and appendage frequency data
+  
+  ### Combine the peak net GRF data
+  GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet$appendage <- "pelvic"
+
+  GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet$appendage <- "pectoral"  
+
+  
+  peakNetGRF <- rbind(GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet, GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet)
+  peakNetGRF$group <- paste(substring(peakNetGRF$filename, 1, 2), substring(peakNetGRF$appendage, 1, 3), sep = "_")
+  peakNetGRF$individual <- substring(peakNetGRF$filename, 1, 4)
+  
+  #### LINEAR MIXED EFFECTS MODELS ####
+  ## This will be used to compare the means between groups while accounting for the repeated trials within individuals
+  ## Since there are no pelvic data for Periophthalmus, we'll have three models:
+  ## 1) pectoral comparison between Periophthalmus, Ambystoma, and Pleurodeles
+  ## 2) pelvic comparison between Amvbystoma and Pleurodeles
+  ## 3) pectoral versus pelvic for Ambystoma and Pleurodeles
+  ## The effect sizes of individual independent variables can be assessed through the fixed effects: 
+  ## https://stat.ethz.ch/pipermail/r-sig-mixed-models/2013q4/021102.html
+  ## Or, could consider the f2 value (Aiken and West 1991): https://largescaleassessmentsineducation.springeropen.com/articles/10.1186/s40536-018-0061-2
+  
+  #### LME: Pec Comparison ####
+  pec_LME <- lmer(PercentStance ~ group + (1|individual), data = subset(peakNetGRF, appendage == "pectoral"), REML = TRUE)
+  summary(pec_LME)
+  
+  ## Zu omega squared to assess the 'goodness of fit' for the entire model
+  # Xu's omega method: http://onlinelibrary.wiley.com/doi/10.1002/sim.1572/abstract
+  pec_LME_Omega <- 1-var(residuals(pec_LME))/(var(model.response(model.frame(pec_LME))))
+  
+  ## or through the performance package: (got the same exact results as my code)
+  # performance::r2_xu(pec_LME)
+  
+  ## Can also do post-hoc pair-wise comparisons for the fixed effects: https://stats.stackexchange.com/questions/237512/how-to-perform-post-hoc-test-on-lmer-model
+  ## This describes that the differences between the post-hoc options: https://stats.stackexchange.com/questions/204741/which-multiple-comparison-method-to-use-for-a-lmer-model-lsmeans-or-glht
+  ## The main difference is how they calculate the p-value, which doesn't matter to LMMs. 
+  ## multcomp::glht() can produces shorter CIs and small p-values (which may be due to assumming infinite dfs),
+  ## so might be better to use lsmeans::lsmeans() to be more conservative. 
+  ## lsmeans has migrated to emmeans. This describes how to get the contrasts: 
+  ## https://stats.stackexchange.com/questions/331238/post-hoc-pairwise-comparison-of-interaction-in-mixed-effects-lmer-model
+  ## and https://stats.stackexchange.com/questions/355611/pairwise-comparisons-with-emmeans-for-a-mixed-three-way-interaction-in-a-linear
+  pec_EMM <- emmeans(pec_LME, ~ group)
+  contrast(pec_EMM, interaction = "pairwise")
+  
+  ## Cohen's f
+  
+  ## calculating Cohen's d for each fixed effect
+  ## https://stackoverflow.com/questions/57566566/calculating-confidence-intervals-around-lme-dscore-cohens-d-for-mixed-effect-mo
+  lme.dscore(pec_LME, data = subset(peakNetGRF, appendage == "pectoral"), type="lme4")
+  
+  ## calculating confidence intervals for each fixed effect
+  confint(pec_LME, method="Wald")
+  
+  ## pseudo-R2 for mixed effects models: https://ecologyforacrowdedplanet.wordpress.com/2013/08/27/r-squared-in-mixed-models-the-easy-way/
+  ## "Marginal R2GLMM represents the variance explained by the fixed effects
+  ## Conditional R2GLMM is interpreted as a variance explained by the entire model, including both
+  ## fixed and random effects."
+  r.squaredGLMM(pec_LME)
+  
+  ## From the MuMIN docs: "R2GLMM can be calculated also for fixed-effect models. In the simpliest case of OLS it reduces to
+  ## var(fitted) / (var(fitted) + deviance / 2). Unlike likelihood-ratio based R2 for OLS, value of this statistic differs from that of the classical R2."
+  
+  
+
+  ### Cohen's d: 
+  # example
+  treatment = rnorm(100,mean=10)
+  control = rnorm(100,mean=12)
+  d = (c(treatment,control))
+  f = rep(c("Treatment","Control"),each=100)
+  cohen.d(d,f,hedges.correction=TRUE)
+  # however, this doesn't seem to incorporate mixed effects models... 
+  
+  
+  ############## UNUSED: Discriminant Function Analysis   ##########
+  ## There doesn't seem to be a DFA with mixed effects option: https://stats.stackexchange.com/questions/33372/discriminant-analysis-with-random-effects
+  ## so the best option is to collapse data to individual means, so the sample size will be based
+  ## on total number of individuals rather than trials. 
+  ## However, I may not have a large enough sample size bc I'd have more traits than individuals per group.
+  ## For example, max # of independent variables is n - 2 where n = sample size: http://userwww.sfsu.edu/efc/classes/biol710/discrim/discrim.pdf
+  ## Given that, it doesn't make sense to run a discriminant function analysis on these data
+  
