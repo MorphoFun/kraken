@@ -317,6 +317,7 @@ GRFs <- GRFanalysis(myData)
   #### PeakNetGRF: plot raw data ####
   ## evaluate whether there are major outliers using boxplots and violin plots
   
+  ## need to change this so it uses the subsetted data for the pectoral trials
   ## need to get rid of the redudant legends
   # this shows how to get a common legend for combined plots: https://www.datanovia.com/en/lessons/combine-multiple-ggplots-into-a-figure/
   p <- list()
@@ -355,7 +356,7 @@ GRFs <- GRFanalysis(myData)
   }
   
   boxplot_wOutliers(peakNetGRF, x = "group", y = "PercentStance", group = "group", label = "filename")
-  
+ 
 removeOutliers <- function(df, x, y, ...) {
   out <- boxplot(df[,y] ~ df[,x], col = rainbow(5), xlab = x, ylab = y)$out
   outliers <- df[out,]
@@ -373,11 +374,8 @@ peakNetGRF_noOutliers <- removeOutliers(peakNetGRF, "group", "PercentStance")
 # the outliers that are determined by boxplot don't seem to be matching up with the plot
 boxplot_wOutliers(peakNetGRF_noOutliers$usableData, x = "group", y = "PercentStance", group = "group", label = "filename")
 
-
-  boxplot_wOutliers(peakNetGRF_noOutliers, x = "group", y = "PercentStance", group = "group", label = "filename")
-  
-  
-  
+outliers<-Boxplot(PercentStance ~ as.factor(group), data = peakNetGRF, id.method = peakNetGRF$filename)
+peakNetGRF_noOutliers <- peakNetGRF[-as.numeric(outliers),]
   
   #### LINEAR MIXED EFFECTS MODELS ####
   ## This will be used to compare the means between groups while accounting for the repeated trials within individuals
