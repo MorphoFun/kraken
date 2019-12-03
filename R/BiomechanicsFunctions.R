@@ -912,11 +912,11 @@ removeOverlaps <- function(df, primary, secondary, filmRate, ...) {
 #'
 #' @description Calculates yank as a measure of the change in force per unit of time.
 #'
-#' @usage yank <- function(myData, ...)
+#' @usage yank <- function(time, force ...)
 #'
 #' @param \code{time} Numeric values representing the time elapsed in units of seconds.
 #' @param \code{force} Numeric values representing the force measured at each time point.
-#' @details These procedures follow the methodology used in Lin et al. 2019.
+#' @details These procedures follow the methodology described in Lin et al. 2019.
 #' @references Lin DC, McGowan CP, Blum KP, Ting LH. Yank: the time derivative of force is an important biomechanical variable in sensorimotor systems. Journal of Experimental Biology 222: jeb180414. \url{https://jeb.biologists.org/content/222/18/jeb180414}
 #'
 #' @examples

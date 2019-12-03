@@ -24,6 +24,10 @@ library(kraken)
 library(lme4) # for lmer()
 library(MuMIn) # for r.squaredGLMM()
 library(emmeans) # for emmean() and contrast()
+library(piecewiseSEM) # for rsquared()
+library(gridExtra) # for grid.arrange()
+library(car) # for qqPlot()
+library(ggplot2) # for ggplot()
 
 
 library(EMAtools) # for lme.dscore(); although, may not use this
@@ -289,16 +293,224 @@ GRFanalysis <- function(myData) {
 GRFs <- GRFanalysis(myData)
 
 
+#### YANK ####
 
 
-#### SAVING THE DATA ####
-## go to the parent directory then save output in 'output' folder
-setwd('..')
-setwd('..')
-setwd('./output')
 
-## Pectoral data
+  ## Need to add duty factor and appendage frequency data
+  
+  ### Combine the peak net GRF data
+  GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet$appendage <- "pelvic"
 
+  GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet$appendage <- "pectoral"  
+
+  
+  peakNetGRF <- rbind(GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet, GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet)
+  peakNetGRF$group <- paste(substring(peakNetGRF$filename, 1, 2), substring(peakNetGRF$appendage, 1, 3), sep = "_")
+  peakNetGRF$individual <- substring(peakNetGRF$filename, 1, 4)
+  
+  #### PeakNetGRF: summary stats ####
+  variablesToAnalyze <- (c("PercentStance", "InterpV_BW", "InterpML_BW", "InterpAP_BW", "NetGRF_BW", "MLAngle_Convert_deg", "APAngle_Convert_deg", "group", "individual", "appendage"))
+  aggregate(. ~ group, data = peakNetGRF[,variablesToAnalyze[1:(length(variablesToAnalyze)-2)]], FUN = function(x) c(mean = mean(x), sd = sd(x), n = length(x)))
+  nVars <- 7
+  
+  #### PeakNetGRF: plot raw data ####
+  ## evaluate whether there are major outliers using boxplots and violin plots
+  
+  ## need to get rid of the redudant legends
+  # this shows how to get a common legend for combined plots: https://www.datanovia.com/en/lessons/combine-multiple-ggplots-into-a-figure/
+  p <- list()
+  for(i in 1:nVars){
+    p[[i]] <- ggplot(peakNetGRF, aes_string(x = variablesToAnalyze[8], y = variablesToAnalyze[i], fill = variablesToAnalyze[8])) + 
+      geom_violin(trim = FALSE) + 
+      geom_boxplot(width= 0.1, fill = "white") +
+      labs(x = "appendage", y = "variable") + 
+      theme(legend.position = "none") + 
+      theme_classic()
+  }
+  do.call(grid.arrange, p)
+  
+  
+  ## ggplot2 calculates more outliers bc baseplot::boxplot doesn't actually calculate the 1st and 3rd quantiles with even n
+  # https://stackoverflow.com/questions/21793715/why-geom-boxplot-identify-more-outliers-than-base-boxplot
+  boxplot_wOutliers <- function(df, x, y, group = NULL, label = NULL, ...) {
+    # calculate boxplot object
+    g <- ggplot(df, aes_string(x = x, y = y, fill = group)) + geom_boxplot() + guides(fill=FALSE)
+    
+    # get list of outliers 
+    out <- ggplot_build(g)[["data"]][[1]][["outliers"]]
+    
+    # label list elements with factor levels
+    names(out) <- levels(as.factor(group))
+    
+    # convert to tidy data
+    tidyout <- purrr::map_df(out, tibble::as_tibble, .id = "category")
+    tidyout$label <- df[,label][tidyout$value]
+    tidyout$group <- levels(as.factor(df[,group]))
+    
+    # plot boxplots with labels
+    g + geom_text(data = tidyout, aes(group, value, label = label),  hjust = -0.1)  +
+      theme(legend.position = "none") +
+      theme_classic()
+  }
+  
+  boxplot_wOutliers(peakNetGRF, x = "group", y = "PercentStance", group = "group", label = "filename")
+  
+removeOutliers <- function(df, x, y, ...) {
+  out <- boxplot(df[,y] ~ df[,x], col = rainbow(5), xlab = x, ylab = y)$out
+  outliers <- df[out,]
+  usableData <- df[-c(out),]
+  output <- list(
+    outliers = outliers,
+    usableData = usableData
+  )
+  return(output)
+}
+
+peakNetGRF_noOutliers <- removeOutliers(peakNetGRF, "group", "PercentStance")
+
+## can't seem to get rid of the trials that are labeled as outliers
+# the outliers that are determined by boxplot don't seem to be matching up with the plot
+boxplot_wOutliers(peakNetGRF_noOutliers$usableData, x = "group", y = "PercentStance", group = "group", label = "filename")
+
+
+  boxplot_wOutliers(peakNetGRF_noOutliers, x = "group", y = "PercentStance", group = "group", label = "filename")
+  
+  
+  
+  
+  #### LINEAR MIXED EFFECTS MODELS ####
+  ## This will be used to compare the means between groups while accounting for the repeated trials within individuals
+  ## Since there are no pelvic data for Periophthalmus, we'll have three models:
+  ## 1) pectoral comparison between Periophthalmus, Ambystoma, and Pleurodeles
+  ## 2) pelvic comparison between Amvbystoma and Pleurodeles
+  ## 3) pectoral versus pelvic for Ambystoma and Pleurodeles
+  ## The effect sizes of individual independent variables can be assessed through the fixed effects: 
+  ## https://stat.ethz.ch/pipermail/r-sig-mixed-models/2013q4/021102.html
+  ## Or, could consider the f2 value (Aiken and West 1991): https://largescaleassessmentsineducation.springeropen.com/articles/10.1186/s40536-018-0061-2
+
+  
+  #### LMM: Pec Comparison ####
+  #pec_LMM <- lmer(. ~ group + (1 |individual), data = subset(peakNetGRF[,variablesToAnalyze], appendage == "pectoral"), REML = TRUE)
+  #summary(pec_LMM)
+  
+  modelFormulae <- list()
+  pec_LMM <- list()
+  for (i in 1:nVars) {
+    modelFormulae[[i]] <- as.formula(paste(variablesToAnalyze[i], "~group+(1|individual)", sep = ""))
+    pec_LMM[[i]] <- lmer(modelFormulae[[i]], data = subset(peakNetGRF[,variablesToAnalyze], appendage == "pectoral"))
+
+  }
+  names(pec_LMM) <- modelFormulae
+  
+  
+  ## trying to log-transform to help with normality but can't take the log of negative numbers
+  modelFormulae_log <- list()
+  pec_LMM_log <- list()
+  for (i in 1:nVars) {
+    modelFormulae_log[[i]] <- as.formula(paste("log(", variablesToAnalyze[i], ")~group+(1|individual)", sep = ""))
+    pec_LMM_log[[i]] <- lmer(modelFormulae_log[[i]], data = subset(peakNetGRF[,variablesToAnalyze], appendage == "pectoral"))
+    
+  }
+  names(pec_LMM_log) <- modelFormulae_log
+
+
+  ### Testing the assumptions
+  ## Looking at residuals vs. fitted values to evaluate whether there are any nonlinear relationships
+  ## gunshot pattern suggests that there aren't any nonlinear patterns, so okay to use a LMM vs. GLMM
+  plots <- list()
+  for (i in 1:nVars) {
+    plots[[i]] <- plot(pec_LMM[[i]])
+  }
+  do.call(grid.arrange, plots)
+  
+  ## evaluating the normality of the residuals
+  qqplots <- list()
+  pec_LMM_shapiro <- list()
+  for (i in 1:nVars) {
+    qqplots[[i]] <-   qqnorm(resid(pec_LMM[[i]]))
+    #qqline(resid(pec_LMM[[i]]))
+    pec_LMM_shapiro[[i]] <- shapiro.test(resid(pec_LMM[[i]]))
+  }
+  do.call(grid.arrange, qqplots)
+  names(pec_LMM_shapiro) <- modelFormulae
+  
+  ## following up 
+  
+  ## testing out the car::qqPlot() function bc it provides confidence intervals around the qqline
+  qqPlot(resid(pec_LMM[[7]]))
+  
+
+  
+  
+  qqnorm(resid(pec_LMM[[i]]))
+  qqline(resid(pec_LMM[[i]]))
+  
+  
+  ### Continuing on with statistical analyses since data seem to meet assumptions of LMM
+  
+  ## Zu omega squared to assess the 'goodness of fit' for the entire model
+  # Xu's omega method: http://onlinelibrary.wiley.com/doi/10.1002/sim.1572/abstract
+  ## or through the performance package: (got the same exact results as my code)
+  # performance::r2_xu(pec_LMM)
+  
+  Xu_omega2 <- function(lmm, ...) {
+    1-var(residuals(lmm))/(var(model.response(model.frame(lmm))))
+  }
+  
+  pec_LMM_omega2 <- lapply(pec_LMM, FUN = function(x) Xu_omega2(x))
+
+   
+
+  
+  ## Can also do post-hoc pair-wise comparisons for the fixed effects: https://stats.stackexchange.com/questions/237512/how-to-perform-post-hoc-test-on-lmer-model
+  ## This describes that the differences between the post-hoc options: https://stats.stackexchange.com/questions/204741/which-multiple-comparison-method-to-use-for-a-lmer-model-lsmeans-or-glht
+  ## The main difference is how they calculate the p-value, which doesn't matter to LMMs. 
+  ## multcomp::glht() can produces shorter CIs and small p-values (which may be due to assumming infinite dfs),
+  ## so might be better to use lsmeans::lsmeans() to be more conservative. 
+  ## lsmeans also handles interactions better. 
+  ## lsmeans has migrated to emmeans. This describes how to get the contrasts: 
+  ## https://stats.stackexchange.com/questions/331238/post-hoc-pairwise-comparison-of-interaction-in-mixed-effects-lmer-model
+  ## and https://stats.stackexchange.com/questions/355611/pairwise-comparisons-with-emmeans-for-a-mixed-three-way-interaction-in-a-linear
+  # pec_EMM <- emmeans(pec_LMM[[1]], ~ group)
+  # contrast(pec_EMM[[1]], interaction = "pairwise")
+  
+  pec_EMM <- lapply(pec_LMM, FUN = function(x) emmeans(x, ~ group))
+  pec_EMM_contrasts <- lapply(pec_EMM, FUN = function(x) contrast(x, interaction = "pairwise"))
+  
+  ## Cohen's f2 to estimate the effect size of a fixed effect: https://github.com/finch-f/effect-size-in-Linear-mixed-model/blob/master/How%20to%20calculate%20effect%20size%20of%20a%20fixed%20effect.pdf
+  Cohen_f2 <- function(y, FE = NULL, RE = NULL, df = NULL, ...) {
+    LMM_formula <- as.formula(paste(y, " ~ ", FE, " + ", RE))
+    LMM <- lmer(LMM_formula, data = df)
+    LMM_null_formula <- as.formula(paste(y, " ~ 1 + ", RE))
+    LMM_null <- lmer(LMM_null_formula, data = df)
+    LMM_pseudoR2 <- piecewiseSEM::rsquared(LMM)
+    LMM_null_pseudoR2 <- piecewiseSEM::rsquared(LMM_null)
+    LMM_f2 <- (LMM_pseudoR2[,5:6] - LMM_null_pseudoR2[,5:6])/(1 - LMM_pseudoR2[,5:6])
+    # double-check last line bc I got a conditional f2 that was lower than the marginal, which shouldn't be possible
+    # maybe that's because I should only be calculating the f2 for the marginal values
+  }
+  
+  pec_LMM_null <- lmer(PercentStance ~ 1 + (1 |individual), data = subset(peakNetGRF, appendage == "pectoral"), REML = TRUE)
+  pec_LMM_pseudoR2 <- piecewiseSEM::rsquared(pec_LMM)
+  pec_LMM_null_pseudoR2 <- piecewiseSEM::rsquared(pec_LMM_null)
+  pec_LMM_F2 <- (pec_LMM_null_pseudoR2 - pec_LMM_pseudoR2)/(1 - pec_LMM_null_pseudoR2)
+  # got a lot of warnings about "In Ops.factor(left, right) : ‘-’ not meaningful for factors"
+  pec_LMM_F2 <- (pec_LMM_pseudoR2[,5:6] - pec_LMM_null_pseudoR2[,5:6])/(1 - pec_LMM_pseudoR2[,5:6])
+  # this worked, though. Values were different from MuMIn::r.squaredGLMM(pec_LMM)
+  # using the marginal values since Cohen's f2 is based on the fixed effects, and the conditional value includes both the fixed and random effects.
+  
+  ## when plotting the vertical and net GRF data, maybe use filled regions to help highlight the areas of overlap 
+  
+  
+  #### SAVING THE DATA ####
+  ## go to the parent directory then save output in 'output' folder
+  setwd('..')
+  setwd('..')
+  setwd('./output')
+  
+  ## Pectoral data
+  
   ## Save the dataset that was filtered and had areas of overlap excluded
   Save_FilterAll_Pec <- NULL
   for (i in 1:length(GRFs$Pectoral$Pec_GRFs_Filtered_dataset)) {
@@ -316,9 +528,9 @@ setwd('./output')
   ## Save the data taken at the peak Net GRF
   Save_FilterNoOverlap_PeakNet_Pec <- paste("FinLimbs_Pec_Filtered_noOverlap_Peak_",SaveDate, ".csv", sep="")
   write.table(GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet, file = Save_FilterNoOverlap_PeakNet_Pec, sep =",", row.names=FALSE)
-
-
-## Pelvic data
+  
+  
+  ## Pelvic data
   ## Save the dataset that was filtered and had areas of overlap excluded
   Save_FilterAll_Pel <- NULL
   for (i in 1:length(GRFs$Pelvic$Pel_GRFs_Filtered_dataset)) {
@@ -337,83 +549,6 @@ setwd('./output')
   Save_FilterNoOverlap_PeakNet_Pel <- paste("FinLimbs_Pel_Filtered_noOverlap_Peak_",SaveDate, ".csv", sep="")
   write.table(GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet, file = Save_FilterNoOverlap_PeakNet_Pel, sep =",", row.names=FALSE)
   
-
-  #### DISCRIMINANT FUNCTION ANALYSIS ####
-  ## Determine the traits that differentiate the locomotor biomechanics between fins and limbs
-  
-  ## Need to add duty factor and appendage frequency data
-  
-  ### Combine the peak net GRF data
-  GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet$appendage <- "pelvic"
-
-  GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet$appendage <- "pectoral"  
-
-  
-  peakNetGRF <- rbind(GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet, GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet)
-  peakNetGRF$group <- paste(substring(peakNetGRF$filename, 1, 2), substring(peakNetGRF$appendage, 1, 3), sep = "_")
-  peakNetGRF$individual <- substring(peakNetGRF$filename, 1, 4)
-  
-  #### LINEAR MIXED EFFECTS MODELS ####
-  ## This will be used to compare the means between groups while accounting for the repeated trials within individuals
-  ## Since there are no pelvic data for Periophthalmus, we'll have three models:
-  ## 1) pectoral comparison between Periophthalmus, Ambystoma, and Pleurodeles
-  ## 2) pelvic comparison between Amvbystoma and Pleurodeles
-  ## 3) pectoral versus pelvic for Ambystoma and Pleurodeles
-  ## The effect sizes of individual independent variables can be assessed through the fixed effects: 
-  ## https://stat.ethz.ch/pipermail/r-sig-mixed-models/2013q4/021102.html
-  ## Or, could consider the f2 value (Aiken and West 1991): https://largescaleassessmentsineducation.springeropen.com/articles/10.1186/s40536-018-0061-2
-  
-  #### LME: Pec Comparison ####
-  pec_LME <- lmer(PercentStance ~ group + (1|individual), data = subset(peakNetGRF, appendage == "pectoral"), REML = TRUE)
-  summary(pec_LME)
-  
-  ## Zu omega squared to assess the 'goodness of fit' for the entire model
-  # Xu's omega method: http://onlinelibrary.wiley.com/doi/10.1002/sim.1572/abstract
-  pec_LME_Omega <- 1-var(residuals(pec_LME))/(var(model.response(model.frame(pec_LME))))
-  
-  ## or through the performance package: (got the same exact results as my code)
-  # performance::r2_xu(pec_LME)
-  
-  ## Can also do post-hoc pair-wise comparisons for the fixed effects: https://stats.stackexchange.com/questions/237512/how-to-perform-post-hoc-test-on-lmer-model
-  ## This describes that the differences between the post-hoc options: https://stats.stackexchange.com/questions/204741/which-multiple-comparison-method-to-use-for-a-lmer-model-lsmeans-or-glht
-  ## The main difference is how they calculate the p-value, which doesn't matter to LMMs. 
-  ## multcomp::glht() can produces shorter CIs and small p-values (which may be due to assumming infinite dfs),
-  ## so might be better to use lsmeans::lsmeans() to be more conservative. 
-  ## lsmeans has migrated to emmeans. This describes how to get the contrasts: 
-  ## https://stats.stackexchange.com/questions/331238/post-hoc-pairwise-comparison-of-interaction-in-mixed-effects-lmer-model
-  ## and https://stats.stackexchange.com/questions/355611/pairwise-comparisons-with-emmeans-for-a-mixed-three-way-interaction-in-a-linear
-  pec_EMM <- emmeans(pec_LME, ~ group)
-  contrast(pec_EMM, interaction = "pairwise")
-  
-  ## Cohen's f
-  
-  ## calculating Cohen's d for each fixed effect
-  ## https://stackoverflow.com/questions/57566566/calculating-confidence-intervals-around-lme-dscore-cohens-d-for-mixed-effect-mo
-  lme.dscore(pec_LME, data = subset(peakNetGRF, appendage == "pectoral"), type="lme4")
-  
-  ## calculating confidence intervals for each fixed effect
-  confint(pec_LME, method="Wald")
-  
-  ## pseudo-R2 for mixed effects models: https://ecologyforacrowdedplanet.wordpress.com/2013/08/27/r-squared-in-mixed-models-the-easy-way/
-  ## "Marginal R2GLMM represents the variance explained by the fixed effects
-  ## Conditional R2GLMM is interpreted as a variance explained by the entire model, including both
-  ## fixed and random effects."
-  r.squaredGLMM(pec_LME)
-  
-  ## From the MuMIN docs: "R2GLMM can be calculated also for fixed-effect models. In the simpliest case of OLS it reduces to
-  ## var(fitted) / (var(fitted) + deviance / 2). Unlike likelihood-ratio based R2 for OLS, value of this statistic differs from that of the classical R2."
-  
-  
-
-  ### Cohen's d: 
-  # example
-  treatment = rnorm(100,mean=10)
-  control = rnorm(100,mean=12)
-  d = (c(treatment,control))
-  f = rep(c("Treatment","Control"),each=100)
-  cohen.d(d,f,hedges.correction=TRUE)
-  # however, this doesn't seem to incorporate mixed effects models... 
-  
   
   ############## UNUSED: Discriminant Function Analysis   ##########
   ## There doesn't seem to be a DFA with mixed effects option: https://stats.stackexchange.com/questions/33372/discriminant-analysis-with-random-effects
@@ -422,4 +557,21 @@ setwd('./output')
   ## However, I may not have a large enough sample size bc I'd have more traits than individuals per group.
   ## For example, max # of independent variables is n - 2 where n = sample size: http://userwww.sfsu.edu/efc/classes/biol710/discrim/discrim.pdf
   ## Given that, it doesn't make sense to run a discriminant function analysis on these data
+  
+  ## calculating Cohen's d for each fixed effect
+  ## https://stackoverflow.com/questions/57566566/calculating-confidence-intervals-around-lme-dscore-cohens-d-for-mixed-effect-mo
+  # EMAtools::lme.dscore(pec_LME, data = subset(peakNetGRF, appendage == "pectoral"), type="lme4")
+  
+  # ## calculating confidence intervals for each fixed effect
+  # confint(pec_EMM, method="Wald")
+  
+  # ## pseudo-R2 for mixed effects models: https://ecologyforacrowdedplanet.wordpress.com/2013/08/27/r-squared-in-mixed-models-the-easy-way/
+  # ## "Marginal R2GLMM represents the variance explained by the fixed effects
+  # ## Conditional R2GLMM is interpreted as a variance explained by the entire model, including both
+  # ## fixed and random effects."
+  # r.squaredGLMM(pec_LMM)
+  # 
+  # ## From the MuMIN docs: "R2GLMM can be calculated also for fixed-effect models. In the simpliest case of OLS it reduces to
+  # ## var(fitted) / (var(fitted) + deviance / 2). Unlike likelihood-ratio based R2 for OLS, value of this statistic differs from that of the classical R2."
+  # 
   
