@@ -294,8 +294,21 @@ GRFs <- GRFanalysis(myData)
 
 
 #### YANK ####
+yank_pec <- list(
+  vertical = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpV_BW)),
+  medioateral = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpML_BW)),
+  anteroposterior = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpAP_BW)),
+  net = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$NetGRF_BW))
+)
 
-yank_pec <- lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap[,variablesToAnalyze[,1:5]], FUN = function(x) yank(x[,1], ))
+yank_pel <- list(
+  vertical = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpV_BW)),
+  medioateral = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpML_BW)),
+  anteroposterior = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpAP_BW)),
+  net = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$NetGRF_BW))
+)
+
+
 
 
   ## Need to add duty factor and appendage frequency data
