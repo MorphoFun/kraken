@@ -4,7 +4,7 @@
 \alias{yank}
 \title{Calculating yank for force data}
 \usage{
-yank <- function(myData, ...)
+yank <- function(time, force ...)
 }
 \arguments{
 \item{\code{time}}{Numeric values representing the time elapsed in units of seconds.}
@@ -15,7 +15,7 @@ yank <- function(myData, ...)
 Calculates yank as a measure of the change in force per unit of time.
 }
 \details{
-These procedures follow the methodology used in Lin et al. 2019.
+These procedures follow the methodology described in Lin et al. 2019.
 }
 \examples{
 

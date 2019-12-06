@@ -18,6 +18,10 @@
 \item{\code{Rp}}{A numeric value indicating passband ripple in dB; represents the max permissible passband loss. 2 dB is set as a default.}
 
 \item{\code{Rs}}{A numeric value indicating stopband attenuation in dB; respresents the dB the stopband is down from the passband. 40 dB is set as a default.}
+
+\item{\code{saveAs}}{A character string containing the name for the resulting graph.}
+
+\item{\code{saveGraph}}{A character string (options = "yes" or "no") to indicate whether you want to save the graph as a PDF or not.}
 }
 \description{
 Applies a butterworth filter to data, using information about the data to determine what polynomial to use.
@@ -28,7 +32,7 @@ These procedures follow the methodology used in Kawano and Blob (2013) and Kawan
 \examples{
 
 GRF <- voltToForce(df, calib = c(-0.710, 1.337, 1.563), lightStartFrame = 248, startFrame = 20, endFrame = 196, zeroStart = 22000)
-GRF_filtered <- butterFilteR(GRF)
+GRF_filtered <- butterFilteR(GRF, saveAs = "af01f18_Pec_Filter.pdf", saveGraph = "yes")
 
 }
 \references{

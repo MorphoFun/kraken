@@ -295,6 +295,7 @@ GRFs <- GRFanalysis(myData)
 
 #### YANK ####
 
+yank_pec <- lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap[,variablesToAnalyze[,1:5]], FUN = function(x) yank(x[,1], ))
 
 
   ## Need to add duty factor and appendage frequency data
