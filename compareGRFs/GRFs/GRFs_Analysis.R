@@ -292,26 +292,6 @@ GRFanalysis <- function(myData) {
 
 GRFs <- GRFanalysis(myData)
 
-
-#### YANK ####
-yank_pec <- list(
-  vertical = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpV_BW)),
-  medioateral = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpML_BW)),
-  anteroposterior = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpAP_BW)),
-  net = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$NetGRF_BW))
-)
-
-yank_pel <- list(
-  vertical = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpV_BW)),
-  medioateral = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpML_BW)),
-  anteroposterior = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpAP_BW)),
-  net = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$NetGRF_BW))
-)
-
-
-
-
-  ## Need to add duty factor and appendage frequency data
   
   ### Combine the peak net GRF data
   GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet$appendage <- "pelvic"
@@ -323,12 +303,19 @@ yank_pel <- list(
   peakNetGRF$group <- paste(substring(peakNetGRF$filename, 1, 2), substring(peakNetGRF$appendage, 1, 3), sep = "_")
   peakNetGRF$individual <- substring(peakNetGRF$filename, 1, 4)
   
+  ## Subsetting data into groups to analyze
+  pec_peakNetGRFs <- subset(peakNetGRF, appendage == "pectoral")
+  pel_peakNetGRFs <- subset(peakNetGRF, appendage == "pelvic")
+  sal_peakNetGRFs <- subset(peakNetGRF, !substring(filename, 1, 2) == "pb")
+  
+  
+  
   #### PeakNetGRF: summary stats ####
   variablesToAnalyze <- (c("PercentStance", "InterpV_BW", "InterpML_BW", "InterpAP_BW", "NetGRF_BW", "MLAngle_Convert_deg", "APAngle_Convert_deg", "group", "individual", "appendage"))
   aggregate(. ~ group, data = peakNetGRF[,variablesToAnalyze[1:(length(variablesToAnalyze)-2)]], FUN = function(x) c(mean = mean(x), sd = sd(x), n = length(x)))
   nVars <- 7
   
-  #### PeakNetGRF: plot raw data ####
+  #### PeakNetGRF - Pectoral: plot raw data ####
   ## evaluate whether there are major outliers using boxplots and violin plots
   
   ## need to change this so it uses the subsetted data for the pectoral trials
@@ -336,10 +323,10 @@ yank_pel <- list(
   # this shows how to get a common legend for combined plots: https://www.datanovia.com/en/lessons/combine-multiple-ggplots-into-a-figure/
   p <- list()
   for(i in 1:nVars){
-    p[[i]] <- ggplot(peakNetGRF, aes_string(x = variablesToAnalyze[8], y = variablesToAnalyze[i], fill = variablesToAnalyze[8])) + 
+    p[[i]] <- ggplot(pec_peakNetGRFs, aes_string(x = variablesToAnalyze[8], y = variablesToAnalyze[i], fill = variablesToAnalyze[8])) + 
       geom_violin(trim = FALSE) + 
       geom_boxplot(width= 0.1, fill = "white") +
-      labs(x = "appendage", y = "variable") + 
+      labs(x = "appendage", y = variablesToAnalyze[i]) + 
       theme(legend.position = "none") + 
       theme_classic()
   }
@@ -348,33 +335,25 @@ yank_pel <- list(
   
   ## ggplot2 calculates more outliers bc baseplot::boxplot doesn't actually calculate the 1st and 3rd quantiles with even n
   # https://stackoverflow.com/questions/21793715/why-geom-boxplot-identify-more-outliers-than-base-boxplot
-  boxplot_wOutliers <- function(df, x, y, group = NULL, label = NULL, ...) {
-    # calculate boxplot object
-    g <- ggplot(df, aes_string(x = x, y = y, fill = group)) + geom_boxplot() + guides(fill=FALSE)
-    
-    # get list of outliers 
-    out <- ggplot_build(g)[["data"]][[1]][["outliers"]]
-    
-    # label list elements with factor levels
-    names(out) <- levels(as.factor(group))
-    
-    # convert to tidy data
-    tidyout <- purrr::map_df(out, tibble::as_tibble, .id = "category")
-    tidyout$label <- df[,label][tidyout$value]
-    tidyout$group <- levels(as.factor(df[,group]))
-    
-    # plot boxplots with labels
-    g + geom_text(data = tidyout, aes(group, value, label = label),  hjust = -0.1)  +
-      theme(legend.position = "none") +
-      theme_classic()
+  bp <- list()
+  outliers <- list()
+  usableData <- list()
+  for(i in 1:nVars){
+    bp[[i]] <- Boxplot(pec_peakNetGRFs[,variablesToAnalyze[i]] ~ as.factor(group), id.method = peakNetGRF$filename, data = pec_peakNetGRFs, ylab = variablesToAnalyze[i])
+    outliers[[i]] <- pec_peakNetGRFs[bp[[i]],] 
+    usableData[[i]] <- pec_peakNetGRFs[ ! pec_peakNetGRFs$filename %in% outliers[[i]]$filename, ]
   }
+  names(outliers) <- variablesToAnalyze[1:7]
+  names(usableData) <- variablesToAnalyze[1:7]
   
-  boxplot_wOutliers(peakNetGRF, x = "group", y = "PercentStance", group = "group", label = "filename")
- 
-removeOutliers <- function(df, x, y, ...) {
-  out <- boxplot(df[,y] ~ df[,x], col = rainbow(5), xlab = x, ylab = y)$out
-  outliers <- df[out,]
-  usableData <- df[-c(out),]
+removeOutliers <- function(df, yName, group, labelName, ... ){
+  for(i in 1:length(yName)){
+    bp[[i]] <- Boxplot(df[,yName[i]] ~ as.factor(group), id.method = labelName, data = df, ylab = yName[i])
+    outliers[[i]] <- df[bp[[i]],] 
+    usableData[[i]] <- df[ ! df[,labelName] %in% outliers[[i]][,labelName], ]
+  }
+  names(outliers) <- yName
+  names(usableData) <- yName
   output <- list(
     outliers = outliers,
     usableData = usableData
@@ -382,15 +361,9 @@ removeOutliers <- function(df, x, y, ...) {
   return(output)
 }
 
-peakNetGRF_noOutliers <- removeOutliers(peakNetGRF, "group", "PercentStance")
+pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[1:7], "group", "filename")
 
-## can't seem to get rid of the trials that are labeled as outliers
-# the outliers that are determined by boxplot don't seem to be matching up with the plot
-boxplot_wOutliers(peakNetGRF_noOutliers$usableData, x = "group", y = "PercentStance", group = "group", label = "filename")
 
-outliers<-Boxplot(PercentStance ~ as.factor(group), data = peakNetGRF, id.method = peakNetGRF$filename)
-peakNetGRF_noOutliers <- peakNetGRF[-as.numeric(outliers),]
-  
   #### LINEAR MIXED EFFECTS MODELS ####
   ## This will be used to compare the means between groups while accounting for the repeated trials within individuals
   ## Since there are no pelvic data for Periophthalmus, we'll have three models:
@@ -400,64 +373,63 @@ peakNetGRF_noOutliers <- peakNetGRF[-as.numeric(outliers),]
   ## The effect sizes of individual independent variables can be assessed through the fixed effects: 
   ## https://stat.ethz.ch/pipermail/r-sig-mixed-models/2013q4/021102.html
   ## Or, could consider the f2 value (Aiken and West 1991): https://largescaleassessmentsineducation.springeropen.com/articles/10.1186/s40536-018-0061-2
+  
+  #### LMM: Peak net GRF Pec Comparison ####
 
   
-  #### LMM: Pec Comparison ####
-  #pec_LMM <- lmer(. ~ group + (1 |individual), data = subset(peakNetGRF[,variablesToAnalyze], appendage == "pectoral"), REML = TRUE)
-  #summary(pec_LMM)
-  
+  ### a) Run lmers
   modelFormulae <- list()
   pec_LMM <- list()
   for (i in 1:nVars) {
     modelFormulae[[i]] <- as.formula(paste(variablesToAnalyze[i], "~group+(1|individual)", sep = ""))
-    pec_LMM[[i]] <- lmer(modelFormulae[[i]], data = subset(peakNetGRF[,variablesToAnalyze], appendage == "pectoral"))
+    pec_LMM[[i]] <- lmer(modelFormulae[[i]], data = pec_peakNetGRFs)
 
   }
   names(pec_LMM) <- modelFormulae
   
   
-  ## trying to log-transform to help with normality but can't take the log of negative numbers
-  modelFormulae_log <- list()
-  pec_LMM_log <- list()
-  for (i in 1:nVars) {
-    modelFormulae_log[[i]] <- as.formula(paste("log(", variablesToAnalyze[i], ")~group+(1|individual)", sep = ""))
-    pec_LMM_log[[i]] <- lmer(modelFormulae_log[[i]], data = subset(peakNetGRF[,variablesToAnalyze], appendage == "pectoral"))
-    
-  }
-  names(pec_LMM_log) <- modelFormulae_log
+  # ## trying to log-transform to help with normality but can't take the log of negative numbers
+  # modelFormulae_log <- list()
+  # pec_LMM_log <- list()
+  # for (i in 1:nVars) {
+  #   modelFormulae_log[[i]] <- as.formula(paste("log(", variablesToAnalyze[i], ")~group+(1|individual)", sep = ""))
+  #   pec_LMM_log[[i]] <- lmer(modelFormulae_log[[i]], data = pec_peakNetGRFs)
+  #   
+  # }
+  # names(pec_LMM_log) <- modelFormulae_log
 
 
   ### Testing the assumptions
-  ## Looking at residuals vs. fitted values to evaluate whether there are any nonlinear relationships
-  ## gunshot pattern suggests that there aren't any nonlinear patterns, so okay to use a LMM vs. GLMM
-  plots <- list()
-  for (i in 1:nVars) {
-    plots[[i]] <- plot(pec_LMM[[i]])
-  }
-  do.call(grid.arrange, plots)
-  
-  ## evaluating the normality of the residuals
-  qqplots <- list()
+  ## Don't need to test for linearity of data because the predictors are categorical
+
+  ## b) evaluating the normality of the residuals
+  # the null of the Shapiro-Wilk test is that the input (e.g., residuals of data) are normal
+
   pec_LMM_shapiro <- list()
   for (i in 1:nVars) {
-    qqplots[[i]] <-   qqnorm(resid(pec_LMM[[i]]))
-    #qqline(resid(pec_LMM[[i]]))
     pec_LMM_shapiro[[i]] <- shapiro.test(resid(pec_LMM[[i]]))
+    qqPlot(resid(pec_LMM[[1]]), ylab = names(pec_LMM)[[i]])
   }
-  do.call(grid.arrange, qqplots)
+  #do.call(grid.arrange, grobs = list(qqplots)) # can't use grid.arrange on car plots
   names(pec_LMM_shapiro) <- modelFormulae
+  # Only InterpAP_BW met the assumption of normality based on the Shapiro-Wilk tests
+  # However, the graphs show that the values tended to deviate from normality mainly because
+  # the smallest points tended to underestimate the fitted values, which is more conservative
+  # than having the largest values overestimate the qq-line
   
-  ## following up 
   
-  ## testing out the car::qqPlot() function bc it provides confidence intervals around the qqline
-  qqPlot(resid(pec_LMM[[7]]))
+  ## c) Testing homogeneity of variances
+  # the Bartlett's test is more sensitive to non-normal data so people often use Levene's
+  # more info here; http://www.sthda.com/english/wiki/compare-multiple-sample-variances-in-r
+  # The Fligner-Killeen test can be used for non-normal data  
+  
+  apply(pec_peakNetGRFs[,variablesToAnalyze[1:7]],2,function(x) {leveneTest(x ~ as.factor(pec_peakNetGRFs$group))})
+  apply(pec_peakNetGRFs[,variablesToAnalyze[1:7]],2,function(x) {fligner.test(x ~ as.factor(pec_peakNetGRFs$group))})
   
 
   
   
-  qqnorm(resid(pec_LMM[[i]]))
-  qqline(resid(pec_LMM[[i]]))
-  
+
   
   ### Continuing on with statistical analyses since data seem to meet assumptions of LMM
   
@@ -513,6 +485,24 @@ peakNetGRF_noOutliers <- peakNetGRF[-as.numeric(outliers),]
   # using the marginal values since Cohen's f2 is based on the fixed effects, and the conditional value includes both the fixed and random effects.
   
   ## when plotting the vertical and net GRF data, maybe use filled regions to help highlight the areas of overlap 
+  
+  
+  #### YANK ####
+  yank_pec <- list(
+    vertical = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpV_BW)),
+    medioateral = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpML_BW)),
+    anteroposterior = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpAP_BW)),
+    net = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$NetGRF_BW))
+  )
+  
+  yank_pel <- list(
+    vertical = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpV_BW)),
+    medioateral = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpML_BW)),
+    anteroposterior = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpAP_BW)),
+    net = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$NetGRF_BW))
+  )
+  
+  
   
   
   #### SAVING THE DATA ####
@@ -586,4 +576,7 @@ peakNetGRF_noOutliers <- peakNetGRF[-as.numeric(outliers),]
   # ## From the MuMIN docs: "R2GLMM can be calculated also for fixed-effect models. In the simpliest case of OLS it reduces to
   # ## var(fitted) / (var(fitted) + deviance / 2). Unlike likelihood-ratio based R2 for OLS, value of this statistic differs from that of the classical R2."
   # 
-  
+  ## Testing assumption of normality with base plots
+  # qqnorm(resid(pec_LMM[[i]]))
+  # qqline(resid(pec_LMM[[i]]))
+  # 
