@@ -332,23 +332,31 @@ GRFs <- GRFanalysis(myData)
   }
   do.call(grid.arrange, p)
   
+  histos <- list()
+  for(i in 1:nVars){
+    histos[[i]] <- ggplot(pec_peakNetGRFs, aes_string(x = variablesToAnalyze[i], color = group, fill = group)) + 
+      geom_histogram(aes(y=..density..), alpha = 0.2, colour="black") +
+      geom_density(alpha = 0.5) +
+      theme_classic()
+  }
+  
+  ggplot(pec_peakNetGRFs, aes(x = PercentStance)) + 
+    geom_histogram(aes(y=..density..), colour="black", fill="white") +
+    geom_density(alpha=.2, fill="#FF6666") +
+    theme_classic()
+  
   
   ## ggplot2 calculates more outliers bc baseplot::boxplot doesn't actually calculate the 1st and 3rd quantiles with even n
   # https://stackoverflow.com/questions/21793715/why-geom-boxplot-identify-more-outliers-than-base-boxplot
+
+  # This function returns errors about 'subscript out of bounds' when the outlierRange is different from 1.5
+removeOutliers <- function(df, yName, group, labelName, outlierRange, ... ){
   bp <- list()
   outliers <- list()
   usableData <- list()
-  for(i in 1:nVars){
-    bp[[i]] <- Boxplot(pec_peakNetGRFs[,variablesToAnalyze[i]] ~ as.factor(group), id.method = peakNetGRF$filename, data = pec_peakNetGRFs, ylab = variablesToAnalyze[i])
-    outliers[[i]] <- pec_peakNetGRFs[bp[[i]],] 
-    usableData[[i]] <- pec_peakNetGRFs[ ! pec_peakNetGRFs$filename %in% outliers[[i]]$filename, ]
-  }
-  names(outliers) <- variablesToAnalyze[1:7]
-  names(usableData) <- variablesToAnalyze[1:7]
-  
-removeOutliers <- function(df, yName, group, labelName, ... ){
   for(i in 1:length(yName)){
-    bp[[i]] <- Boxplot(df[,yName[i]] ~ as.factor(group), id.method = labelName, data = df, ylab = yName[i])
+    # changing the range affects how far beyond the IQR is considered an outlier (1.5 set as default)
+    bp[[i]] <- car::Boxplot(df[,yName[i]] ~ group, id.method = labelName, data = df, ylab = yName[i], range = outlierRange)
     outliers[[i]] <- df[bp[[i]],] 
     usableData[[i]] <- df[ ! df[,labelName] %in% outliers[[i]][,labelName], ]
   }
@@ -361,8 +369,10 @@ removeOutliers <- function(df, yName, group, labelName, ... ){
   return(output)
 }
 
-pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[1:7], "group", "filename")
-
+## identifying the outliers across all of the variables for the pectoral peak net GRF dataset
+pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[1:7], "group", "filename", outlierRange = 1.5)
+pec_peakNetGRF_allOutliers <- do.call("rbind", pec_peakNetGRF_noOutliers$outliers)
+unique(pec_peakNetGRF_allOutliers$filename)
 
   #### LINEAR MIXED EFFECTS MODELS ####
   ## This will be used to compare the means between groups while accounting for the repeated trials within individuals
@@ -378,15 +388,28 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
 
   
   ### a) Run lmers
+  
+  ## with outliers and without outliers
   modelFormulae <- list()
   pec_LMM <- list()
+  pec_LMM_noOutliers <- list()
+  pec_LMM_residuals <- list()
+  pec_LMM_noOutliers_residuals <- list()
   for (i in 1:nVars) {
     modelFormulae[[i]] <- as.formula(paste(variablesToAnalyze[i], "~group+(1|individual)", sep = ""))
     pec_LMM[[i]] <- lmer(modelFormulae[[i]], data = pec_peakNetGRFs)
-
+    pec_LMM_residuals[[i]] <- resid(pec_LMM[[i]])
+    pec_LMM_noOutliers[[i]] <- lmer(modelFormulae[[i]], data = data.frame(pec_peakNetGRF_noOutliers$usableData[[i]]))
+    pec_LMM_noOutliers_residuals[[i]] <- data.frame(resid(pec_LMM_noOutliers[[i]]))
+    names(pec_LMM_noOutliers_residuals[[i]]) <- variablesToAnalyze[i]
   }
   names(pec_LMM) <- modelFormulae
-  
+  names(pec_LMM_noOutliers) <- modelFormulae
+  names(pec_LMM_residuals) <- variablesToAnalyze[1:7]
+
+  pec_LMM_resids <- data.frame(do.call("cbind", pec_LMM_residuals))
+  # problems with this one because there are different number of observations in each variable
+  #pec_LMM_noOutliers_resids <- data.frame(do.call("cbind", pec_LMM_noOutliers_residuals))
   
   # ## trying to log-transform to help with normality but can't take the log of negative numbers
   # modelFormulae_log <- list()
@@ -394,21 +417,25 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   # for (i in 1:nVars) {
   #   modelFormulae_log[[i]] <- as.formula(paste("log(", variablesToAnalyze[i], ")~group+(1|individual)", sep = ""))
   #   pec_LMM_log[[i]] <- lmer(modelFormulae_log[[i]], data = pec_peakNetGRFs)
-  #   
+  # 
   # }
   # names(pec_LMM_log) <- modelFormulae_log
-
+  
+  ## Taking log of PercentStance to see if that helps with normality
+  pec_PercentStance_log_LMM <- lmer(log(PercentStance) ~ group + (1|individual), data = pec_peakNetGRFs)
+  pec_PercentStance_log_noOutliers_LMM <- lmer(log(PercentStance) ~ group + (1|individual), data = pec_peakNetGRF_noOutliers$usableData$PercentStance)
 
   ### Testing the assumptions
   ## Don't need to test for linearity of data because the predictors are categorical
 
   ## b) evaluating the normality of the residuals
   # the null of the Shapiro-Wilk test is that the input (e.g., residuals of data) are normal
-
+  
+  # For data with outliers
   pec_LMM_shapiro <- list()
   for (i in 1:nVars) {
     pec_LMM_shapiro[[i]] <- shapiro.test(resid(pec_LMM[[i]]))
-    qqPlot(resid(pec_LMM[[1]]), ylab = names(pec_LMM)[[i]])
+    qqPlot(resid(pec_LMM[[i]]), ylab = paste(names(pec_LMM)[[i]], " residuals"))
   }
   #do.call(grid.arrange, grobs = list(qqplots)) # can't use grid.arrange on car plots
   names(pec_LMM_shapiro) <- modelFormulae
@@ -416,6 +443,24 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   # However, the graphs show that the values tended to deviate from normality mainly because
   # the smallest points tended to underestimate the fitted values, which is more conservative
   # than having the largest values overestimate the qq-line
+  
+  # For data without outliers
+  pec_LMM_noOutliers_shapiro <- list()
+  for (i in 1:nVars) {
+    pec_LMM_noOutliers_shapiro[[i]] <- shapiro.test(resid(pec_LMM_noOutliers[[i]]))
+    qqPlot(resid(pec_LMM_noOutliers[[i]]), ylab = paste(names(pec_LMM_noOutliers)[[i]], " residuals"))
+  }
+  names(pec_LMM_noOutliers_shapiro) <- modelFormulae
+  # removing the outliers made it so more variables met the assumption of normal residuals
+  # only Percent Stance and ML_BW were not normal
+  
+  # Checking if taking the log helps PercentStance meet normality
+  shapiro.test(resid(pec_PercentStance_log_LMM))
+  qqPlot(resid(pec_PercentStance_log_LMM), ylab = "log(PercentStance) residuals") # that may be worse than no log
+  
+  shapiro.test(resid(pec_PercentStance_log_noOutliers_LMM))
+  qqPlot(resid(pec_PercentStance_log_noOutliers_LMM), ylab = "log(PercentStance) residuals") 
+  # no, it does not. Regardless of whether the outliers were removed
   
   
   ## c) Testing homogeneity of variances
@@ -426,9 +471,14 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   apply(pec_peakNetGRFs[,variablesToAnalyze[1:7]],2,function(x) {leveneTest(x ~ as.factor(pec_peakNetGRFs$group))})
   apply(pec_peakNetGRFs[,variablesToAnalyze[1:7]],2,function(x) {fligner.test(x ~ as.factor(pec_peakNetGRFs$group))})
   
-
-  
-  
+  # can also evaluate the homogeneity of variances graphically
+  pp <- list()
+  for (i in 1:nVars) {
+    pp[[i]] <- plot(pec_LMM[[i]])
+  }
+  names(pp) <- names(pec_LMM)
+  # there does not appear to be any observable pattern in the residuals vs. fitted plots, which suggests
+  # that the variances are homogeneous
 
   
   ### Continuing on with statistical analyses since data seem to meet assumptions of LMM
@@ -501,6 +551,163 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
     anteroposterior = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpAP_BW)),
     net = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$NetGRF_BW))
   )
+  
+  
+  #### PREPARING FIGURES ####
+  
+  ### Testing assumptions of LMM (export as 500 width x 600 height)
+  
+  ## PercentStance assumptions
+  pec_LMM_PercentStance_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = PercentStance)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_PercentStance_Fitted <- plot(pec_LMM[[1]])
+  
+  pec_LMM_noOutliers_PercentStance_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[1]], mapping = aes(sample = PercentStance)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_noOutliers_PercentStance_Fitted <- plot(pec_LMM_noOutliers[[1]])
+  
+  cowplot::plot_grid(pec_LMM_PercentStance_QQ, pec_LMM_PercentStance_Fitted, pec_LMM_noOutliers_PercentStance_QQ, pec_LMM_noOutliers_PercentStance_Fitted, labels = c("a", "b", "c", "d"))
+
+  ## Vertical GRF assumptions
+  pec_LMM_VBW_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = InterpV_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_VBW_Fitted <- plot(pec_LMM[[2]])
+  
+  pec_LMM_noOutliers_VBW_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[2]], mapping = aes(sample = InterpV_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_noOutliers_VBW_Fitted <- plot(pec_LMM_noOutliers[[2]])
+  
+  cowplot::plot_grid(pec_LMM_VBW_QQ, pec_LMM_VBW_Fitted, pec_LMM_noOutliers_VBW_QQ, pec_LMM_noOutliers_VBW_Fitted, labels = c("a", "b", "c", "d"))
+  
+  
+  ## Mediolateral GRF assumptions
+  pec_LMM_MLBW_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = InterpML_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_MLBW_Fitted <- plot(pec_LMM[[3]])
+  
+  pec_LMM_noOutliers_MLBW_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[3]], mapping = aes(sample = InterpML_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_noOutliers_MLBW_Fitted <- plot(pec_LMM_noOutliers[[3]])
+  
+  cowplot::plot_grid(pec_LMM_MLBW_QQ, pec_LMM_MLBW_Fitted, pec_LMM_noOutliers_MLBW_QQ, pec_LMM_noOutliers_MLBW_Fitted, labels = c("a", "b", "c", "d"))
+  
+  
+  ## Anteroposterior GRF assumptions
+  pec_LMM_APBW_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = InterpAP_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_APBW_Fitted <- plot(pec_LMM[[4]])
+  
+  pec_LMM_noOutliers_APBW_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[4]], mapping = aes(sample = InterpAP_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_noOutliers_APBW_Fitted <- plot(pec_LMM_noOutliers[[4]])
+  
+  cowplot::plot_grid(pec_LMM_APBW_QQ, pec_LMM_APBW_Fitted, pec_LMM_noOutliers_APBW_QQ, pec_LMM_noOutliers_APBW_Fitted, labels = c("a", "b", "c", "d"))
+  
+  
+  ## Net GRF assumptions
+  pec_LMM_NetGRFBW_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = NetGRF_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_NetGRFBW_Fitted <- plot(pec_LMM[[5]])
+  
+  pec_LMM_noOutliers_NetGRFBW_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[5]], mapping = aes(sample = NetGRF_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_noOutliers_NetGRFBW_Fitted <- plot(pec_LMM_noOutliers[[5]])
+  
+  cowplot::plot_grid(pec_LMM_NetGRFBW_QQ, pec_LMM_NetGRFBW_Fitted, pec_LMM_noOutliers_NetGRFBW_QQ, pec_LMM_noOutliers_NetGRFBW_Fitted, labels = c("a", "b", "c", "d"))
+  
+  
+  ## ML Angle assumptions
+  pec_LMM_MLAngleConvert_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = MLAngle_Convert_deg)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_MLAngleConvert_Fitted <- plot(pec_LMM[[6]])
+  
+  pec_LMM_noOutliers_MLAngleConvert_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[6]], mapping = aes(sample = MLAngle_Convert_deg)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_noOutliers_MLAngleConvert_Fitted <- plot(pec_LMM_noOutliers[[6]])
+  
+  cowplot::plot_grid(pec_LMM_MLAngleConvert_QQ, pec_LMM_MLAngleConvert_Fitted, pec_LMM_noOutliers_MLAngleConvert_QQ, pec_LMM_noOutliers_MLAngleConvert_Fitted, labels = c("a", "b", "c", "d"))
+  
+  
+  ## AP Angle assumptions
+  pec_LMM_APAngleConvert_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = APAngle_Convert_deg)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_APAngleConvert_Fitted <- plot(pec_LMM[[7]])
+  
+  pec_LMM_noOutliers_APAngleConvert_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[7]], mapping = aes(sample = APAngle_Convert_deg)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM_noOutliers_APAngleConvert_Fitted <- plot(pec_LMM_noOutliers[[7]])
+  
+  cowplot::plot_grid(pec_LMM_APAngleConvert_QQ, pec_LMM_APAngleConvert_Fitted, pec_LMM_noOutliers_APAngleConvert_QQ, pec_LMM_noOutliers_APAngleConvert_Fitted, labels = c("a", "b", "c", "d"))
   
   
   
