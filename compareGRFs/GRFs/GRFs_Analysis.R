@@ -28,6 +28,8 @@ library(piecewiseSEM) # for rsquared()
 library(gridExtra) # for grid.arrange()
 library(car) # for qqPlot()
 library(ggplot2) # for ggplot()
+library(cowplot) # for ggdraw()
+library(qqplotr) # for stat_qq_band()
 
 
 library(EMAtools) # for lme.dscore(); although, may not use this
@@ -351,28 +353,34 @@ GRFs <- GRFanalysis(myData)
 
   # This function returns errors about 'subscript out of bounds' when the outlierRange is different from 1.5
 removeOutliers <- function(df, yName, group, labelName, outlierRange, ... ){
-  bp <- list()
-  outliers <- list()
+  bp <- vector("list", nVars)
+  outliers <- vector("list", nVars)
   usableData <- list()
   for(i in 1:length(yName)){
     # changing the range affects how far beyond the IQR is considered an outlier (1.5 set as default)
     bp[[i]] <- car::Boxplot(df[,yName[i]] ~ group, id.method = labelName, data = df, ylab = yName[i], range = outlierRange)
-    outliers[[i]] <- df[bp[[i]],] 
-    usableData[[i]] <- df[ ! df[,labelName] %in% outliers[[i]][,labelName], ]
+    outliers[[i]] <- df[bp[[i]],]
   }
-  names(outliers) <- yName
-  names(usableData) <- yName
+  outliersCombined <- data.frame(do.call("rbind", outliers))
+  outliersUnique <- unique(outliersCombined)
+  usableData <- df[ ! df[,labelName] %in% outliersUnique$filename, ]
+
   output <- list(
-    outliers = outliers,
+    outliers = outliersUnique,
     usableData = usableData
   )
   return(output)
 }
 
-## identifying the outliers across all of the variables for the pectoral peak net GRF dataset
-pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[1:7], "group", "filename", outlierRange = 1.5)
-pec_peakNetGRF_allOutliers <- do.call("rbind", pec_peakNetGRF_noOutliers$outliers)
-unique(pec_peakNetGRF_allOutliers$filename)
+# ## identifying the outliers across all of the variables for the pectoral peak net GRF dataset
+# pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[1:7], "group", "filename", outlierRange = 1.5)
+# pec_peakNetGRF_allOutliers <- do.call("rbind", pec_peakNetGRF_noOutliers$outliers)
+# unique(pec_peakNetGRF_allOutliers$filename)
+
+## changing outlier range to 2
+# returns error about subscript out of bounds
+pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[1:7], "group", "filename", outlierRange = 2)
+
 
   #### LINEAR MIXED EFFECTS MODELS ####
   ## This will be used to compare the means between groups while accounting for the repeated trials within individuals
@@ -399,17 +407,17 @@ unique(pec_peakNetGRF_allOutliers$filename)
     modelFormulae[[i]] <- as.formula(paste(variablesToAnalyze[i], "~group+(1|individual)", sep = ""))
     pec_LMM[[i]] <- lmer(modelFormulae[[i]], data = pec_peakNetGRFs)
     pec_LMM_residuals[[i]] <- resid(pec_LMM[[i]])
-    pec_LMM_noOutliers[[i]] <- lmer(modelFormulae[[i]], data = data.frame(pec_peakNetGRF_noOutliers$usableData[[i]]))
-    pec_LMM_noOutliers_residuals[[i]] <- data.frame(resid(pec_LMM_noOutliers[[i]]))
-    names(pec_LMM_noOutliers_residuals[[i]]) <- variablesToAnalyze[i]
+    pec_LMM_noOutliers[[i]] <- lmer(modelFormulae[[i]], data = data.frame(pec_peakNetGRF_noOutliers$usableData))
+    pec_LMM_noOutliers_residuals[[i]] <- resid(pec_LMM_noOutliers[[i]])
   }
   names(pec_LMM) <- modelFormulae
   names(pec_LMM_noOutliers) <- modelFormulae
   names(pec_LMM_residuals) <- variablesToAnalyze[1:7]
+  names(pec_LMM_noOutliers_residuals) <- variablesToAnalyze[1:7]
 
   pec_LMM_resids <- data.frame(do.call("cbind", pec_LMM_residuals))
   # problems with this one because there are different number of observations in each variable
-  #pec_LMM_noOutliers_resids <- data.frame(do.call("cbind", pec_LMM_noOutliers_residuals))
+  pec_LMM_noOutliers_resids <- data.frame(do.call("cbind", pec_LMM_noOutliers_residuals))
   
   # ## trying to log-transform to help with normality but can't take the log of negative numbers
   # modelFormulae_log <- list()
@@ -423,7 +431,7 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   ## Taking log of PercentStance to see if that helps with normality
   pec_PercentStance_log_LMM <- lmer(log(PercentStance) ~ group + (1|individual), data = pec_peakNetGRFs)
-  pec_PercentStance_log_noOutliers_LMM <- lmer(log(PercentStance) ~ group + (1|individual), data = pec_peakNetGRF_noOutliers$usableData$PercentStance)
+  pec_PercentStance_log_noOutliers_LMM <- lmer(log(PercentStance) ~ group + (1|individual), data = pec_peakNetGRF_noOutliers$usableData)
 
   ### Testing the assumptions
   ## Don't need to test for linearity of data because the predictors are categorical
@@ -479,6 +487,15 @@ unique(pec_peakNetGRF_allOutliers$filename)
   names(pp) <- names(pec_LMM)
   # there does not appear to be any observable pattern in the residuals vs. fitted plots, which suggests
   # that the variances are homogeneous
+  
+  # Testing assumption when the outliers were removed
+  # this doesn't work; probably need a for loop
+  pec_LMM_noOutliers_levene <- list()
+  for (i in 1:nVars) {
+    pec_LMM_noOutliers_levene[[i]] <- leveneTest()
+  }
+  apply(pec_peakNetGRF_noOutliers$usableData[,variablesToAnalyze[1:7]],2,function(x) {leveneTest(x ~ as.factor(pec_peakNetGRF_noOutliers$usableData$group))})
+  
 
   
   ### Continuing on with statistical analyses since data seem to meet assumptions of LMM
@@ -553,7 +570,7 @@ unique(pec_peakNetGRF_allOutliers$filename)
   )
   
   
-  #### PREPARING FIGURES ####
+  #### FIGURES - STAT ASSUMPTIONS ####
   
   ### Testing assumptions of LMM (export as 500 width x 600 height)
   
@@ -567,7 +584,7 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_PercentStance_Fitted <- plot(pec_LMM[[1]])
   
-  pec_LMM_noOutliers_PercentStance_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[1]], mapping = aes(sample = PercentStance)) +
+  pec_LMM_noOutliers_PercentStance_QQ <- ggplot(data = pec_LMM_noOutliers_resids, mapping = aes(sample = PercentStance)) +
     stat_qq_band() +
     stat_qq_line() +
     stat_qq_point() +
@@ -576,8 +593,10 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_noOutliers_PercentStance_Fitted <- plot(pec_LMM_noOutliers[[1]])
   
+  jpeg("pec_peakNetGRF_percentStance_stats.jpg", width = 10, height = 6, units = "in", res = 300)
   cowplot::plot_grid(pec_LMM_PercentStance_QQ, pec_LMM_PercentStance_Fitted, pec_LMM_noOutliers_PercentStance_QQ, pec_LMM_noOutliers_PercentStance_Fitted, labels = c("a", "b", "c", "d"))
-
+  dev.off()
+  
   ## Vertical GRF assumptions
   pec_LMM_VBW_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = InterpV_BW)) +
     stat_qq_band() +
@@ -588,7 +607,7 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_VBW_Fitted <- plot(pec_LMM[[2]])
   
-  pec_LMM_noOutliers_VBW_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[2]], mapping = aes(sample = InterpV_BW)) +
+  pec_LMM_noOutliers_VBW_QQ <- ggplot(data = pec_LMM_noOutliers_resids, mapping = aes(sample = InterpV_BW)) +
     stat_qq_band() +
     stat_qq_line() +
     stat_qq_point() +
@@ -597,8 +616,9 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_noOutliers_VBW_Fitted <- plot(pec_LMM_noOutliers[[2]])
   
+  jpeg("pec_peakNetGRF_VBW_stats.jpg", width = 10, height = 6, units = "in", res = 300)
   cowplot::plot_grid(pec_LMM_VBW_QQ, pec_LMM_VBW_Fitted, pec_LMM_noOutliers_VBW_QQ, pec_LMM_noOutliers_VBW_Fitted, labels = c("a", "b", "c", "d"))
-  
+  dev.off()
   
   ## Mediolateral GRF assumptions
   pec_LMM_MLBW_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = InterpML_BW)) +
@@ -610,7 +630,7 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_MLBW_Fitted <- plot(pec_LMM[[3]])
   
-  pec_LMM_noOutliers_MLBW_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[3]], mapping = aes(sample = InterpML_BW)) +
+  pec_LMM_noOutliers_MLBW_QQ <- ggplot(data = pec_LMM_noOutliers_resids, mapping = aes(sample = InterpML_BW)) +
     stat_qq_band() +
     stat_qq_line() +
     stat_qq_point() +
@@ -619,8 +639,9 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_noOutliers_MLBW_Fitted <- plot(pec_LMM_noOutliers[[3]])
   
+  jpeg("pec_peakNetGRF_MLBW_stats.jpg", width = 10, height = 6, units = "in", res = 300)
   cowplot::plot_grid(pec_LMM_MLBW_QQ, pec_LMM_MLBW_Fitted, pec_LMM_noOutliers_MLBW_QQ, pec_LMM_noOutliers_MLBW_Fitted, labels = c("a", "b", "c", "d"))
-  
+  dev.off()
   
   ## Anteroposterior GRF assumptions
   pec_LMM_APBW_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = InterpAP_BW)) +
@@ -632,7 +653,7 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_APBW_Fitted <- plot(pec_LMM[[4]])
   
-  pec_LMM_noOutliers_APBW_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[4]], mapping = aes(sample = InterpAP_BW)) +
+  pec_LMM_noOutliers_APBW_QQ <- ggplot(data = pec_LMM_noOutliers_resids, mapping = aes(sample = InterpAP_BW)) +
     stat_qq_band() +
     stat_qq_line() +
     stat_qq_point() +
@@ -641,8 +662,9 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_noOutliers_APBW_Fitted <- plot(pec_LMM_noOutliers[[4]])
   
+  jpeg("pec_peakNetGRF_APBW_stats.jpg", width = 10, height = 6, units = "in", res = 300)
   cowplot::plot_grid(pec_LMM_APBW_QQ, pec_LMM_APBW_Fitted, pec_LMM_noOutliers_APBW_QQ, pec_LMM_noOutliers_APBW_Fitted, labels = c("a", "b", "c", "d"))
-  
+  dev.off()
   
   ## Net GRF assumptions
   pec_LMM_NetGRFBW_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = NetGRF_BW)) +
@@ -654,7 +676,7 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_NetGRFBW_Fitted <- plot(pec_LMM[[5]])
   
-  pec_LMM_noOutliers_NetGRFBW_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[5]], mapping = aes(sample = NetGRF_BW)) +
+  pec_LMM_noOutliers_NetGRFBW_QQ <- ggplot(data = pec_LMM_noOutliers_resids, mapping = aes(sample = NetGRF_BW)) +
     stat_qq_band() +
     stat_qq_line() +
     stat_qq_point() +
@@ -663,8 +685,9 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_noOutliers_NetGRFBW_Fitted <- plot(pec_LMM_noOutliers[[5]])
   
+  jpeg("pec_peakNetGRF_NetGRFBW_stats.jpg", width = 10, height = 6, units = "in", res = 300)
   cowplot::plot_grid(pec_LMM_NetGRFBW_QQ, pec_LMM_NetGRFBW_Fitted, pec_LMM_noOutliers_NetGRFBW_QQ, pec_LMM_noOutliers_NetGRFBW_Fitted, labels = c("a", "b", "c", "d"))
-  
+  dev.off()
   
   ## ML Angle assumptions
   pec_LMM_MLAngleConvert_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = MLAngle_Convert_deg)) +
@@ -676,7 +699,7 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_MLAngleConvert_Fitted <- plot(pec_LMM[[6]])
   
-  pec_LMM_noOutliers_MLAngleConvert_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[6]], mapping = aes(sample = MLAngle_Convert_deg)) +
+  pec_LMM_noOutliers_MLAngleConvert_QQ <- ggplot(data = pec_LMM_noOutliers_resids, mapping = aes(sample = MLAngle_Convert_deg)) +
     stat_qq_band() +
     stat_qq_line() +
     stat_qq_point() +
@@ -685,8 +708,9 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_noOutliers_MLAngleConvert_Fitted <- plot(pec_LMM_noOutliers[[6]])
   
+  jpeg("pec_peakNetGRF_MLAngleConvert_stats.jpg", width = 10, height = 6, units = "in", res = 300)
   cowplot::plot_grid(pec_LMM_MLAngleConvert_QQ, pec_LMM_MLAngleConvert_Fitted, pec_LMM_noOutliers_MLAngleConvert_QQ, pec_LMM_noOutliers_MLAngleConvert_Fitted, labels = c("a", "b", "c", "d"))
-  
+  dev.off()
   
   ## AP Angle assumptions
   pec_LMM_APAngleConvert_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = APAngle_Convert_deg)) +
@@ -698,7 +722,7 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_APAngleConvert_Fitted <- plot(pec_LMM[[7]])
   
-  pec_LMM_noOutliers_APAngleConvert_QQ <- ggplot(data = pec_LMM_noOutliers_residuals[[7]], mapping = aes(sample = APAngle_Convert_deg)) +
+  pec_LMM_noOutliers_APAngleConvert_QQ <- ggplot(data = pec_LMM_noOutliers_resids, mapping = aes(sample = APAngle_Convert_deg)) +
     stat_qq_band() +
     stat_qq_line() +
     stat_qq_point() +
@@ -707,11 +731,87 @@ unique(pec_peakNetGRF_allOutliers$filename)
   
   pec_LMM_noOutliers_APAngleConvert_Fitted <- plot(pec_LMM_noOutliers[[7]])
   
+  jpeg("pec_peakNetGRF_APAngleConvert_stats.jpg", width = 10, height = 6, units = "in", res = 300)
   cowplot::plot_grid(pec_LMM_APAngleConvert_QQ, pec_LMM_APAngleConvert_Fitted, pec_LMM_noOutliers_APAngleConvert_QQ, pec_LMM_noOutliers_APAngleConvert_Fitted, labels = c("a", "b", "c", "d"))
+  dev.off()
+  
+  #### FIGURES - DATA ####
+  
+  ## Create function to produce box plots with jitter points and marginal densities on the sides
+  boxWithDensityPlot <- function(df, xName, yName, xLabel, yLabel) {
+    # create the plot
+    original_plot <- df %>% 
+      ggplot(aes_string(x = xName, y = yName)) + 
+      geom_boxplot(aes_string(color = xName), show.legend = FALSE) +
+      geom_jitter(position=position_jitter(0.2), alpha = 0.5, aes_string(color = xName), show.legend = FALSE) +
+      xlab(paste("\n", xLabel)) +
+      ylab(paste(yLabel, "\n")) +
+      theme_pubr() + 
+      border()      
+    
+    y_density <- axis_canvas(original_plot, axis = "y", coord_flip = TRUE) +
+      geom_density(data = df, aes_string(x = yName, fill = xName), color = NA, alpha = 0.5) +
+      coord_flip()
+    
+    # create the combined plot
+    #combined_plot %<>% insert_yaxis_grob(., y_density, position = "right")
+    combined_plot <- insert_yaxis_grob(original_plot, y_density, position = "right")
+    
+    # plot the resulting combined plot
+    ggdraw(combined_plot)
+  }
   
   
+  ### With all data 
+  pec_peakNetGRFs$species <- substring(pec_peakNetGRFs$group, 1, 2)
+
+  pec_peakNetGRFs_VBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpV_BW", "", "GRF - vertical")
+  pec_peakNetGRFs_MLBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpML_BW", "", "GRF - mediolateral")
+  pec_peakNetGRFs_APBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpAP_BW", "", "GRF - anteroposterior")
+  pec_peakNetGRFs_netBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "NetGRF_BW", "", "GRF - net")
+  pec_peakNetGRFs_MLangle_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "MLAngle_Convert_deg", "", "mediolateral angle")
+  pec_peakNetGRFs_APangle_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "APAngle_Convert_deg", "", "anteroposterior angle")
+  
+  jpeg("pec_peakNetGRF_plots.jpg", width = 8.5, height = 11, units = "in", res = 300)
+  cowplot::plot_grid(pec_peakNetGRFs_VBW_plot, 
+                     pec_peakNetGRFs_MLBW_plot, 
+                     pec_peakNetGRFs_APBW_plot,
+                     pec_peakNetGRFs_netBW_plot, 
+                     pec_peakNetGRFs_MLangle_plot,
+                     pec_peakNetGRFs_APangle_plot,
+                     ncol = 3,
+                     #labels = c("a", "b", "c", "d", "e", "f")
+                     labels = "AUTO"
+                     )
+  dev.off()
   
   
+  ### With Outliers removed
+ 
+  #pec_peakNetGRFs$species <- substring(pec_peakNetGRFs$group, 1, 2)
+  
+  pec_peakNetGRFs_noOutliers_VBW_plot <- boxWithDensityPlot(pec_peakNetGRF_noOutliers$usableData, "species", "InterpV_BW", "", "GRF - vertical")
+  pec_peakNetGRFs_noOutliers_MLBW_plot <- boxWithDensityPlot(pec_peakNetGRF_noOutliers$usableData, "species", "InterpML_BW", "", "GRF - mediolateral")
+  pec_peakNetGRFs_noOutliers_APBW_plot <- boxWithDensityPlot(pec_peakNetGRF_noOutliers$usableData, "species", "InterpAP_BW", "", "GRF - anteroposterior")
+  pec_peakNetGRFs_noOutliers_netBW_plot <- boxWithDensityPlot(pec_peakNetGRF_noOutliers$usableData, "species", "NetGRF_BW", "", "GRF - net")
+  pec_peakNetGRFs_noOutliers_MLangle_plot <- boxWithDensityPlot(pec_peakNetGRF_noOutliers$usableData, "species", "MLAngle_Convert_deg", "", "mediolateral angle")
+  pec_peakNetGRFs_noOutliers_APangle_plot <- boxWithDensityPlot(pec_peakNetGRF_noOutliers$usableData, "species", "APAngle_Convert_deg", "", "anteroposterior angle")
+  
+  jpeg("pec_peakNetGRF_noOutliers_plots.jpg", width = 8.5, height = 11, units = "in", res = 300)
+  cowplot::plot_grid(pec_peakNetGRFs_noOutliers_VBW_plot, 
+                     pec_peakNetGRFs_noOutliers_MLBW_plot, 
+                     pec_peakNetGRFs_noOutliers_APBW_plot,
+                     pec_peakNetGRFs_noOutliers_netBW_plot, 
+                     pec_peakNetGRFs_noOutliers_MLangle_plot,
+                     pec_peakNetGRFs_noOutliers_APangle_plot,
+                     ncol = 3,
+                     #labels = c("a", "b", "c", "d", "e", "f")
+                     labels = "AUTO"
+  )
+  dev.off()
+  
+  
+
   #### SAVING THE DATA ####
   ## go to the parent directory then save output in 'output' folder
   setwd('..')
