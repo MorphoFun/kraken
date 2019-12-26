@@ -541,27 +541,208 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   
   
   #### Robust LMM ####
-  pec_LMM_PercentStance_rlmer <- rlmer(PercentStance ~ group + (1|individual), pec_peakNetGRFs, 
-                                       rho.sigma.e = psi2propII(smoothPsi, k = 2.28),
-                                       rho.sigma.b = psi2propII(smoothPsi, k = 2.28))
-  plot(pec_LMM_PercentStance_rlmer)
+  
+  pec_RLMM <- list()
+  pec_RLMM_noOutliers <- list()
+  pec_RLMM_residuals <- list()
+  pec_RLMM_noOutliers_residuals <- list()
+  for (i in 1:nVars) {
+    pec_RLMM[[i]] <- rlmer(modelFormulae[[i]], data = pec_peakNetGRFs)
+    pec_RLMM_residuals[[i]] <- resid(pec_RLMM[[i]])
+    pec_RLMM_noOutliers[[i]] <- rlmer(modelFormulae[[i]], data = data.frame(pec_peakNetGRF_noOutliers$usableData))
+    pec_RLMM_noOutliers_residuals[[i]] <- resid(pec_RLMM_noOutliers[[i]])
+  }
+  names(pec_RLMM) <- modelFormulae
+  names(pec_RLMM_noOutliers) <- modelFormulae
+  names(pec_RLMM_residuals) <- variablesToAnalyze[1:7]
+  names(pec_RLMM_noOutliers_residuals) <- variablesToAnalyze[1:7]
+  
+  
+  # to improve the efficiency of the random effect
+  
+  pec_RLMM2 <- list()
+  pec_RLMM2_noOutliers <- list()
+  pec_RLMM2_residuals <- list()
+  pec_RLMM2_noOutliers_residuals <- list()
+  pec_RLMM_compare <- list()
+  for (i in 1:nVars) {
+    pec_RLMM2[[i]] <- update(pec_RLMM[[i]], rho.sigma.e = psi2propII(smoothPsi, k = 2.28),rho.sigma.b = psi2propII(smoothPsi, k = 2.28))
+    pec_RLMM2_residuals[[i]] <- resid(pec_RLMM[[i]])
+    pec_RLMM2_noOutliers[[i]] <- update(pec_RLMM_noOutliers[[i]], rho.sigma.e = psi2propII(smoothPsi, k = 2.28),rho.sigma.b = psi2propII(smoothPsi, k = 2.28))
+    pec_RLMM2_noOutliers_residuals[[i]] <- resid(pec_RLMM2_noOutliers[[i]])
+    pec_RLMM_compare[[i]] <- compare(pec_LMM[[i]], pec_RLMM[[i]], pec_RLMM_noOutliers[[i]],  pec_RLMM2[[i]],pec_RLMM2_noOutliers[[i]], show.rho.functions = FALSE)
+  }
+  names(pec_RLMM2) <- modelFormulae
+  names(pec_RLMM2_noOutliers) <- modelFormulae
+  names(pec_RLMM2_residuals) <- variablesToAnalyze[1:7]
+  names(pec_RLMM2_noOutliers_residuals) <- variablesToAnalyze[1:7]
+  names(pec_RLMM_compare) <- modelFormulae
+  
+  
+  savePlots_RLMM <- function(rlmm, fileName, width = 10, height = 6, units = "in", res = 300, nGraphs = 3, ...) {
+    saveName <- list("_FittedVsResiduals.jpg",
+                     "_NormalQQVsResiduals.jpg",
+                     "_NormalQQVsREs.jpg", 
+                     "_REsForGroup.jpg"
+    )
+    for (i in 1:nGraphs) {
+     robustlmm::plot(rlmm, which = i)
+     ggsave(paste(fileName, saveName[[i]], sep = ""))
+   }
+  }
+
+  
+  for (i in 1:7) { 
+    savePlots_RLMM(pec_RLMM[[i]], paste("pec_RLMM_", variablesToAnalyze[i], sep = ""))
+  }
+
+
+  
+  
+  # For data with outliers
+  pec_RLMM_shapiro <- list()
+  pec_RLMM2_shapiro <- list()
+  for (i in 1:nVars) {
+    pec_RLMM_shapiro[[i]] <- shapiro.test(resid(pec_RLMM[[i]]))
+    pec_RLMM2_shapiro[[i]] <- shapiro.test(resid(pec_RLMM2[[i]]))
+  }
+
+  names(pec_RLMM_shapiro) <- modelFormulae
+  # Only InterpAP_BW met the assumption of normality based on the Shapiro-Wilk tests
+  
+  names(pec_RLMM2_shapiro) <- modelFormulae
+  
+  
+  
+  # For data without outliers
+  pec_RLMM_noOutliers_shapiro <- list()
+  pec_RLMM2_noOutliers_shapiro <- list()
+  for (i in 1:nVars) {
+    pec_RLMM_noOutliers_shapiro[[i]] <- shapiro.test(resid(pec_RLMM_noOutliers[[i]]))
+    pec_RLMM2_noOutliers_shapiro[[i]] <- shapiro.test(resid(pec_RLMM2_noOutliers[[i]]))
+  }
+  names(pec_RLMM_noOutliers_shapiro) <- modelFormulae
+  names(pec_RLMM2_noOutliers_shapiro) <- modelFormulae
+  # removing the outliers made it so more variables met the assumption of normal residuals
+  # only V_BW and NetGRF_BW were normal
+  
+  
   
 
-  #### NLME: peak net GRF - Pectoral ####
+  #### NLME with random intercepts: peak net GRF - Pectoral ####
   ## based on: https://stats.stackexchange.com/questions/77891/checking-assumptions-lmer-lme-mixed-models-in-r
   
   lm.base2 <- lme(PercentStance ~ group, random= ~1|individual, method="ML", data= pec_peakNetGRF_noOutliers$usableData)
   plot(lm.base2)
   qqnorm(resid(lm.base2))
   
-  ## checking for equal variances across the random effects
-  plot( lm.base2, resid(., type = "p") ~ fitted(.) | individual,
-        id = 0.05, adj = -0.3 )
+  
+  ### a) Run lmes
+  
+  ## with outliers and without outliers
+  # make sure the iterations are high enough to allow the models to converge
+  lmeControl(msMaxIter = 50)
+  
+  modelFormulae2 <- list()
+  pec_LMM2 <- list()
+  pec_LMM2_noOutliers <- list()
+  pec_LMM2_residuals <- list()
+  pec_LMM2_noOutliers_residuals <- list()
+  for (i in 1:nVars) {
+    modelFormulae2[[i]] <- as.formula(paste(variablesToAnalyze[i], "~group", sep = ""))
+    pec_LMM2[[i]] <- lme(modelFormulae2[[i]], random = ~1|individual, weights = varIdent(form = ~ 1 | group), data = pec_peakNetGRFs)
+    pec_LMM2_residuals[[i]] <- residuals(pec_LMM2[[i]])
+    pec_LMM2_noOutliers[[i]] <- lme(modelFormulae2[[i]], random = ~1|individual, weights = varIdent(form = ~ 1 | group), data = data.frame(pec_peakNetGRF_noOutliers$usableData))
+    pec_LMM2_noOutliers_residuals[[i]] <- residuals(pec_LMM2_noOutliers[[i]])
+  }
+  names(pec_LMM2) <- modelFormulae2
+  names(pec_LMM2_noOutliers) <- modelFormulae2
+  names(pec_LMM2_residuals) <- variablesToAnalyze[1:7]
+  names(pec_LMM2_noOutliers_residuals) <- variablesToAnalyze[1:7]
+  
+  pec_LMM2_resids <- data.frame(do.call("cbind", pec_LMM2_residuals))
+  pec_LMM2_noOutliers_resids <- data.frame(do.call("cbind", pec_LMM2_noOutliers_residuals))
+  
+  
+  
+  #### Testing the assumptions ####
+  ## Don't need to test for linearity of data because the predictors are categorical
+  
+  ## b) evaluating the normality of the residuals
+  # the null of the Shapiro-Wilk test is that the input (e.g., residuals of data) are normal
+  
+  # For data with outliers
+  pec_LMM2_shapiro <- list()
+  for (i in 1:nVars) {
+    pec_LMM2_shapiro[[i]] <- shapiro.test(resid(pec_LMM2[[i]]))
+    qqPlot(resid(pec_LMM2[[i]]), ylab = paste(names(pec_LMM2)[[i]], " residuals"))
+  }
+ 
+  names(pec_LMM2_shapiro) <- modelFormulae2
+  # Only InterpAP_BW met the assumption of normality based on the Shapiro-Wilk tests
+  
+  # For data without outliers
+  pec_LMM2_noOutliers_shapiro <- list()
+  for (i in 1:nVars) {
+    pec_LMM2_noOutliers_shapiro[[i]] <- shapiro.test(resid(pec_LMM2_noOutliers[[i]]))
+    qqPlot(resid(pec_LMM2_noOutliers[[i]]), ylab = paste(names(pec_LMM2_noOutliers)[[i]], " residuals"))
+  }
+  names(pec_LMM2_noOutliers_shapiro) <- modelFormulae2
+  # removing the outliers made it so more variables met the assumption of normal residuals
+  # however, still not as many variables as the lmer models
+  
+  
+  ## c) Testing homogeneity of variances
+  # the Bartlett's test is more sensitive to non-normal data so people often use Levene's
+  # more info here; http://www.sthda.com/english/wiki/compare-multiple-sample-variances-in-r
+  # The Fligner-Killeen test can be used for non-normal data  
+  
+  # with full data set (same as lmer)
+  apply(pec_peakNetGRFs[,variablesToAnalyze[1:7]],2,function(x) {leveneTest(x ~ as.factor(pec_peakNetGRFs$group))})
+  apply(pec_peakNetGRFs[,variablesToAnalyze[1:7]],2,function(x) {fligner.test(x ~ as.factor(pec_peakNetGRFs$group))})
+  
+  # can also evaluate the homogeneity of variances graphically
+  pp2 <- list()
+  for (i in 1:nVars) {
+    pp2[[i]] <- plot(pec_LMM2[[i]])
+  }
+  names(pp2) <- names(pec_LMM2)
+  # there does not appear to be any observable pattern in the residuals vs. fitted plots, which suggests
+  # that the variances are homogeneous
+  
+  # Testing assumption when the outliers were removed (same as lmer)
+  apply(pec_peakNetGRF_noOutliers$usableData[,variablesToAnalyze[1:7]],2,function(x) {leveneTest(x ~ as.factor(pec_peakNetGRF_noOutliers$usableData$group))})
+  apply(pec_peakNetGRF_noOutliers$usableData[,variablesToAnalyze[1:7]],2,function(x) {fligner.test(x ~ as.factor(pec_peakNetGRF_noOutliers$usableData$group))})
+  
+  # can also evaluate the homogeneity of variances graphically
+  pp2_noOutliers <- list()
+  for (i in 1:nVars) {
+    pp2_noOutliers[[i]] <- plot(pec_LMM2_noOutliers[[i]])
+  }
+  names(pp2_noOutliers) <- names(pec_LMM2_noOutliers)
+  
+  
+  ## d) Testing the normality of the random effects
+  # following suggestions from: https://stats.stackexchange.com/questions/117170/testing-whether-random-effects-are-normally-distributed-in-r
+  
+  # ## random intercepts model
+  # r_int2<- ranef(pec_LMM2[[1]])$individual$`(Intercept)`
+  # qqnorm(r_int2)
+  # qqline(r_int2)
+  # shapiro.test(r_int2)
+  # 
+  # ## checking for equal variances across the random effects
+  # jpeg("pec_peakNetGRF_PercentStance_REs.jpg", width = 10, height = 6, units = "in", res = 300)
+  # plot( lm.base2, resid(., type = "p") ~ fitted(.) | individual,
+  #       id = 0.05, adj = -0.3 )
+  # dev.off()
+  
+  
   
   
   #### FIGURES - STAT ASSUMPTIONS ####
   
-  #### Testing assumptions of LMM (full vs. no outlier) ####
+  #### Testing assumptions of LMER (full vs. no outlier) ####
   ## (export as 500 width x 600 height)
   
   ## PercentStance assumptions
@@ -747,6 +928,196 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   labels = c("i", "j", "k", "l", "m", "n")
   )
   dev.off()
+  
+  
+  
+  #### Testing assumptions of LME (full vs. no outlier) ####
+  ## (export as 500 width x 600 height)
+  
+  ## PercentStance assumptions
+  pec_LMM2_PercentStance_QQ <- ggplot(data = pec_LMM2_resids, mapping = aes(sample = PercentStance)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_PercentStance_Fitted <- plot(pec_LMM2[[1]])
+  
+  pec_LMM2_noOutliers_PercentStance_QQ <- ggplot(data = pec_LMM2_noOutliers_resids, mapping = aes(sample = PercentStance)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_noOutliers_PercentStance_Fitted <- plot(pec_LMM2_noOutliers[[1]])
+  
+  jpeg("pec_peakNetGRF_percentStance_stats2.jpg", width = 10, height = 6, units = "in", res = 300)
+  cowplot::plot_grid(pec_LMM2_PercentStance_QQ, pec_LMM2_PercentStance_Fitted, pec_LMM2_noOutliers_PercentStance_QQ, pec_LMM2_noOutliers_PercentStance_Fitted, labels = c("a", "b", "c", "d"))
+  dev.off()
+  
+  ## Vertical GRF assumptions
+  pec_LMM2_VBW_QQ <- ggplot(data = pec_LMM2_resids, mapping = aes(sample = InterpV_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_VBW_Fitted <- plot(pec_LMM2[[2]])
+  
+  pec_LMM2_noOutliers_VBW_QQ <- ggplot(data = pec_LMM2_noOutliers_resids, mapping = aes(sample = InterpV_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_noOutliers_VBW_Fitted <- plot(pec_LMM2_noOutliers[[2]])
+  
+  jpeg("pec_peakNetGRF_VBW_stats2.jpg", width = 10, height = 6, units = "in", res = 300)
+  cowplot::plot_grid(pec_LMM2_VBW_QQ, pec_LMM2_VBW_Fitted, pec_LMM2_noOutliers_VBW_QQ, pec_LMM2_noOutliers_VBW_Fitted, labels = c("a", "b", "c", "d"))
+  dev.off()
+  
+  ## Mediolateral GRF assumptions
+  pec_LMM2_MLBW_QQ <- ggplot(data = pec_LMM2_resids, mapping = aes(sample = InterpML_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_MLBW_Fitted <- plot(pec_LMM2[[3]])
+  
+  pec_LMM2_noOutliers_MLBW_QQ <- ggplot(data = pec_LMM2_noOutliers_resids, mapping = aes(sample = InterpML_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_noOutliers_MLBW_Fitted <- plot(pec_LMM2_noOutliers[[3]])
+  
+  jpeg("pec_peakNetGRF_MLBW_stats2.jpg", width = 10, height = 6, units = "in", res = 300)
+  cowplot::plot_grid(pec_LMM2_MLBW_QQ, pec_LMM2_MLBW_Fitted, pec_LMM2_noOutliers_MLBW_QQ, pec_LMM2_noOutliers_MLBW_Fitted, labels = c("a", "b", "c", "d"))
+  dev.off()
+  
+  ## Anteroposterior GRF assumptions
+  pec_LMM2_APBW_QQ <- ggplot(data = pec_LMM2_resids, mapping = aes(sample = InterpAP_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_APBW_Fitted <- plot(pec_LMM2[[4]])
+  
+  pec_LMM2_noOutliers_APBW_QQ <- ggplot(data = pec_LMM2_noOutliers_resids, mapping = aes(sample = InterpAP_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_noOutliers_APBW_Fitted <- plot(pec_LMM2_noOutliers[[4]])
+  
+  jpeg("pec_peakNetGRF_APBW_stats2.jpg", width = 10, height = 6, units = "in", res = 300)
+  cowplot::plot_grid(pec_LMM2_APBW_QQ, pec_LMM2_APBW_Fitted, pec_LMM2_noOutliers_APBW_QQ, pec_LMM2_noOutliers_APBW_Fitted, labels = c("a", "b", "c", "d"))
+  dev.off()
+  
+  ## Net GRF assumptions
+  pec_LMM2_NetGRFBW_QQ <- ggplot(data = pec_LMM2_resids, mapping = aes(sample = NetGRF_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_NetGRFBW_Fitted <- plot(pec_LMM2[[5]])
+  
+  pec_LMM2_noOutliers_NetGRFBW_QQ <- ggplot(data = pec_LMM2_noOutliers_resids, mapping = aes(sample = NetGRF_BW)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_noOutliers_NetGRFBW_Fitted <- plot(pec_LMM2_noOutliers[[5]])
+  
+  jpeg("pec_peakNetGRF_NetGRFBW_stats2.jpg", width = 10, height = 6, units = "in", res = 300)
+  cowplot::plot_grid(pec_LMM2_NetGRFBW_QQ, pec_LMM2_NetGRFBW_Fitted, pec_LMM2_noOutliers_NetGRFBW_QQ, pec_LMM2_noOutliers_NetGRFBW_Fitted, labels = c("a", "b", "c", "d"))
+  dev.off()
+  
+  ## ML Angle assumptions
+  pec_LMM2_MLAngleConvert_QQ <- ggplot(data = pec_LMM2_resids, mapping = aes(sample = MLAngle_Convert_deg)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_MLAngleConvert_Fitted <- plot(pec_LMM2[[6]])
+  
+  pec_LMM2_noOutliers_MLAngleConvert_QQ <- ggplot(data = pec_LMM2_noOutliers_resids, mapping = aes(sample = MLAngle_Convert_deg)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_noOutliers_MLAngleConvert_Fitted <- plot(pec_LMM2_noOutliers[[6]])
+  
+  jpeg("pec_peakNetGRF_MLAngleConvert_stats2.jpg", width = 10, height = 6, units = "in", res = 300)
+  cowplot::plot_grid(pec_LMM2_MLAngleConvert_QQ, pec_LMM2_MLAngleConvert_Fitted, pec_LMM2_noOutliers_MLAngleConvert_QQ, pec_LMM2_noOutliers_MLAngleConvert_Fitted, labels = c("a", "b", "c", "d"))
+  dev.off()
+  
+  ## AP Angle assumptions
+  pec_LMM2_APAngleConvert_QQ <- ggplot(data = pec_LMM2_resids, mapping = aes(sample = APAngle_Convert_deg)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_APAngleConvert_Fitted <- plot(pec_LMM2[[7]])
+  
+  pec_LMM2_noOutliers_APAngleConvert_QQ <- ggplot(data = pec_LMM2_noOutliers_resids, mapping = aes(sample = APAngle_Convert_deg)) +
+    stat_qq_band() +
+    stat_qq_line() +
+    stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+  
+  pec_LMM2_noOutliers_APAngleConvert_Fitted <- plot(pec_LMM2_noOutliers[[7]])
+  
+  jpeg("pec_peakNetGRF_APAngleConvert_stats3.jpg", width = 10, height = 6, units = "in", res = 300)
+  cowplot::plot_grid(pec_LMM2_APAngleConvert_QQ, pec_LMM2_APAngleConvert_Fitted, pec_LMM2_noOutliers_APAngleConvert_QQ, pec_LMM2_noOutliers_APAngleConvert_Fitted, labels = c("a", "b", "c", "d"))
+  dev.off()
+  
+  
+  #### Testing assumptions of LMM (no outliers) ####
+  jpeg("pec_peakNetGRF_noOutlier_stats2.jpg", width = 8.5, height = 11, units = "in", res = 300)
+  cowplot::plot_grid(
+    pec_LMM2_noOutliers_PercentStance_QQ, pec_LMM2_noOutliers_PercentStance_Fitted,
+    pec_LMM2_noOutliers_VBW_QQ, pec_LMM2_noOutliers_VBW_Fitted,
+    pec_LMM2_noOutliers_MLBW_QQ, pec_LMM2_noOutliers_MLBW_Fitted,
+    pec_LMM2_noOutliers_APBW_QQ, pec_LMM2_noOutliers_APBW_Fitted,
+    ncol = 2,
+    labels = c("a", "b", "c", "d", "e", "f", "g", "h")
+  )
+  dev.off()
+  
+  jpeg("pec_peakNetGRF_noOutlier_stats4.jpg", width = 8.5, height = 11, units = "in", res = 300)
+  cowplot::plot_grid(
+    pec_LMM2_noOutliers_NetGRFBW_QQ, pec_LMM2_noOutliers_NetGRFBW_Fitted,
+    pec_LMM2_noOutliers_MLAngleConvert_QQ, pec_LMM2_noOutliers_MLAngleConvert_Fitted,
+    pec_LMM2_noOutliers_APAngleConvert_QQ, pec_LMM2_noOutliers_APAngleConvert_Fitted,
+    ncol = 2,
+    labels = c("i", "j", "k", "l", "m", "n")
+  )
+  dev.off()
+  
   
   
   #### FIGURES - DATA ####
