@@ -30,6 +30,8 @@ library(car) # for qqPlot()
 library(ggplot2) # for ggplot()
 library(cowplot) # for ggdraw()
 library(qqplotr) # for stat_qq_band()
+library(robustlmm) # for rlmer()
+library(nlme) # for lme() to allow unequal variances across groups in the random effects
 
 
 library(EMAtools) # for lme.dscore(); although, may not use this
@@ -311,42 +313,29 @@ GRFs <- GRFanalysis(myData)
   sal_peakNetGRFs <- subset(peakNetGRF, !substring(filename, 1, 2) == "pb")
   
   
-  
   #### PeakNetGRF: summary stats ####
   variablesToAnalyze <- (c("PercentStance", "InterpV_BW", "InterpML_BW", "InterpAP_BW", "NetGRF_BW", "MLAngle_Convert_deg", "APAngle_Convert_deg", "group", "individual", "appendage"))
   aggregate(. ~ group, data = peakNetGRF[,variablesToAnalyze[1:(length(variablesToAnalyze)-2)]], FUN = function(x) c(mean = mean(x), sd = sd(x), n = length(x)))
   nVars <- 7
   
-  #### PeakNetGRF - Pectoral: plot raw data ####
-  ## evaluate whether there are major outliers using boxplots and violin plots
   
-  ## need to change this so it uses the subsetted data for the pectoral trials
-  ## need to get rid of the redudant legends
-  # this shows how to get a common legend for combined plots: https://www.datanovia.com/en/lessons/combine-multiple-ggplots-into-a-figure/
-  p <- list()
-  for(i in 1:nVars){
-    p[[i]] <- ggplot(pec_peakNetGRFs, aes_string(x = variablesToAnalyze[8], y = variablesToAnalyze[i], fill = variablesToAnalyze[8])) + 
-      geom_violin(trim = FALSE) + 
-      geom_boxplot(width= 0.1, fill = "white") +
-      labs(x = "appendage", y = variablesToAnalyze[i]) + 
-      theme(legend.position = "none") + 
-      theme_classic()
-  }
-  do.call(grid.arrange, p)
+  #### YANK ####
+  yank_pec <- list(
+    vertical = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpV_BW)),
+    medioateral = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpML_BW)),
+    anteroposterior = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpAP_BW)),
+    net = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$NetGRF_BW))
+  )
   
-  histos <- list()
-  for(i in 1:nVars){
-    histos[[i]] <- ggplot(pec_peakNetGRFs, aes_string(x = variablesToAnalyze[i], color = group, fill = group)) + 
-      geom_histogram(aes(y=..density..), alpha = 0.2, colour="black") +
-      geom_density(alpha = 0.5) +
-      theme_classic()
-  }
+  yank_pel <- list(
+    vertical = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpV_BW)),
+    medioateral = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpML_BW)),
+    anteroposterior = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpAP_BW)),
+    net = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$NetGRF_BW))
+  )
   
-  ggplot(pec_peakNetGRFs, aes(x = PercentStance)) + 
-    geom_histogram(aes(y=..density..), colour="black", fill="white") +
-    geom_density(alpha=.2, fill="#FF6666") +
-    theme_classic()
-  
+
+  #### REMOVING OUTLIERS ####
   
   ## ggplot2 calculates more outliers bc baseplot::boxplot doesn't actually calculate the 1st and 3rd quantiles with even n
   # https://stackoverflow.com/questions/21793715/why-geom-boxplot-identify-more-outliers-than-base-boxplot
@@ -372,14 +361,10 @@ removeOutliers <- function(df, yName, group, labelName, outlierRange, ... ){
   return(output)
 }
 
-# ## identifying the outliers across all of the variables for the pectoral peak net GRF dataset
-# pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[1:7], "group", "filename", outlierRange = 1.5)
-# pec_peakNetGRF_allOutliers <- do.call("rbind", pec_peakNetGRF_noOutliers$outliers)
-# unique(pec_peakNetGRF_allOutliers$filename)
-
-## changing outlier range to 2
-# returns error about subscript out of bounds
+### identifying the outliers across all of the variables for the pectoral peak net GRF dataset
+## changing outlier range to 2 so 'outliers' are points falling 2x away from the IQR
 pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[1:7], "group", "filename", outlierRange = 2)
+
 
 
   #### LINEAR MIXED EFFECTS MODELS ####
@@ -392,8 +377,7 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   ## https://stat.ethz.ch/pipermail/r-sig-mixed-models/2013q4/021102.html
   ## Or, could consider the f2 value (Aiken and West 1991): https://largescaleassessmentsineducation.springeropen.com/articles/10.1186/s40536-018-0061-2
   
-  #### LMM: Peak net GRF Pec Comparison ####
-
+  #### LMER with random intercepts: Peak net GRF - Pectoral ####
   
   ### a) Run lmers
   
@@ -419,21 +403,8 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   # problems with this one because there are different number of observations in each variable
   pec_LMM_noOutliers_resids <- data.frame(do.call("cbind", pec_LMM_noOutliers_residuals))
   
-  # ## trying to log-transform to help with normality but can't take the log of negative numbers
-  # modelFormulae_log <- list()
-  # pec_LMM_log <- list()
-  # for (i in 1:nVars) {
-  #   modelFormulae_log[[i]] <- as.formula(paste("log(", variablesToAnalyze[i], ")~group+(1|individual)", sep = ""))
-  #   pec_LMM_log[[i]] <- lmer(modelFormulae_log[[i]], data = pec_peakNetGRFs)
-  # 
-  # }
-  # names(pec_LMM_log) <- modelFormulae_log
-  
-  ## Taking log of PercentStance to see if that helps with normality
-  pec_PercentStance_log_LMM <- lmer(log(PercentStance) ~ group + (1|individual), data = pec_peakNetGRFs)
-  pec_PercentStance_log_noOutliers_LMM <- lmer(log(PercentStance) ~ group + (1|individual), data = pec_peakNetGRF_noOutliers$usableData)
 
-  ### Testing the assumptions
+  #### Testing the assumptions ####
   ## Don't need to test for linearity of data because the predictors are categorical
 
   ## b) evaluating the normality of the residuals
@@ -461,21 +432,14 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   names(pec_LMM_noOutliers_shapiro) <- modelFormulae
   # removing the outliers made it so more variables met the assumption of normal residuals
   # only Percent Stance and ML_BW were not normal
-  
-  # Checking if taking the log helps PercentStance meet normality
-  shapiro.test(resid(pec_PercentStance_log_LMM))
-  qqPlot(resid(pec_PercentStance_log_LMM), ylab = "log(PercentStance) residuals") # that may be worse than no log
-  
-  shapiro.test(resid(pec_PercentStance_log_noOutliers_LMM))
-  qqPlot(resid(pec_PercentStance_log_noOutliers_LMM), ylab = "log(PercentStance) residuals") 
-  # no, it does not. Regardless of whether the outliers were removed
-  
+
   
   ## c) Testing homogeneity of variances
   # the Bartlett's test is more sensitive to non-normal data so people often use Levene's
   # more info here; http://www.sthda.com/english/wiki/compare-multiple-sample-variances-in-r
   # The Fligner-Killeen test can be used for non-normal data  
   
+  # with full data set
   apply(pec_peakNetGRFs[,variablesToAnalyze[1:7]],2,function(x) {leveneTest(x ~ as.factor(pec_peakNetGRFs$group))})
   apply(pec_peakNetGRFs[,variablesToAnalyze[1:7]],2,function(x) {fligner.test(x ~ as.factor(pec_peakNetGRFs$group))})
   
@@ -489,16 +453,23 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   # that the variances are homogeneous
   
   # Testing assumption when the outliers were removed
-  # this doesn't work; probably need a for loop
-  pec_LMM_noOutliers_levene <- list()
-  for (i in 1:nVars) {
-    pec_LMM_noOutliers_levene[[i]] <- leveneTest()
-  }
   apply(pec_peakNetGRF_noOutliers$usableData[,variablesToAnalyze[1:7]],2,function(x) {leveneTest(x ~ as.factor(pec_peakNetGRF_noOutliers$usableData$group))})
+  apply(pec_peakNetGRF_noOutliers$usableData[,variablesToAnalyze[1:7]],2,function(x) {fligner.test(x ~ as.factor(pec_peakNetGRF_noOutliers$usableData$group))})
   
+  ## d) Testing the normality of the random effects
+  # following suggestions from: https://stats.stackexchange.com/questions/117170/testing-whether-random-effects-are-normally-distributed-in-r
+  
+  ## random intercepts model
+  r_int<- ranef(pec_LMM[[1]])$individual$`(Intercept)`
+  qqnorm(r_int)
+  qqline(r_int)
+  shapiro.test(r_int)
 
   
-  ### Continuing on with statistical analyses since data seem to meet assumptions of LMM
+  ### NOTE: LMMs with random intercepts and slopes were attempted but the sample size of the pectoral data set were not large enough to handle the more 
+  ### complex random effects structure for certain variable, so only a random intercepts LMM was used to make the comparisons consistent
+
+  
   
   ## Zu omega squared to assess the 'goodness of fit' for the entire model
   # Xu's omega method: http://onlinelibrary.wiley.com/doi/10.1002/sim.1572/abstract
@@ -512,8 +483,6 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   pec_LMM_omega2 <- lapply(pec_LMM, FUN = function(x) Xu_omega2(x))
 
    
-
-  
   ## Can also do post-hoc pair-wise comparisons for the fixed effects: https://stats.stackexchange.com/questions/237512/how-to-perform-post-hoc-test-on-lmer-model
   ## This describes that the differences between the post-hoc options: https://stats.stackexchange.com/questions/204741/which-multiple-comparison-method-to-use-for-a-lmer-model-lsmeans-or-glht
   ## The main difference is how they calculate the p-value, which doesn't matter to LMMs. 
@@ -554,25 +523,46 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   ## when plotting the vertical and net GRF data, maybe use filled regions to help highlight the areas of overlap 
   
   
-  #### YANK ####
-  yank_pec <- list(
-    vertical = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpV_BW)),
-    medioateral = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpML_BW)),
-    anteroposterior = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpAP_BW)),
-    net = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$NetGRF_BW))
-  )
+  ### Calculating the Inter Class Correlation ###
+  ## Based on: https://www.ssc.wisc.edu/sscc/pubs/MM/MM_DiagInfer.html
+  ## This represents the variation due to the random effect
+  ## see info for "sc": https://www.rdocumentation.org/packages/lme4/versions/1.1-21/topics/VarCorr
+  ## or use: https://www.rdocumentation.org/packages/sjstats/versions/0.17.4/topics/icc
+  ## looks like sjstats::icc has been changed to performance::icc
+  ## ICC might already be reported in the MuMIn pseudo-R2 code, though
   
-  yank_pel <- list(
-    vertical = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpV_BW)),
-    medioateral = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpML_BW)),
-    anteroposterior = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpAP_BW)),
-    net = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$NetGRF_BW))
-  )
+  r1Var <- as.numeric(VarCorr(pec_LMM[[1]])[["individual"]])
+  residVar <- attr(VarCorr(pec_LMM[[1]]), "sc")^2
+  r1Var
+  residVar
+  r1Var / (r1Var + residVar) # same as the adjusted ICC from performance::icc()
+  
+  ## performance::icc(pec_LMM[[1]])
+  
+  
+  #### Robust LMM ####
+  pec_LMM_PercentStance_rlmer <- rlmer(PercentStance ~ group + (1|individual), pec_peakNetGRFs, 
+                                       rho.sigma.e = psi2propII(smoothPsi, k = 2.28),
+                                       rho.sigma.b = psi2propII(smoothPsi, k = 2.28))
+  plot(pec_LMM_PercentStance_rlmer)
+  
+
+  #### NLME: peak net GRF - Pectoral ####
+  ## based on: https://stats.stackexchange.com/questions/77891/checking-assumptions-lmer-lme-mixed-models-in-r
+  
+  lm.base2 <- lme(PercentStance ~ group, random= ~1|individual, method="ML", data= pec_peakNetGRF_noOutliers$usableData)
+  plot(lm.base2)
+  qqnorm(resid(lm.base2))
+  
+  ## checking for equal variances across the random effects
+  plot( lm.base2, resid(., type = "p") ~ fitted(.) | individual,
+        id = 0.05, adj = -0.3 )
   
   
   #### FIGURES - STAT ASSUMPTIONS ####
   
-  ### Testing assumptions of LMM (export as 500 width x 600 height)
+  #### Testing assumptions of LMM (full vs. no outlier) ####
+  ## (export as 500 width x 600 height)
   
   ## PercentStance assumptions
   pec_LMM_PercentStance_QQ <- ggplot(data = pec_LMM_resids, mapping = aes(sample = PercentStance)) +
@@ -735,6 +725,30 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   cowplot::plot_grid(pec_LMM_APAngleConvert_QQ, pec_LMM_APAngleConvert_Fitted, pec_LMM_noOutliers_APAngleConvert_QQ, pec_LMM_noOutliers_APAngleConvert_Fitted, labels = c("a", "b", "c", "d"))
   dev.off()
   
+  
+  #### Testing assumptions of LMM (no outliers) ####
+  jpeg("pec_peakNetGRF_noOutlier_stats1.jpg", width = 8.5, height = 11, units = "in", res = 300)
+  cowplot::plot_grid(
+    pec_LMM_noOutliers_PercentStance_QQ, pec_LMM_noOutliers_PercentStance_Fitted,
+    pec_LMM_noOutliers_VBW_QQ, pec_LMM_noOutliers_VBW_Fitted,
+    pec_LMM_noOutliers_MLBW_QQ, pec_LMM_noOutliers_MLBW_Fitted,
+    pec_LMM_noOutliers_APBW_QQ, pec_LMM_noOutliers_APBW_Fitted,
+    ncol = 2,
+    labels = c("a", "b", "c", "d", "e", "f", "g", "h")
+    )
+  dev.off()
+  
+  jpeg("pec_peakNetGRF_noOutlier_stats2.jpg", width = 8.5, height = 11, units = "in", res = 300)
+  cowplot::plot_grid(
+  pec_LMM_noOutliers_NetGRFBW_QQ, pec_LMM_noOutliers_NetGRFBW_Fitted,
+  pec_LMM_noOutliers_MLAngleConvert_QQ, pec_LMM_noOutliers_MLAngleConvert_Fitted,
+  pec_LMM_noOutliers_APAngleConvert_QQ, pec_LMM_noOutliers_APAngleConvert_Fitted,
+  ncol = 2,
+  labels = c("i", "j", "k", "l", "m", "n")
+  )
+  dev.off()
+  
+  
   #### FIGURES - DATA ####
   
   ## Create function to produce box plots with jitter points and marginal densities on the sides
@@ -886,4 +900,50 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   ## Testing assumption of normality with base plots
   # qqnorm(resid(pec_LMM[[i]]))
   # qqline(resid(pec_LMM[[i]]))
+  
+
+  # # UNUSED: PeakNetGRF - Pectoral: plot raw data ####
+  # ## evaluate whether there are major outliers using boxplots and violin plots
+  # 
+  # ## need to change this so it uses the subsetted data for the pectoral trials
+  # ## need to get rid of the redudant legends
+  # # this shows how to get a common legend for combined plots: https://www.datanovia.com/en/lessons/combine-multiple-ggplots-into-a-figure/
+  # p <- list()
+  # for(i in 1:nVars){
+  #   p[[i]] <- ggplot(pec_peakNetGRFs, aes_string(x = variablesToAnalyze[8], y = variablesToAnalyze[i], fill = variablesToAnalyze[8])) + 
+  #     geom_violin(trim = FALSE) + 
+  #     geom_boxplot(width= 0.1, fill = "white") +
+  #     labs(x = "appendage", y = variablesToAnalyze[i]) + 
+  #     theme(legend.position = "none") + 
+  #     theme_classic()
+  # }
+  # do.call(grid.arrange, p)
+  # 
+  # histos <- list()
+  # for(i in 1:nVars){
+  #   histos[[i]] <- ggplot(pec_peakNetGRFs, aes_string(x = variablesToAnalyze[i], color = group, fill = group)) + 
+  #     geom_histogram(aes(y=..density..), alpha = 0.2, colour="black") +
+  #     geom_density(alpha = 0.5) +
+  #     theme_classic()
+  # }
+  # 
+  # ggplot(pec_peakNetGRFs, aes(x = PercentStance)) + 
+  #   geom_histogram(aes(y=..density..), colour="black", fill="white") +
+  #   geom_density(alpha=.2, fill="#FF6666") +
+  #   theme_classic()
+
+
+  ## When removing outliers for each variable separately and then figuring which are the common ('unique') outliers across the variables
+  # pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[1:7], "group", "filename", outlierRange = 1.5)
+  # pec_peakNetGRF_allOutliers <- do.call("rbind", pec_peakNetGRF_noOutliers$outliers)
+  # unique(pec_peakNetGRF_allOutliers$filename)
+  
+  
+  # # Checking if taking the log helps PercentStance meet normality
+  # shapiro.test(resid(pec_PercentStance_log_LMM))
+  # qqPlot(resid(pec_PercentStance_log_LMM), ylab = "log(PercentStance) residuals") # that may be worse than no log
+  # 
+  # shapiro.test(resid(pec_PercentStance_log_noOutliers_LMM))
+  # qqPlot(resid(pec_PercentStance_log_noOutliers_LMM), ylab = "log(PercentStance) residuals") 
+  # # no, it does not. Regardless of whether the outliers were removed
   # 
