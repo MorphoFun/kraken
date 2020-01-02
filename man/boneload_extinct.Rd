@@ -7,12 +7,7 @@
 boneload_extinct <- function(Anat, BW, minalpha, maxalpha, stepalpha, species = NULL, ...)
 }
 \arguments{
-\item{\code{Anat}}{Numeric values representing the anatomy of the study species. Anatomical variables include: mass_kg (in kilograms), rQuads_m (moment arm of the knee extensors, in units of meters), rAextAnk_m (moment arm of the ankle extensors about the ankle, in units of meters), rAextKnee_m (moment arm of the ankle extensors about the knee, in units of meters),
-thetaQuad_degrees (angle between extensor force and the knee extensor moment arm about the midshaft centroid, in units of degrees), LFemur_m (length of the femur, in units of meters), AFem_m2 (cross-sectional area of the femur, in units of meters squared), 
-yDV_m (distance from neutral axis to cortex in the dorsoventral direction, in units of meters), IDV_m4 (second moment of area in the dorsoventral direction, in units of meters to the fourth power),
-RCFemDV_m (moment arm due to bone curvature in the dorsoventral direction, in units of meters), yAP_m (distance from neutral axis to cortex in the anteroposterior direction, in units of meters),
-IAP_m4 IDV_m4 (second moment of area in the anteroposterior direction, in units of meters to the fourth power), RCFemAP_m (moment arm due to bone curvature in the anteroposterior direction, in units of meters),
-RGRFKnee_m (moment arm of the GRF to the joint, in units of meters), LFoot_m (length of the foot, in units of meters), rQuadShaft_m (knee extensor moment arm about midshaft centroid, in units of meters)}
+\item{\code{Anat}}{Numeric values representing the anatomy of the study species. Anatomical variables include: mass_kg (in kilograms), rQuads_m (moment arm of the knee extensors, in units of meters), rAextAnk_m (moment arm of the ankle extensors about the ankle, in units of meters), rAextKnee_m (moment arm of the ankle extensors about the knee, in units of meters), thetaQuad_degrees (angle between extensor force and the knee extensor moment arm about the midshaft centroid, in units of degrees), LFemur_m (length of the femur, in units of meters), AFem_m2 (cross-sectional area of the femur, in units of meters squared), yDV_m (distance from neutral axis to cortex in the dorsoventral direction, in units of meters), IDV_m4 (second moment of area in the dorsoventral direction, in units of meters to the fourth power), RCFemDV_m (moment arm due to bone curvature in the dorsoventral direction, in units of meters), yAP_m (distance from neutral axis to cortex in the anteroposterior direction, in units of meters), IAP_m4 IDV_m4 (second moment of area in the anteroposterior direction, in units of meters to the fourth power), RCFemAP_m (moment arm due to bone curvature in the anteroposterior direction, in units of meters), RGRFKnee_m (moment arm of the GRF to the joint, in units of meters), LFoot_m (length of the foot, in units of meters), rQuadShaft_m (knee extensor moment arm about midshaft centroid, in units of meters)}
 
 \item{\code{BW}}{Numeric values representing the magnitude of the net GRF in units of proportion of body mass (e.g., 0.5 for 50% of the animal's body mass).}
 
@@ -25,20 +20,15 @@ RGRFKnee_m (moment arm of the GRF to the joint, in units of meters), LFoot_m (le
 \item{\code{species}}{Character string for the name of the species being tested.}
 }
 \description{
-Biomechanical model to estimate the peak stresses experienced by the femur of a quadrupedal tetrapod during terrestrial locomotion. 
-This computational model was developed to estimate peak limb bone stresses in extinct nonmammalian therapsids but could be applied to living tetrapods as well. 
-GRF represents the ground reaction force.
+Biomechanical model to estimate the peak stresses experienced by the femur of a quadrupedal tetrapod during terrestrial locomotion. This computational model was developed to estimate peak limb bone stresses in extinct nonmammalian therapsids but could be applied to living tetrapods as well. GRF represents the ground reaction force.
 }
 \details{
-These procedures follow the methodology described in Blob (2001).
+These procedures follow the methodology described in: Blob, RW. 2001. The evolution of hindlimb posture in nonmammalian therapsids: biomechanical tests of paleontological hypotheses. Paleobiology 27: 14-38.
 }
 \examples{
 
 Anat <- data.frame(mass_kg = 3, rQuads_m = 0.0054315, rAextAnk_m = 0.00288353, rAextKnee_m = 0.008213, thetaQuad_degrees = 0, LFemur_m = 0.039931, AFem_m2 = 0.0000375, yDV_m = 0.00367, IDV_m4 = 0.000000000104, RCFemDV_m = 0.000501, yAP_m = 0.003377, IAP_m4 = 0.000000000127, RCFemAP_m = -0.001721, RGRFKnee_m = 0.012, LFoot_m = 0.062503, rQuadShaft_m = 0.021297, thetaQuadShaft_degrees = 14.495)
 
 boneload_extinct(Anat, 0.5, 10, 70, 5, "Fakeosaurus") 
-
-}
-\references{
 
 }
