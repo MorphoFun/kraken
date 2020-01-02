@@ -935,6 +935,179 @@ yank <- function(time, force, ...) {
 }
 
 
+############# boneload_extinct ##########
+
+
+#' @title Estimating peak stresses to the limb bones in extinct tetrapods
+#'
+#' @name boneload_extinct
+#'
+#' @description Biomechanical model to estimate the peak stresses experienced by the femur of a quadrupedal tetrapod during terrestrial locomotion. 
+#' This computational model was developed to estimate peak limb bone stresses in extinct nonmammalian therapsids but could be applied to living tetrapods as well. 
+#' GRF represents the ground reaction force. 
+#'
+#' @usage boneload_extinct <- function(Anat, BW, minalpha, maxalpha, stepalpha, species = NULL, ...) 
+#'
+#' @param \code{Anat} Numeric values representing the anatomy of the study species. Anatomical variables include: mass_kg (in kilograms), rQuads_m (moment arm of the knee extensors, in units of meters), 
+#' rAextAnk_m (moment arm of the ankle extensors about the ankle, in units of meters), rAextKnee_m (moment arm of the ankle extensors about the knee, in units of meters),
+#' thetaQuad_degrees (angle between extensor force and the knee extensor moment arm about the midshaft centroid, in units of degrees), LFemur_m (length of the femur, in units of meters), AFem_m2 (cross-sectional area of the femur, in units of meters squared), 
+#' yDV_m (distance from neutral axis to cortex in the dorsoventral direction, in units of meters), IDV_m4 (second moment of area in the dorsoventral direction, in units of meters to the fourth power),
+#' RCFemDV_m (moment arm due to bone curvature in the dorsoventral direction, in units of meters), yAP_m (distance from neutral axis to cortex in the anteroposterior direction, in units of meters),
+#' IAP_m4 IDV_m4 (second moment of area in the anteroposterior direction, in units of meters to the fourth power), RCFemAP_m (moment arm due to bone curvature in the anteroposterior direction, in units of meters),
+#' RGRFKnee_m (moment arm of the GRF to the joint, in units of meters), LFoot_m (length of the foot, in units of meters), rQuadShaft_m (knee extensor moment arm about midshaft centroid, in units of meters)
+#' @param \code{BW} Numeric values representing the magnitude of the net GRF in units of proportion of body mass (e.g., 0.5 for 50% of the animal's body mass).
+#' @param \code{minalpha} Single numerical value for the minimum alpha value (angle between the GRF and limb bone, in units of degrees).
+#' @param \code{maxalpha} Single numerical value for the maximum alpha value (angle between the GRF and limb bone, in units of degrees).
+#' @param \code{stepalpha} Single numerical value for the increments of alpha (in units of degrees).
+#' @param \code{species} Character string for the name of the species being tested. 
+#' @details These procedures follow the methodology described in Blob (2001).
+#' @references Blob, RW. 2001. The evolution of hindlimb posture in nonmammalian therapsids: biomechanical tests of paleontological hypotheses. Paleobiology 27(1): 14-38. \url{https://doi.org/10.1666/0094-8373(2001)027%3C0014:EOHPIN%3E2.0.CO;2}
+#'
+#' @examples
+#' 
+#' Anat <- data.frame(mass_kg = 3, rQuads_m = 0.0054315, rAextAnk_m = 0.00288353, rAextKnee_m = 0.008213, thetaQuad_degrees = 0, LFemur_m = 0.039931, AFem_m2 = 0.0000375, yDV_m = 0.00367, IDV_m4 = 0.000000000104, RCFemDV_m = 0.000501, yAP_m = 0.003377, IAP_m4 = 0.000000000127, RCFemAP_m = -0.001721, RGRFKnee_m = 0.012, LFoot_m = 0.062503, rQuadShaft_m = 0.021297, thetaQuadShaft_degrees = 14.495)
+#' 
+#' boneload_extinct(Anat, 0.5, 10, 70, 5, "Fakeosaurus") 
+#'
+#' @export
+#' 
+
+boneload_extinct <- function(Anat, BW, minalpha, maxalpha, stepalpha, species = NULL, ...) {
+  DEG2RAD <- 180/pi
+  
+  ## Net theta calculations
+  # Since zero divided by a numeric value is undefined, going to force it so that if theta Quad = zero in radians, it will equal zero in degrees as well
+  # so it matches MATLAB output
+  Anat$thetaQuad_radians <- Anat$thetaQuad_degrees/DEG2RAD
+  Anat$thetaQuadShaft_radians <- Anat$thetaQuadShaft_degrees/DEG2RAD
+  
+  Anat$thetaQuadNet_radians <- Anat$thetaQuad_radians + Anat$thetaQuadShaft_radians
+  
+  ## GRF=Mass*9.807;note in line below, adjusted GRF to 0.4 of mass like salamanders for 
+  ## Greererpeton; makes snese since the values would otherwise be >100MPa
+  ## BW is the magnitude of the body weight of the GRF (e.g., 1 for gator or 0.4 for salamanders)
+  Anat$BW = BW
+  Anat$GRF <- Anat$BW*Anat$mass_kg*9.807
+  Anat$RSTQuads <- Anat$rQuadShaft*sin(Anat$thetaQuadNet_radians)
+  
+  #### SELECTING ALPHA VALUES ####
+  ## values are in units of degrees
+  Anat$minalpha <- minalpha
+  Anat$maxalpha <- maxalpha
+  Anat$stepalpha <- stepalpha
+  
+  alpha <- seq(minalpha/DEG2RAD, maxalpha/DEG2RAD, stepalpha/DEG2RAD)
+  nalpha <- length(alpha)
+  
+  #### CALCULATIONS ####
+  
+  ## Muscle force calculations
+  # see Appendix 3 in Blob (2001) in Paleobiology
+  # check around line 900 of the Ambystoma MATLAB bone loading code to see if that produces similar data for the regression
+  # alternate lines to double RGRFKnee
+  # RGRFKnee2=RGRFKnee*2;
+  Anat$RGRFKnee2 <- Anat$RGRFKnee
+  Anat$RrQuadsKnee <- Anat$RGRFKnee2/Anat$rQuads_m
+  # RGRFAnkle=0.5*LFoot;
+  # model RGRFAnkle based on regression increase of RGRFANkle/LFoot in lizards
+  temp1 <- .242*DEG2RAD*alpha
+  temp2 <- (-1*temp1)+40.361
+  temp3 <- sin(temp2/DEG2RAD)
+  temp4 <- temp3^2
+  
+  angles <- data.frame(alpha = alpha*DEG2RAD, RGRFAnkle = Anat$LFoot_m*temp4)
+  
+  # RGRFAnkle=LFoot*((sin(40.361-(.242*(RAD2DEG*alpha)))).^2); # I'm not sure what this extra line of code is for
+  
+  
+  angles$RrAextAnk <- angles$RGRFAnkle/Anat$rAextAnk_m
+  angles$FAext <- Anat$GRF*angles$RrAextAnk
+  angles$FQuads <- (Anat$GRF*Anat$RGRFKnee2 + (angles$FAext*Anat$rAextKnee_m))/Anat$rQuads_m
+  
+  ## 
+  angles$GRFaxFem <- Anat$GRF*cos(alpha) 
+  angles$GRFtvFem <- Anat$GRF*sin(alpha); 
+  angles$FQuadAx <- angles$FQuads*cos(Anat$thetaQuad_radians)
+  angles$StressAxFem <- (-1)*(angles$GRFaxFem + angles$FQuadAx)/Anat$AFem_m2
+  
+  # Femoral bending moments due to GRF
+  angles$BMomGRFtvDV <- (-1)*(Anat$LFemur_m*0.5*angles$GRFtvFem)
+  angles$BMomGRFtvAP <- (Anat$LFemur_m*0.5*angles$GRFtvFem)
+  angles$BMomGRFaxDV <- Anat$RCFemDV_m*angles$GRFaxFem
+  angles$BMomGRFaxAP <- Anat$RCFemAP_m*angles$GRFaxFem
+  
+  
+  # Femoral bending moments due to muscles calculated using cross products
+  angles$QuadsBMom <- (-1)*angles$FQuads*Anat$RSTQuads
+  angles$MuscStressDV <- angles$QuadsBMom*(Anat$yDV_m/Anat$IDV_m4)
+  angles$NetGRFBMomDV <- angles$BMomGRFtvDV + angles$BMomGRFaxDV # if curv negative, augments GRF; if curv +, mitigates GRF
+  angles$NetGRFBMomAP <- angles$BMomGRFtvAP + angles$BMomGRFaxAP # if curv negative, mitigates GRF; if curv +, augments GRF
+  angles$NetGRFBStressDV <- angles$NetGRFBMomDV*(Anat$yDV_m/Anat$IDV_m4) # for dorsal surface
+  angles$NetGRFBStressAP <- angles$NetGRFBMomAP*(Anat$yAP_m/Anat$IAP_m4) # for anterior surface
+  angles$CrvGRFBStressDV <- angles$BMomGRFaxDV*(Anat$yDV_m/Anat$IDV_m4) # for dorsal surface
+  angles$CrvGRFBStressAP <- angles$BMomGRFaxAP*(Anat$yAP_m/Anat$IAP_m4) # for anterior surface
+  # Based on IG/gator data, GRF BMom at peak stress is mostly AP,
+  # but still slight DV component in same direction as Quads;
+  # therefore, set minimum as though Bmoms were perpendicular,
+  # max as though they summed completely
+  angles$NetBendFemMin <- ((angles$NetGRFBStressAP)^2 + (angles$MuscStressDV + angles$CrvGRFBStressDV)^2)^0.5
+  angles$NetBendFemMax <- (((angles$MuscStressDV + angles$NetGRFBStressDV)^2) + (angles$CrvGRFBStressAP^2))^0.5
+  angles$NetBendMinTens <- angles$NetBendFemMin + angles$StressAxFem
+  angles$NetBendMinComp <- (-1*angles$NetBendFemMin) + angles$StressAxFem
+  angles$NetBendMaxTens <- angles$NetBendFemMax + angles$StressAxFem
+  angles$NetBendMaxComp <- (-1*angles$NetBendFemMax) + angles$StressAxFem
+  # angle from DV, opposite willizrf
+  angles$NetBendFemAngMin <- DEG2RAD*atan(angles$NetGRFBStressAP/(angles$MuscStressDV + angles$CrvGRFBStressDV))
+  angles$NetBendFemAngMax <- DEG2RAD*atan(angles$CrvGRFBStressAP/(angles$MuscStressDV + angles$NetGRFBStressDV))
+  
+  angles$species <- species
+  angles$mass_kg <- Anat$mass_kg
+  angles$BW <- BW
+  
+  
+  ## Plotting RGRFAnkle versus alpha
+  plot(alpha*DEG2RAD, angles$RGRFAnkle, type = "l", col = "magenta", xlab = "alpha (degrees)", ylab = "RGRFAnkle (m)")
+  
+  # Need to fix these plots so min and max ranges of axes are large enough to include all points
+  
+  ## plotting Bending moments vs. alpha
+  plot(alpha*DEG2RAD, angles$BMomGRFtvDV, col = "green")
+  points(alpha*DEG2RAD, angles$QuadsBMom, col = "magenta")
+  points(alpha*DEG2RAD, angles$BMomGRFaxDV, col = "blue")
+  points(alpha*DEG2RAD, angles$BMomGRFaxAP, col = "yellow")
+  
+  ## Plotting Stresses vs. alpha
+  plot(alpha*DEG2RAD, angles$StressAxFem, col = "red")   
+  points(alpha*DEG2RAD, angles$MuscStressDV, col = "magenta")  
+  points(alpha*DEG2RAD, angles$NetGRFBStressDV, col = "green")
+  points(alpha*DEG2RAD, angles$NetGRFBStressAP, col = "blue")
+  points(alpha*DEG2RAD, angles$CrvGRFBStressDV, col = "black", pch = 1)
+  points(alpha*DEG2RAD, angles$CrvGRFBStressAP,col = "black", pch = 4)
+  points(alpha*DEG2RAD, angles$NetBendFemMin, col = "yellow", pch = 8)
+  points(alpha*DEG2RAD, angles$NetBendFemMax, col = "cyan", pch = 3)
+  
+  ## Plotting Net bending stresses (Pa) in compression vs. tension
+  plot(alpha*DEG2RAD, angles$NetBendMinTens, col = "red")   
+  points(alpha*DEG2RAD, angles$NetBendMinComp, col = "magenta")  
+  points(alpha*DEG2RAD, angles$NetBendMaxTens, col = "green")
+  points(alpha*DEG2RAD, angles$NetBendMaxComp, col = "blue")
+  
+  FMX_variables <- c("species", "mass_kg", "BW", "alpha", "GRFaxFem", "GRFtvFem", "FQuads", "FAext", "BMomGRFtvDV", "BMomGRFaxDV", "BMomGRFaxAP", "QuadsBMom")
+  STX_variables <- c("species", "mass_kg", "BW", "alpha", "StressAxFem", "MuscStressDV", "CrvGRFBStressDV", "CrvGRFBStressAP", "NetGRFBStressDV", "NetGRFBStressAP", "NetBendFemMin", "NetBendFemMax", "NetBendFemAngMin", "NetBendFemAngMax", "NetBendMinTens", "NetBendMinComp", "NetBendMaxTens", "NetBendMaxComp")
+  
+  Anat$species <- species 
+  
+  output <- list(
+    anatomy = Anat,
+    angles = angles,
+    FMX = angles[,FMX_variables],
+    STX = angles[,STX_variables]
+  )
+  
+  return(output)
+}
+
+
 ############################################################################################################################
 ######################################## CALCULATING CRUDE SPEED FOR A SINGLE FILE #########################################
 #####                                                                                                                  #####
