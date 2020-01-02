@@ -23,11 +23,14 @@ boneload_extinct <- function(Anat, BW, minalpha, maxalpha, stepalpha, species = 
 Biomechanical model to estimate the peak stresses experienced by the femur of a quadrupedal tetrapod during terrestrial locomotion. This computational model was developed to estimate peak limb bone stresses in extinct nonmammalian therapsids but could be applied to living tetrapods as well. GRF represents the ground reaction force.
 }
 \details{
-These procedures follow the methodology described in: Blob, RW. 2001. The evolution of hindlimb posture in nonmammalian therapsids: biomechanical tests of paleontological hypotheses. Paleobiology 27: 14-38.
+These procedures follow the methodology described in Blob 2001.
 }
 \examples{
 
 Anat <- data.frame(mass_kg = 3, rQuads_m = 0.0054315, rAextAnk_m = 0.00288353, rAextKnee_m = 0.008213, thetaQuad_degrees = 0, LFemur_m = 0.039931, AFem_m2 = 0.0000375, yDV_m = 0.00367, IDV_m4 = 0.000000000104, RCFemDV_m = 0.000501, yAP_m = 0.003377, IAP_m4 = 0.000000000127, RCFemAP_m = -0.001721, RGRFKnee_m = 0.012, LFoot_m = 0.062503, rQuadShaft_m = 0.021297, thetaQuadShaft_degrees = 14.495)
 boneload_extinct(Anat, 0.5, 10, 70, 5, "Fakeosaurus") 
 
+}
+\references{
+Blob, RW. 2001. The evolution of hindlimb posture in nonmammalian therapsids: biomechanical tests of paleontological hypotheses. Paleobiology 27(1): 14-38. \url{https://doi.org/10.1666/0094-8373(2001)027<0014:EOHPIN>2.0.CO;2}
 }

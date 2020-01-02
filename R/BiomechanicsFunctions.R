@@ -952,7 +952,8 @@ yank <- function(time, force, ...) {
 #' @param \code{maxalpha} Single numerical value for the maximum alpha value (angle between the GRF and limb bone, in units of degrees).
 #' @param \code{stepalpha} Single numerical value for the increments of alpha (in units of degrees).
 #' @param \code{species} Character string for the name of the species being tested. 
-#' @details These procedures follow the methodology described in: Blob, RW. 2001. The evolution of hindlimb posture in nonmammalian therapsids: biomechanical tests of paleontological hypotheses. Paleobiology 27: 14-38.
+#' @details These procedures follow the methodology described in Blob 2001.
+#' @references Blob, RW. 2001. The evolution of hindlimb posture in nonmammalian therapsids: biomechanical tests of paleontological hypotheses. Paleobiology 27(1): 14-38. \url{https://doi.org/10.1666/0094-8373(2001)027<0014:EOHPIN>2.0.CO;2}
 #'
 #' @examples
 #' 
