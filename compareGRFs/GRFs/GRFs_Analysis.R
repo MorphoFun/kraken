@@ -572,7 +572,7 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
     pec_RLMM2_residuals[[i]] <- resid(pec_RLMM[[i]])
     pec_RLMM2_noOutliers[[i]] <- update(pec_RLMM_noOutliers[[i]], rho.sigma.e = psi2propII(smoothPsi, k = 2.28),rho.sigma.b = psi2propII(smoothPsi, k = 2.28))
     pec_RLMM2_noOutliers_residuals[[i]] <- resid(pec_RLMM2_noOutliers[[i]])
-    pec_RLMM_compare[[i]] <- compare(pec_LMM[[i]], pec_RLMM[[i]], pec_RLMM_noOutliers[[i]],  pec_RLMM2[[i]],pec_RLMM2_noOutliers[[i]], show.rho.functions = FALSE)
+    pec_RLMM_compare[[i]] <- compare(pec_LMM[[i]], pec_RLMM[[i]], pec_RLMM2[[i]], pec_LMM_noOutliers[[i]], pec_RLMM_noOutliers[[i]], pec_RLMM2_noOutliers[[i]], show.rho.functions = FALSE)
   }
   names(pec_RLMM2) <- modelFormulae
   names(pec_RLMM2_noOutliers) <- modelFormulae
@@ -965,7 +965,7 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
     }
   }
   
-  ## original RLMM models with default weightings
+  #### Plotting assumptions of original RLMER models with default weightings ####
   for (i in 1:7) { 
     savePlots_RLMM(pec_RLMM[[i]], paste("pec_RLMM_", variablesToAnalyze[i], sep = ""))
   }
@@ -975,7 +975,7 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   }
   
   
-  ## original RLMM models with improved efficiency
+  #### Plotting assumptions of RLMER models with improved efficiency ####
   for (i in 1:7) { 
     savePlots_RLMM(pec_RLMM2[[i]], paste("pec_RLMM2_", variablesToAnalyze[i], sep = ""))
   }
@@ -986,7 +986,8 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   
   
   
-  #### FIGURES - DATA ####
+  
+  #### FIGURES - PEAK NET GRFs ####
   
   ## Create function to produce box plots with jitter points and marginal densities on the sides
   boxWithDensityPlot <- function(df, xName, yName, xLabel, yLabel) {
@@ -1062,7 +1063,78 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   dev.off()
   
   
-
+  #### FIGURES - PROFILE PLOTS ####
+  pel_GRF_NetBW <- data.frame(do.call("rbind", lapply(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap, function(x) x[,"NetGRF_BW"])))
+  pel_GRF_NetBW$filename <- row.names(pel_GRF_NetBW)
+  
+  # pelvic - ambystoma
+  pel_GRF_NetBW_af_mean <- sapply(subset(pel_GRF_NetBW, substring(pel_GRF_NetBW$filename, 1, 2) == "af")[,1:101], FUN=function(x) mean(x, na.rm=TRUE))
+  pel_GRF_NetBW_af_se <- sapply(subset(pel_GRF_NetBW, substring(pel_GRF_NetBW$filename, 1, 2) == "af")[,1:101], FUN=function(x) parameters::standard_error(x, na.rm=TRUE))
+  Stance5 <- seq(1,101,5)
+  pel_GRF_NetBW_af_mean_SE <- data.frame(pel_GRF_NetBW_af_mean[Stance5], pel_GRF_NetBW_af_se[Stance5], seq(0,100,5))
+  pel_GRF_NetBW_af_mean_SE$Type <- "pel"
+  pel_GRF_NetBW_af_mean_SE$species <- "af"
+  names(pel_GRF_NetBW_af_mean_SE) <- c("Mean", "SE", "Stance", "Type", "species")
+  
+  # pelvic - pleurodeles
+  pel_GRF_NetBW_pw_mean <- sapply(subset(pel_GRF_NetBW, substring(pel_GRF_NetBW$filename, 1, 2) == "pw")[,1:101], FUN=function(x) mean(x, na.rm=TRUE))
+  pel_GRF_NetBW_pw_se <- sapply(subset(pel_GRF_NetBW, substring(pel_GRF_NetBW$filename, 1, 2) == "pw")[,1:101], FUN=function(x) parameters::standard_error(x, na.rm=TRUE))
+  Stance5 <- seq(1,101,5)
+  pel_GRF_NetBW_pw_mean_SE <- data.frame(pel_GRF_NetBW_pw_mean[Stance5], pel_GRF_NetBW_pw_se[Stance5], seq(0,100,5))
+  pel_GRF_NetBW_pw_mean_SE$Type <- "pel"
+  pel_GRF_NetBW_pw_mean_SE$species <- "pw"
+  names(pel_GRF_NetBW_pw_mean_SE) <- c("Mean", "SE", "Stance", "Type", "species")
+  
+  
+  pel_GRF_NetBW_Mean_SE <- rbind(pel_GRF_NetBW_af_mean_SE, pel_GRF_NetBW_pw_mean_SE)
+  pel_GRF_NetBW_MaxMin <- aes(ymax=pel_GRF_NetBW_Mean_SE$Mean + pel_GRF_NetBW_Mean_SE$SE, ymin = pel_GRF_NetBW_Mean_SE$Mean - pel_GRF_NetBW_Mean_SE$SE)
+  
+  tiff(filename=paste("Salamander_Pel_NetGRF_Comparison_", SaveDate, ".tif", sep=""), height=8.08661*300, width=9.5*300, res=300)
+  ggplot(data=pel_GRF_NetBW_Mean_SE, aes(x=pel_GRF_NetBW_Mean_SE$Stance, y=pel_GRF_NetBW_Mean_SE$Mean, fill=species, linetype=species))+
+    scale_y_continuous("Net GRF (BW)\n") +
+    scale_x_continuous("\n Percent Stance") +
+    geom_line(size=1, alpha=0.75) +
+    geom_ribbon(pel_GRF_NetBW_MaxMin, alpha=0.5) +
+    scale_colour_manual(name="species:", # changing legend title
+                        labels=c("Ambystoma  ", "Pleurodeles  "), # Changing legend labels
+                        values=c("ivory4", "ivory4"))+
+    scale_fill_manual(name="species:", 
+                      labels=c("Ambystoma  ", "Pleurodeles  "),
+                      values=c("red","blue"))+
+    scale_linetype_manual(name="species:", 
+                          labels=c("Ambystoma  ", "Pleurodeles  "),
+                          values=c("dashed", "solid"))+
+    theme(axis.title.x=element_text(colour="black", size = 25))+ # vjust=0 puts a little more spacing btwn the axis text and label
+    theme(axis.title.y=element_text(colour='black', size = 25))+
+    theme(axis.text.x=element_text(colour='black', size = 20))+
+    theme(axis.text.y=element_text(colour='black', size = 20))+
+    theme(panel.grid.minor=element_blank(), panel.grid.major=element_blank())+ # get rid of gridlines
+    theme(panel.background=element_blank())+ # make background white
+    theme(axis.line=element_line(colour="black", linetype="solid"))+ # put black lines for axes
+    theme(legend.position="bottom", legend.direction="horizontal", legend.text = element_text(size = 15), legend.title = element_text(size = 20))+
+    theme(plot.title=element_text(size=8))
+    #annotate("text",  x=95, y = 160, label = "Extension", size=3)+
+    #annotate("text", label = "Flexion", x = 95, y = 60, size=3)+
+    #ggtitle("D\n") + theme(plot.title=element_text(hjust=0, size=15, face="bold"))
+  dev.off()
+  
+  
+  profilePlotR <- function(d = d, xname = xname, yname = yname, groupname = groupname, subgroupname = subgroupname, rowname = rowname, title = "plot", xlab = "x", ylab = "y", colorlinesby = subgroupname, highlight = NULL, ...) {
+    interact <- c(groupname, subgroupname, rowname)
+    ggplot(d, aes_string(x = xname, y = yname)) +
+      geom_line(aes_string(group = paste0('interaction(', paste0(interact, collapse = ', ' ),')'), color = colorlinesby, linetype = groupname), alpha = 0.3) +
+      geom_smooth(aes_string(fill = groupname, linetype = groupname, color = groupname), color = "black",  alpha = 0.6) + # include means for each ind with 95% CI shading
+      theme(panel.grid.minor=element_blank(), panel.grid.major=element_blank()) + # get rid of gridlines
+      theme(panel.background=element_blank()) + # make background white
+      theme(axis.line.x =element_line(colour="black", linetype="solid"),
+            axis.line.y =element_line(colour="black", linetype="solid")) + # put black lines for axes
+      ggtitle(title) + theme(plot.title=element_text(hjust=0.5, size=15, face="bold")) +
+      labs(x = xlab, y = ylab) +
+      if(is.null(highlight) == FALSE) {
+        geom_line(data = highlight, aes_string(group = paste0('interaction(', paste0(interact, collapse = ', ' ),')'), color = subgroupname, linetype = groupname),  size = 1.5, alpha = 0.5)
+      }
+  }
+  
   #### SAVING THE DATA ####
   ## go to the parent directory then save output in 'output' folder
   setwd('..')
