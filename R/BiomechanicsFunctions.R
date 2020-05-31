@@ -56,28 +56,40 @@ pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
 
 #'
 #' @examples
-#'
-#' profilePlotR(subset(AT_Kine2, Variable == "AbductAdductAngle"), "PercentStance", "value", groupname = "Appendage", subgroupname = "Ind", rowname = "Filename", highlight = AT_Kine2_AAA_subset, title = "Abduction versus Adduction", xlab = "PercentStance", ylab = "Degrees")
+#' percentStance = rep(seq(1,5),4)
+#' yank = c(0.00062, 0.00172, 0.00269, 0.00346, 0.00412, 0.0022, 0.00072, 0.00169, 0.00246, 0.00312, 0.00028, 0.00084, 0.00151, 0.00239, 0.00340, 0.00041, 0.00122, 0.00202, 0.00277, 0.00341)
+#' species = c("ab" , "ab", "ab", "ab", "ab", "ab", "ab", "ab", "ab", "ab", "cd", "cd", "cd", "cd", "cd", "cd", "cd", "cd", "cd", "cd")
+#' df <- data.frame(percentStance, yank, species)
+#' cbPalette <- c("#D55E00", "#0072B2")
+#' grouplevels = c("Aa bb", "Cc dd")
+#' profilePlotR(df, "percentstance", "yank", "species", "Percent Stance", "Yank (BW per sec)", colorpalette = cbPalette, grouplevels = grouplevels)
 #'
 #' @import ggplot2
 #' 
 #' @export
 
-profilePlotR <- function(d = d, xname = xname, yname = yname, groupname = groupname, subgroupname = subgroupname, rowname = rowname, title = "plot", xlab = "x", ylab = "y", colorlinesby = subgroupname, highlight = NULL, ...) {
-  interact <- c(groupname, subgroupname, rowname)
-  ggplot(d, aes_string(x = xname, y = yname)) +
-    geom_line(aes_string(group = paste0('interaction(', paste0(interact, collapse = ', ' ),')'), color = colorlinesby, linetype = groupname), alpha = 0.3) +
-    geom_smooth(aes_string(fill = groupname, linetype = groupname, color = groupname), color = "black",  alpha = 0.6) + # include means for each ind with 95% CI shading
-    theme(panel.grid.minor=element_blank(), panel.grid.major=element_blank()) + # get rid of gridlines
-    theme(panel.background=element_blank()) + # make background white
-    theme(axis.line.x =element_line(colour="black", linetype="solid"),
-      axis.line.y =element_line(colour="black", linetype="solid")) + # put black lines for axes
-    ggtitle(title) + theme(plot.title=element_text(hjust=0.5, size=15, face="bold")) +
-    labs(x = xlab, y = ylab) +
-    if(is.null(highlight) == FALSE) {
-      geom_line(data = highlight, aes_string(group = paste0('interaction(', paste0(interact, collapse = ', ' ),')'), color = subgroupname, linetype = groupname),  size = 1.5, alpha = 0.5)
+profilePlotR <- function(d = d, xvar = xvar, yvar = yvar, groupname = groupname, xlab = "x", ylab = "y", colorPalette = c("#D55E00", "#0072B2", "#56B4E9"), linetypes = NULL, grouplevels = NULL, title = NULL, ...) {
+  ggplot(d, aes_string(x= xname, y = yname)) + 
+    scale_y_continuous(paste(xlab, "\n")) +
+    scale_x_continuous(paste("\n ", ylab)) +
+    stat_summary(aes_string(linetype = groupname), fun = mean, geom = 'line', size=1, alpha=0.9) +
+    stat_summary(aes_string(fill = groupname), fun.data = mean_cl_normal, geom = "ribbon", fun.args = list(mult = 1), alpha = 0.5) + 
+    scale_color_manual(name = groupname, # changing legend title
+                       labels = grouplevels, # Changing legend labels
+                       values = colorPalette) +
+    scale_fill_manual(name = groupname,
+                      labels = grouplevels,
+                      values = colorPalette) +
+    scale_linetype_manual(name = groupname,
+                          labels = grouplevels,
+                          values = linetypes) +
+    theme(axis.title.x=element_text(colour="black", size = 25))+ 
+    theme(axis.title.y=element_text(colour='black', size = 25))+
+    theme(axis.text.x=element_text(colour='black', size = 20))+
+    theme(axis.text.y=element_text(colour='black', size = 20))+
+    theme_classic() + 
+    theme(legend.position="bottom", legend.direction="horizontal", legend.text = element_text(size = 12), legend.title = element_text(size = 15))
     }
-}
 
 
 ##### IMPULSE ####
