@@ -38,7 +38,7 @@ pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
 #'
 #' @description The following function calculates the summary statistics for groups that have multiple observations and then plots the mean and confidence interval for each group.
 #'
-#' @usage profilePlotR(df, "percentstance", "yank", "species", "Percent Stance", "Yank (BW per sec)", colorpalette = cbPalette, linetypes= c("solid", "dashed"), grouplevels = grouplevels)
+#' @usage profilePlotR(d = d, xvar = xvar, yvar = yvar, groupname = groupname, xlab = "x", ylab = "y", colorPalette = c("#D55E00", "#0072B2", "#56B4E9"), linetypes = NULL, grouplevels = NULL, title = NULL, ...)
 #'
 #' @param \code{d} data (currently only accepts input for one variable at a time).
 #' @param \code{xvar} x-axis variable name.
@@ -61,15 +61,15 @@ pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
 #' df <- data.frame(percentStance, yank, species)
 #' cbPalette <- c("#D55E00", "#0072B2")
 #' grouplevels = c("Aa bb", "Cc dd")
-#' profilePlotR(df, "percentstance", "yank", "species", "Percent Stance", "Yank (BW per sec)", colorpalette = cbPalette, linetypes= c("solid", "dashed"), grouplevels = grouplevels)
+#' profilePlotR(df, "percentstance", "yank", "species", "Percent Stance", "Yank (BW per sec)", colorpalette = cbPalette, grouplevels = grouplevels)
 #'
 #' @import ggplot2
 #' 
 #' @export
 
 profilePlotR <- function(d = d, xvar = xvar, yvar = yvar, groupname = groupname, xlab = "x", ylab = "y", colorPalette = c("#D55E00", "#0072B2", "#56B4E9"), linetypes = NULL, grouplevels = NULL, title = NULL, ...) {
-  if(is.null(grouplevels)) {grouplevels = levels(groupname)}
-  if(is.null(linetypes)) {linetypes = 1:(nrow(unique(df[groupname])))}
+  if(is.null(grouplevels)) {grouplevels = unique(d[,groupname])}
+  if(is.null(linetypes)) {linetypes = 1:(length(unique(d[,groupname])))}
   ggplot(d, aes_string(x= xname, y = yname)) + 
     scale_y_continuous(paste(ylab, "\n")) +
     scale_x_continuous(paste("\n ", xlab)) +
