@@ -36,21 +36,20 @@ pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
 #'
 #' @name profilePlotR
 #'
-#' @description Generating profile plot of multiple trials
+#' @description The following function calculates the summary statistics for groups that have multiple observations and then plots the mean and confidence interval for each group.
 #'
-#' @usage profilePlotR(d = d, xname = xname, yname = yname, groupname = groupname, subgroupname = subgroupname, rowname = rowname, colors = c("red", "blue"), title = "plot", xlab = "x", ylab = "y", highlight = NULL, ...)
+#' @usage profilePlotR(df, "percentstance", "yank", "species", "Percent Stance", "Yank (BW per sec)", colorpalette = cbPalette, linetypes= c("solid", "dashed"), grouplevels = grouplevels)
 #'
 #' @param \code{d} data (currently only accepts input for one variable at a time).
-#' @param \code{xname} x-axis variable name.
-#' @param \code{yname} y-axis variable name.
+#' @param \code{xvar} x-axis variable name.
+#' @param \code{yvar} y-axis variable name.
 #' @param \code{groupname} variable name for the overall group that is being evaluated (e.g., species).
-#' @param \code{subgroupname} variable name for a subgroup of the overall group (e.g., individual within species)
-#' @param \code{rowname} variable name for the rows (e.g., ID number).
-#' @param \code{title} character string for the title of the plot.
 #' @param \code{xlab} character string for the x-axis label.
 #' @param \code{ylab} character string for the y-axis label.
-#' @param \code{colorlinesby} variable name for the grouping by which to color the individual lines by.
-#' @param \code{highlight} Optional feature to highlight certain data points.
+#' @param \code{colorPalette} character string of colors to use for plot.
+#' @param \code{linetypes} character string of lines to use for each group. 
+#' @param \code{grouplevels} character string of the text to print for each group in the legend.
+#' @param \code{title} character string for the title of the plot.
 #'
 #' @details Function to quickly generate profile plots for data. For instance, kinematic plots over time for multiple individuals that have multiple trials of data collected.
 
@@ -69,6 +68,8 @@ pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
 #' @export
 
 profilePlotR <- function(d = d, xvar = xvar, yvar = yvar, groupname = groupname, xlab = "x", ylab = "y", colorPalette = c("#D55E00", "#0072B2", "#56B4E9"), linetypes = NULL, grouplevels = NULL, title = NULL, ...) {
+  if(is.null(grouplevels)) {grouplevels = levels(groupname)}
+  if(is.null(linetypes)) {linetypes = 1:(nrow(unique(df[groupname])))}
   ggplot(d, aes_string(x= xname, y = yname)) + 
     scale_y_continuous(paste(ylab, "\n")) +
     scale_x_continuous(paste("\n ", xlab)) +

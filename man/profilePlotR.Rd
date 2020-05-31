@@ -4,39 +4,42 @@
 \alias{profilePlotR}
 \title{Generating profile plots for longitudinal data, with repeated measures}
 \usage{
-profilePlotR(d = d, xname = xname, yname = yname, groupname = groupname, subgroupname = subgroupname, rowname = rowname, colors = c("red", "blue"), title = "plot", xlab = "x", ylab = "y", highlight = NULL, ...)
+profilePlotR(df, "percentstance", "yank", "species", "Percent Stance", "Yank (BW per sec)", colorpalette = cbPalette, linetypes= c("solid", "dashed"), grouplevels = grouplevels)
 }
 \arguments{
 \item{\code{d}}{data (currently only accepts input for one variable at a time).}
 
-\item{\code{xname}}{x-axis variable name.}
+\item{\code{xvar}}{x-axis variable name.}
 
-\item{\code{yname}}{y-axis variable name.}
+\item{\code{yvar}}{y-axis variable name.}
 
 \item{\code{groupname}}{variable name for the overall group that is being evaluated (e.g., species).}
-
-\item{\code{subgroupname}}{variable name for a subgroup of the overall group (e.g., individual within species)}
-
-\item{\code{rowname}}{variable name for the rows (e.g., ID number).}
-
-\item{\code{title}}{character string for the title of the plot.}
 
 \item{\code{xlab}}{character string for the x-axis label.}
 
 \item{\code{ylab}}{character string for the y-axis label.}
 
-\item{\code{colorlinesby}}{variable name for the grouping by which to color the individual lines by.}
+\item{\code{colorPalette}}{character string of colors to use for plot.}
 
-\item{\code{highlight}}{Optional feature to highlight certain data points.}
+\item{\code{linetypes}}{character string of lines to use for each group.}
+
+\item{\code{grouplevels}}{character string of the text to print for each group in the legend.}
+
+\item{\code{title}}{character string for the title of the plot.}
 }
 \description{
-Generating profile plot of multiple trials
+The following function calculates the summary statistics for groups that have multiple observations and then plots the mean and confidence interval for each group.
 }
 \details{
 Function to quickly generate profile plots for data. For instance, kinematic plots over time for multiple individuals that have multiple trials of data collected.
 }
 \examples{
-
-profilePlotR(subset(AT_Kine2, Variable == "AbductAdductAngle"), "PercentStance", "value", groupname = "Appendage", subgroupname = "Ind", rowname = "Filename", highlight = AT_Kine2_AAA_subset, title = "Abduction versus Adduction", xlab = "PercentStance", ylab = "Degrees")
+percentStance = rep(seq(1,5),4)
+yank = c(0.00062, 0.00172, 0.00269, 0.00346, 0.00412, 0.0022, 0.00072, 0.00169, 0.00246, 0.00312, 0.00028, 0.00084, 0.00151, 0.00239, 0.00340, 0.00041, 0.00122, 0.00202, 0.00277, 0.00341)
+species = c("ab" , "ab", "ab", "ab", "ab", "ab", "ab", "ab", "ab", "ab", "cd", "cd", "cd", "cd", "cd", "cd", "cd", "cd", "cd", "cd")
+df <- data.frame(percentStance, yank, species)
+cbPalette <- c("#D55E00", "#0072B2")
+grouplevels = c("Aa bb", "Cc dd")
+profilePlotR(df, "percentstance", "yank", "species", "Percent Stance", "Yank (BW per sec)", colorpalette = cbPalette, linetypes= c("solid", "dashed"), grouplevels = grouplevels)
 
 }

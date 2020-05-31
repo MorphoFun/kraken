@@ -4,7 +4,8 @@
 \name{FinLimbGRFs_Peak}
 \alias{FinLimbGRFs_Peak}
 \title{Peak net GRFs of fins and limbs}
-\format{A data frame with 248 rows and 21 variables.
+\format{
+A data frame with 248 rows and 21 variables.
  \describe{
 		\item{\code{PercentStance}}{The percentage of the stance phase when the peak net GRF occurs for that trial.}
      \item{\code{APAngle.Convert}}{Angle of the GRF in the anteroposterior direction, in the -90 (posterior) to +90 (posterior) degree range so that 0 degrees represent the transition between anterorior and posterior.}
@@ -27,7 +28,8 @@
      \item{\code{NetGRF.N}}{Magnitude of the Net GRF, in units of Newtons.}
      \item{\code{APAngle}}{Angle of the GRF in the anteroposterior direction, in the 0-180 degree range}
      \item{\code{MLAngle}}{Angle of the GRF in the mediolateral direction, in the 0-180 degree range}
- }}
+ }
+}
 \usage{
 FinLimbGRFs_Peak
 }
