@@ -62,7 +62,7 @@ pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
 #' df <- data.frame(percentStance, yank, species)
 #' cbPalette <- c("#D55E00", "#0072B2")
 #' grouplevels = c("Aa bb", "Cc dd")
-#' profilePlotR(df, "percentstance", "yank", "species", "Percent Stance", "Yank (BW per sec)", colorpalette = cbPalette, grouplevels = grouplevels)
+#' profilePlotR(df, "percentstance", "yank", "species", "Percent Stance", "Yank (BW per sec)", colorpalette = cbPalette, linetypes= c("solid", "dashed"), grouplevels = grouplevels)
 #'
 #' @import ggplot2
 #' 
@@ -70,8 +70,8 @@ pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
 
 profilePlotR <- function(d = d, xvar = xvar, yvar = yvar, groupname = groupname, xlab = "x", ylab = "y", colorPalette = c("#D55E00", "#0072B2", "#56B4E9"), linetypes = NULL, grouplevels = NULL, title = NULL, ...) {
   ggplot(d, aes_string(x= xname, y = yname)) + 
-    scale_y_continuous(paste(xlab, "\n")) +
-    scale_x_continuous(paste("\n ", ylab)) +
+    scale_y_continuous(paste(ylab, "\n")) +
+    scale_x_continuous(paste("\n ", xlab)) +
     stat_summary(aes_string(linetype = groupname), fun = mean, geom = 'line', size=1, alpha=0.9) +
     stat_summary(aes_string(fill = groupname), fun.data = mean_cl_normal, geom = "ribbon", fun.args = list(mult = 1), alpha = 0.5) + 
     scale_color_manual(name = groupname, # changing legend title
