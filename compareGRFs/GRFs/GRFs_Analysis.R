@@ -22,33 +22,38 @@ library(devtools)
 # install_github("MorphoFun/kraken") # uncomment if this is the first time using kraken or if you need to update
 library(kraken)
 library(lme4) # for lmer()
+library(reshape2) # for melt()
 library(MuMIn) # for r.squaredGLMM()
-library(emmeans) # for emmean() and contrast()
+library(emmeans) # for emmeans() and pairs(); contrast() could be an option, too
 library(piecewiseSEM) # for rsquared()
 library(gridExtra) # for grid.arrange()
+library(grid) # for textGrob()
 library(car) # for qqPlot()
 library(ggplot2) # for ggplot()
-library(cowplot) # for ggdraw()
+library(cowplot) # for plot_grid() and ggdraw()
 library(qqplotr) # for stat_qq_band()
+library(ggpubr) # for theme_pubr
 library(robustlmm) # for rlmer()
 library(nlme) # for lme() to allow unequal variances across groups in the random effects
-
+library(LMERConvenienceFunctions) # for the outlier removal steps
 
 library(EMAtools) # for lme.dscore(); although, may not use this
 library(effsize) # for cohen.d(); although, may not use this
 
+forcePath = "./force_rawFiles"
+setwd(forcePath)
 
-#### LOAD THE CALIBRATION FILE ####
-CalibFile <- data.frame(read.csv("./dataraw/FinLimbGRFs_Calibs.csv", header=TRUE))
-
-#### LOAD THE VIDEO INFO FILE ####
-VideoFile <- data.frame(read.csv("./dataraw/FinLimbGRFs_VideoInfo.csv", header=TRUE))
+# #### LOAD THE CALIBRATION FILE ####
+# CalibFile <- data.frame(read.csv("./FinLimbGRFs_Calibs.csv", header=TRUE))
+# save(CalibFile, file = "./data/FinLimbGRFs_Calibs.rda")
+# 
+# #### LOAD THE VIDEO INFO FILE ####
+# VideoFile <- data.frame(read.csv("./FinLimbGRFs_VideoInfo.csv", header=TRUE))
+# save(CalibFile, file = "./data/FinLimbGRFs_VideoInfo.rda")
 
 
 #### LOADING THE DATA ####
-setwd("./dataraw/force_Raw")
 
-#setwd("./dataraw/force_Raw/problemTrials/pec")
 
 fileList <- list.files(pattern = ".txt", full.names = FALSE)
 myFiles <- lapply(fileList, FUN = read.table)
@@ -56,16 +61,17 @@ names(myFiles) <- lapply(fileList, FUN = function(x) substring(x, 1,7))
 
 myData <- lapply(myFiles, function(x) {
   # remove unnecessary rows
-  x <- x[,c(1:12)] 
-  
+  x <- x[,c(1:12)]
+
   # add row for the sweep number
-  x <- cbind(x, 1:nrow(x))  
-  
+  x <- cbind(x, 1:nrow(x))
+
   # rename column names
   colnames <- c("light_Volts", "Vert1.Volts", "Vert2.Volts", "Vert3.Volts", "Vert4.Volts", "VertSum.Volts", "ML1.Volts", "ML2.Volts", "MLSum.Volts", "Hz1.Volts", "Hz2.Volts", "HzSum.Volts", "Sweep")
   setNames(x, colnames)
   }
 )
+
 
 #### QUANTIFY GROUND REACTION FORCES ####
 
@@ -297,75 +303,1308 @@ GRFanalysis <- function(myData) {
 GRFs <- GRFanalysis(myData)
 
   
-  ### Combine the peak net GRF data
-  GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet$appendage <- "pelvic"
+### Combine the peak net GRF data
+GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet$appendage <- "pelvic"
 
-  GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet$appendage <- "pectoral"  
+GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet$appendage <- "pectoral"  
 
+
+peakNetGRF <- rbind(GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet, GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet)
+peakNetGRF$group <- paste(substring(peakNetGRF$filename, 1, 2), substring(peakNetGRF$appendage, 1, 3), sep = "_")
+peakNetGRF$individual <- substring(peakNetGRF$filename, 1, 4)
+peakNetGRF$species <- substring(peakNetGRF$filename, 1, 2)
+
+## Subsetting peak net GRF data into groups to analyze
+pec_peakNetGRFs <- subset(peakNetGRF, appendage == "pectoral")
+pel_peakNetGRFs <- subset(peakNetGRF, appendage == "pelvic")
+sal_peakNetGRFs <- subset(peakNetGRF, !substring(filename, 1, 2) == "pb")
+
+
+#### GRF - PROFILE PLOTS ####
+
+# Create common label for x-axis
+x.grob <- textGrob("\n Percent Stance", 
+                   gp=gpar(fontface="bold", col="black", fontsize=12))
+
+# produce common legend
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+
+pec_GRFs <- list(
+  vertical = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), InterpV_BW = x$InterpV_BW)),
+  mediolateral = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), InterpML_BW = x$InterpML_BW)),
+  anteroposterior = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), InterpAP_BW = x$InterpAP_BW)),
+  net = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), net = x$NetGRF_BW)),
+  ml_angle =   lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), MLAngle_Convert_deg = x$MLAngle_Convert_deg)),
+  ap_angle = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), APAngle_Convert_deg = x$APAngle_Convert_deg))
+)
+
+pec_GRFs_combined <- list(
+  vertical = melt(pec_GRFs$vertical, id.vars = "percentStance", value.name = "vertical_BW"),
+  mediolateral = melt(pec_GRFs$mediolateral, id.vars = "percentStance", value.name = "mediolateral_BW"),
+  anteroposterior = melt(pec_GRFs$anteroposterior, id.vars = "percentStance", value.name = "anteroposterior_BW"),
+  net = melt(pec_GRFs$net, id.vars = "percentStance", value.name = "net"), 
+  ml_ang = melt(pec_GRFs$ml_angle, id.vars = "percentStance", value.name = "mediolateral_BW"),
+  ap_ang = melt(pec_GRFs$ap_angle, id.vars = "percentStance", value.name = "anteroposterior_BW")
+)
+
+for (i in 1:length(pec_GRFs_combined)) {
+  pec_GRFs_combined[[i]]$species = substring(pec_GRFs_combined[[i]][,4], 1, 2)
+}
+
+
+## Pectoral - yank plots (in units of BW per percent of stance)
+# need to edit this so it's the full dataset and not just the peak net GRF data
+pec_GRF_v <- profilePlotR(pec_GRFs_combined$vertical, "percentStance", "vertical_BW", "species", "Percent Stance", "GRF - vertical (BW)", colorpalette = cbPalette, yrange = c(-0.5, 0.5))
+
+pec_GRF_ml <- profilePlotR(pec_peakNetGRFs, "PercentStance", "InterpML_BW", "species", "Percent Stance", "GRF - mediolateral (BW)", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_GRF_ap <- profilePlotR(pec_peakNetGRFs, "PercentStance", "InterpAP_BW", "species", "Percent Stance", "GRF - anteroposterior (BW)", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_GRF_net <- profilePlotR(pec_peakNetGRFs, "PercentStance", "NetGRF_BW", "species", "Percent Stance", "GRF - Net (BW)", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_GRF_mlang <- profilePlotR(pec_peakNetGRFs, "PercentStance", "MLAngle_Convert_deg", "species", "Percent Stance", "GRF - mediolateral angle (degrees)", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_GRF_apang <- profilePlotR(pec_peakNetGRFs, "PercentStance", "APAngle_Convert_deg", "species", "Percent Stance", "GRF - anteroposterior angle (degrees)", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+
+
+
+pec_yank_prow <- cowplot::plot_grid(
+  pec_yank_pv + theme(axis.title.x = element_blank(),
+                      legend.position = "none"), 
+  pec_yank_pml + theme(axis.title.x = element_blank(),
+                       legend.position = "none" ), 
+  pec_yank_pap + theme(axis.title.x = element_blank(),
+                       legend.position = "none" ),
+  pec_yank_pnet + theme(axis.title.x = element_blank(),
+                        legend.position = "none" ),
+  nrow = 2,
+  labels = "auto")
+
+
+pec_yank_legend <- get_legend(pec_yank_pv)
+
+# Produce plot with insets and common x-axis label
+grid.arrange(arrangeGrob(pec_yank_prow, bottom = x.grob), pec_yank_legend, heights = c(1, .2))
+
+
+
+
+#### PeakNetGRF: summary stats ####
+variablesToAnalyze <- (c("PercentStance", "InterpV_BW", "InterpML_BW", "InterpAP_BW", "NetGRF_BW", "MLAngle_Convert_deg", "APAngle_Convert_deg", "group", "individual", "appendage"))
+
+## summarize the mean, sd, and n (sample size) for each variable
+aggregate(. ~ group, data = peakNetGRF[,variablesToAnalyze[1:(length(variablesToAnalyze)-2)]], FUN = function(x) c(mean = mean(x), sd = sd(x), n = length(x)))
+
+## identify number of dependent variables to analyze
+# "group", "individual", "appendage" are the independent variables
+nVars <- length(variablesToAnalyze) - 3
+
+
+## Pectoral - yank plots (in units of BW per percent of stance)
+pec_yank_pv <- profilePlotR(pec_yank_combined$vertical, "percentStance", "yank", "species", "Percent Stance", "Yank - vertical", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_yank_pml <- profilePlotR(pec_yank_combined$mediolateral, "percentStance", "yank", "species", "Percent Stance", "Yank - mediolateral", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_yank_pap <- profilePlotR(pec_yank_combined$anteroposterior, "percentStance", "yank", "species", "Percent Stance", "Yank - anteroposterior", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_yank_pnet <- profilePlotR(pec_yank_combined$net, "percentStance", "yank", "species", "Percent Stance", "Yank - Net", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+
+pec_yank_prow <- cowplot::plot_grid(
+  pec_yank_pv + theme(axis.title.x = element_blank(),
+                      legend.position = "none"), 
+  pec_yank_pml + theme(axis.title.x = element_blank(),
+                       legend.position = "none" ), 
+  pec_yank_pap + theme(axis.title.x = element_blank(),
+                       legend.position = "none" ),
+  pec_yank_pnet + theme(axis.title.x = element_blank(),
+                        legend.position = "none" ),
+  nrow = 2,
+  labels = "auto")
+
+
+pec_yank_legend <- get_legend(pec_yank_pv)
+
+# Produce plot with insets and common x-axis label
+grid.arrange(arrangeGrob(pec_yank_prow, bottom = x.grob), pec_yank_legend, heights = c(1, .2))
+
+
+
+
+#### PEAK NET GRF - PLOTS ####
+
+## Choosing a color palette that is friendly to color blindness
+cbPalette <- c("#D55E00", "#0072B2", "#56B4E9")
+
+## Create function to produce box plots with jitter points and marginal densities on the sides
+boxWithDensityPlot <- function(df, xName, yName, xLabel, yLabel, grouplevels = NULL, colorPalette = NULL,...) {
+  # create the plot
+  if(is.null(grouplevels)) {grouplevels = unique(df[,xName])}
+  original_plot <- df %>% 
+    ggplot(aes_string(x = xName, y = yName)) + 
+    geom_boxplot(aes_string(color = xName), show.legend = FALSE) +
+    geom_jitter(position=position_jitter(0.2), alpha = 0.5, aes_string(color = xName), show.legend = FALSE) +
+    scale_color_manual(name = xName, # changing legend title
+                       labels = grouplevels, # Changing legend labels
+                       values = colorPalette) +
+    scale_fill_manual(name = xName,
+                      labels = grouplevels,
+                      values = colorPalette) +
+    xlab(paste("\n", xLabel)) +
+    ylab(paste(yLabel, "\n")) +
+    theme_pubr() + 
+    border()      
   
-  peakNetGRF <- rbind(GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet, GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet)
-  peakNetGRF$group <- paste(substring(peakNetGRF$filename, 1, 2), substring(peakNetGRF$appendage, 1, 3), sep = "_")
-  peakNetGRF$individual <- substring(peakNetGRF$filename, 1, 4)
+  y_density <- axis_canvas(original_plot, axis = "y", coord_flip = TRUE) +
+    geom_density(data = df, aes_string(x = yName, fill = xName), color = NA, alpha = 0.5) +
+    scale_fill_manual(name = xName,
+                      labels = grouplevels,
+                      values = colorPalette) +
+    coord_flip()
   
-  ## Subsetting data into groups to analyze
-  pec_peakNetGRFs <- subset(peakNetGRF, appendage == "pectoral")
-  pel_peakNetGRFs <- subset(peakNetGRF, appendage == "pelvic")
-  sal_peakNetGRFs <- subset(peakNetGRF, !substring(filename, 1, 2) == "pb")
+  # create the combined plot
+  #combined_plot %<>% insert_yaxis_grob(., y_density, position = "right")
+  combined_plot <- insert_yaxis_grob(original_plot, y_density, position = "right")
   
-  
-  #### PeakNetGRF: summary stats ####
-  variablesToAnalyze <- (c("PercentStance", "InterpV_BW", "InterpML_BW", "InterpAP_BW", "NetGRF_BW", "MLAngle_Convert_deg", "APAngle_Convert_deg", "group", "individual", "appendage"))
-  aggregate(. ~ group, data = peakNetGRF[,variablesToAnalyze[1:(length(variablesToAnalyze)-2)]], FUN = function(x) c(mean = mean(x), sd = sd(x), n = length(x)))
-  nVars <- 7
-  
-  
-  #### YANK ####
-  yank_pec <- list(
-    vertical = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpV_BW)),
-    medioateral = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpML_BW)),
-    anteroposterior = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpAP_BW)),
-    net = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$NetGRF_BW))
-  )
-  
-  yank_pel <- list(
-    vertical = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpV_BW)),
-    medioateral = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpML_BW)),
-    anteroposterior = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$InterpAP_BW)),
-    net = lapply(GRFs$Pelvic$Pec_GRFs_Filtered_dataset_noOverlap, function(x) yank(x$PercentStance, x$NetGRF_BW))
-  )
+  # plot the resulting combined plot
+  ggdraw(combined_plot)
+}
+
+boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpV_BW", "", "GRF - vertical", colorPalette = cbPalette)
+
+
+### PECTORAL - ALL DATA
+pec_peakNetGRFs$species <- substring(pec_peakNetGRFs$group, 1, 2)
+
+pec_peakNetGRFs_VBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpV_BW", "", "GRF - vertical", colorPalette = cbPalette)
+pec_peakNetGRFs_MLBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpML_BW", "", "GRF - mediolateral", colorPalette = cbPalette)
+pec_peakNetGRFs_APBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpAP_BW", "", "GRF - anteroposterior", colorPalette = cbPalette)
+pec_peakNetGRFs_netBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "NetGRF_BW", "", "GRF - net", colorPalette = cbPalette)
+pec_peakNetGRFs_MLangle_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "MLAngle_Convert_deg", "", "mediolateral angle", colorPalette = cbPalette)
+pec_peakNetGRFs_APangle_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "APAngle_Convert_deg", "", "anteroposterior angle", colorPalette = cbPalette)
+
+jpeg("pec_peakNetGRF_plots.jpg", width = 8.5, height = 11, units = "in", res = 300)
+cowplot::plot_grid(pec_peakNetGRFs_VBW_plot, 
+                   pec_peakNetGRFs_MLBW_plot, 
+                   pec_peakNetGRFs_APBW_plot,
+                   pec_peakNetGRFs_netBW_plot, 
+                   pec_peakNetGRFs_MLangle_plot,
+                   pec_peakNetGRFs_APangle_plot,
+                   ncol = 3,
+                   #labels = c("a", "b", "c", "d", "e", "f")
+                   labels = "AUTO"
+)
+dev.off()
+
+
+### PELVIC - ALL DATA
+pel_peakNetGRFs$species <- substring(pel_peakNetGRFs$group, 1, 2)
+
+pel_peakNetGRFs_VBW_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "InterpV_BW", "", "GRF - vertical", colorPalette = cbPalette)
+pel_peakNetGRFs_MLBW_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "InterpML_BW", "", "GRF - mediolateral", colorPalette = cbPalette)
+pel_peakNetGRFs_APBW_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "InterpAP_BW", "", "GRF - anteroposterior", colorPalette = cbPalette)
+pel_peakNetGRFs_netBW_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "NetGRF_BW", "", "GRF - net", colorPalette = cbPalette)
+pel_peakNetGRFs_MLangle_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "MLAngle_Convert_deg", "", "mediolateral angle", colorPalette = cbPalette)
+pel_peakNetGRFs_APangle_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "APAngle_Convert_deg", "", "anteroposterior angle", colorPalette = cbPalette)
+
+jpeg("pel_peakNetGRF_plots.jpg", width = 8.5, height = 11, units = "in", res = 300)
+cowplot::plot_grid(pel_peakNetGRFs_VBW_plot, 
+                   pel_peakNetGRFs_MLBW_plot, 
+                   pel_peakNetGRFs_APBW_plot,
+                   pel_peakNetGRFs_netBW_plot, 
+                   pel_peakNetGRFs_MLangle_plot,
+                   pel_peakNetGRFs_APangle_plot,
+                   ncol = 3,
+                   #labels = c("a", "b", "c", "d", "e", "f")
+                   labels = "AUTO"
+)
+dev.off()
+
+
+
+#### PEAK NET GRF - LMM ####
+
+### PECTORAL
+# vertical 
+pec_peakNetGRF_v_lmm <- lmer(InterpV_BW ~ species + (1|individual), data = pec_peakNetGRFs)
+pec_peakNetGRF_v_emm <- emmeans(pec_peakNetGRF_v_lmm, "species")
+pairs(pec_peakNetGRF_v_emm)
+pec_peakNetGRF_v_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_v_lmm) # 0.2239348
+performance::r2_nakagawa(pec_peakNetGRF_v_lmm) # c = 0.214, m = 0.154
+
+# mediolateral
+pec_peakNetGRF_ml_lmm <- lmer(InterpML_BW ~ species + (1|individual), data = pec_peakNetGRFs)
+pec_peakNetGRF_ml_emm <- emmeans(pec_peakNetGRF_ml_lmm, "species")
+pairs(pec_peakNetGRF_ml_emm)
+pec_peakNetGRF_ml_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_ml_lmm) # 0.5055679
+performance::r2_nakagawa(pec_peakNetGRF_ml_lmm) # c = 0.491, m = 0.260
+
+# anteroposterior
+pec_peakNetGRF_ap_lmm <- lmer(InterpAP_BW ~ species + (1|individual), data = pec_peakNetGRFs)
+pec_peakNetGRF_ap_emm <- emmeans(pec_peakNetGRF_ap_lmm, "species")
+pairs(pec_peakNetGRF_ap_emm)
+pec_peakNetGRF_ap_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_ap_lmm) # 0.670572
+performance::r2_nakagawa(pec_peakNetGRF_ap_lmm) # c = 0.651, m = 0.515
+
+# net
+pec_peakNetGRF_net_lmm <- lmer(NetGRF_BW ~ species + (1|individual), data = pec_peakNetGRFs)
+pec_peakNetGRF_net_emm <- emmeans(pec_peakNetGRF_net_lmm, "species")
+pairs(pec_peakNetGRF_net_emm)
+pec_peakNetGRF_net_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_net_lmm) # 0.2309856
+performance::r2_nakagawa(pec_peakNetGRF_net_lmm) # c = 0.225, m = 0.110
+
+# mediolateral angle
+pec_peakNetGRF_mlang_lmm <- lmer(MLAngle_Convert_deg ~ species + (1|individual), data = pec_peakNetGRFs)
+pec_peakNetGRF_mlang_emm <- emmeans(pec_peakNetGRF_mlang_lmm, "species")
+pairs(pec_peakNetGRF_mlang_emm)
+pec_peakNetGRF_mlang_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_mlang_lmm) # 0.427933
+performance::r2_nakagawa(pec_peakNetGRF_mlang_lmm) # c = 0.421, m = 0.258
+
+# anteroposterior angle
+pec_peakNetGRF_apang_lmm <- lmer(APAngle_Convert_deg ~ species + (1|individual), data = pec_peakNetGRFs)
+pec_peakNetGRF_apang_emm <- emmeans(pec_peakNetGRF_apang_lmm, "species")
+pairs(pec_peakNetGRF_apang_emm)
+pec_peakNetGRF_apang_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_apang_lmm) # 0.6657909
+performance::r2_nakagawa(pec_peakNetGRF_apang_lmm) # c = 0.645, m = 0.543
+
+
+### PELVIC
+# vertical 
+pel_peakNetGRF_v_lmm <- lmer(InterpV_BW ~ species + (1|individual), data = pel_peakNetGRFs)
+pel_peakNetGRF_v_emm <- emmeans(pel_peakNetGRF_v_lmm, "species")
+pairs(pel_peakNetGRF_v_emm)
+pel_peakNetGRF_v_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_v_lmm) # 0.750374
+performance::r2_nakagawa(pel_peakNetGRF_v_lmm) # c = 0.734, m = 0.558
+
+# mediolateral
+pel_peakNetGRF_ml_lmm <- lmer(InterpML_BW ~ species + (1|individual), data = pel_peakNetGRFs)
+pel_peakNetGRF_ml_emm <- emmeans(pel_peakNetGRF_ml_lmm, "species")
+pairs(pel_peakNetGRF_ml_emm)
+pel_peakNetGRF_ml_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_ml_lmm) # 0.3266032 
+performance::r2_nakagawa(pel_peakNetGRF_ml_lmm) # c = 0.350, m = 0.056
+
+# anteroposterior
+pel_peakNetGRF_ap_lmm <- lmer(InterpAP_BW ~ species + (1|individual), data = pel_peakNetGRFs)
+pel_peakNetGRF_ap_emm <- emmeans(pel_peakNetGRF_ap_lmm, "species")
+pairs(pel_peakNetGRF_ap_emm)
+pel_peakNetGRF_ap_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_ap_lmm) # 0.4262423
+performance::r2_nakagawa(pel_peakNetGRF_ap_lmm) # c = 0.418, m = 0.102
+
+# net
+pel_peakNetGRF_net_lmm <- lmer(NetGRF_BW ~ species + (1|individual), data = pel_peakNetGRFs)
+pel_peakNetGRF_net_emm <- emmeans(pel_peakNetGRF_net_lmm, "species")
+pairs(pel_peakNetGRF_net_emm)
+pel_peakNetGRF_net_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_net_lmm) # 0.7405002
+performance::r2_nakagawa(pel_peakNetGRF_net_lmm) # c = 0.715, m = 0.585
+
+# mediolateral angle
+pel_peakNetGRF_mlang_lmm <- lmer(MLAngle_Convert_deg ~ species + (1|individual), data = pel_peakNetGRFs)
+pel_peakNetGRF_mlang_emm <- emmeans(pel_peakNetGRF_mlang_lmm, "species")
+pairs(pel_peakNetGRF_mlang_emm)
+pel_peakNetGRF_mlang_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_mlang_lmm) # 0.4554476
+performance::r2_nakagawa(pel_peakNetGRF_mlang_lmm) # c = 0.483, m = 0.215 
+
+# anteroposterior angle
+pel_peakNetGRF_apang_lmm <- lmer(APAngle_Convert_deg ~ species + (1|individual), data = pel_peakNetGRFs)
+pel_peakNetGRF_apang_emm <- emmeans(pel_peakNetGRF_apang_lmm, "species")
+pairs(pel_peakNetGRF_apang_emm)
+pel_peakNetGRF_apang_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_apang_lmm) # 0.3052985
+performance::r2_nakagawa(pel_peakNetGRF_apang_lmm) # c = 0.315, m = 0.001
+
+
+#### PEAK NET GRF - QQ PLOTS ####
+
+plotQQ <- function(lmm, ...) {
+  lmm_resids <- data.frame(resids = residuals(lmm))
+  ggplot(data = lmm_resids, mapping = aes(sample = resids)) +
+    qqplotr::stat_qq_band() +
+    qqplotr::stat_qq_line() +
+    qqplotr::stat_qq_point() +
+    labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
+    theme_classic()
+}
+
+#### PEAK NET GRF - PLOT ASSUMPTIONS ####
+## (export as 500 width x 600 height)
+
+### PECTORAL 
+# vertical
+pec_peakNetGRF_v_lmm_QQ <- plotQQ(pec_peakNetGRF_v_lmm)
+pec_peakNetGRF_v_lmm_Fitted <- plot(pec_peakNetGRF_v_lmm)
+
+# mediolateral
+pec_peakNetGRF_ml_lmm_QQ <- plotQQ(pec_peakNetGRF_ml_lmm)
+pec_peakNetGRF_ml_lmm_Fitted <- plot(pec_peakNetGRF_ml_lmm)
+
+# anteroposterior
+pec_peakNetGRF_ap_lmm_QQ <- plotQQ(pec_peakNetGRF_ap_lmm)
+pec_peakNetGRF_ap_lmm_Fitted <- plot(pec_peakNetGRF_ap_lmm)
+
+# net
+pec_peakNetGRF_net_lmm_QQ <- plotQQ(pec_peakNetGRF_net_lmm)
+pec_peakNetGRF_net_lmm_Fitted <- plot(pec_peakNetGRF_net_lmm)
+
+# mediolateral angle
+pec_peakNetGRF_mlang_lmm_QQ <- plotQQ(pec_peakNetGRF_mlang_lmm)
+pec_peakNetGRF_mlang_lmm_Fitted <- plot(pec_peakNetGRF_mlang_lmm)
+
+# anteroposterior angle
+pec_peakNetGRF_apang_lmm_QQ <- plotQQ(pec_peakNetGRF_apang_lmm)
+pec_peakNetGRF_apang_lmm_Fitted <- plot(pec_peakNetGRF_apang_lmm)
+
+jpeg("pec_peaknetGRF_QQ.jpg", width = 8, height = 10, units = "in", res = 300)
+cowplot::plot_grid(pec_peakNetGRF_net_lmm_QQ, pec_peakNetGRF_v_lmm_QQ, pec_peakNetGRF_ml_lmm_QQ,
+                   pec_peakNetGRF_ap_lmm_QQ, pec_peakNetGRF_mlang_lmm_QQ, pec_peakNetGRF_apang_lmm_QQ, ncol = 2, labels = letters[1:6])
+dev.off()
+
+### PELVIC  
+# vertical
+pel_peakNetGRF_v_lmm_QQ <- plotQQ(pel_peakNetGRF_v_lmm)
+pel_peakNetGRF_v_lmm_Fitted <- plot(pel_peakNetGRF_v_lmm)
+
+# mediolateral
+pel_peakNetGRF_ml_lmm_QQ <- plotQQ(pel_peakNetGRF_ml_lmm)
+pel_peakNetGRF_ml_lmm_Fitted <- plot(pel_peakNetGRF_ml_lmm)
+
+# anteroposterior
+pel_peakNetGRF_ap_lmm_QQ <- plotQQ(pel_peakNetGRF_ap_lmm)
+pel_peakNetGRF_ap_lmm_Fitted <- plot(pel_peakNetGRF_ap_lmm)
+
+# net
+pel_peakNetGRF_net_lmm_QQ <- plotQQ(pel_peakNetGRF_net_lmm)
+pel_peakNetGRF_net_lmm_Fitted <- plot(pel_peakNetGRF_net_lmm)
+
+# mediolateral angle
+pel_peakNetGRF_mlang_lmm_QQ <- plotQQ(pel_peakNetGRF_mlang_lmm)
+pel_peakNetGRF_mlang_lmm_Fitted <- plot(pel_peakNetGRF_mlang_lmm)
+
+# anteroposterior angle
+pel_peakNetGRF_apang_lmm_QQ <- plotQQ(pel_peakNetGRF_apang_lmm)
+pel_peakNetGRF_apang_lmm_Fitted <- plot(pel_peakNetGRF_apang_lmm)
+
+jpeg("pel_peaknetGRF_QQ.jpg", width = 8, height = 10, units = "in", res = 300)
+cowplot::plot_grid(pel_peakNetGRF_net_lmm_QQ, pel_peakNetGRF_v_lmm_QQ, pel_peakNetGRF_ml_lmm_QQ,
+                   pel_peakNetGRF_ap_lmm_QQ, pel_peakNetGRF_mlang_lmm_QQ, pel_peakNetGRF_apang_lmm_QQ, ncol = 2, labels = letters[1:6])
+dev.off()
+
+
+#### PEAK NET GRF - REMOVING OUTLIERS ####
+## outliers are set as those points falling outside 2x the interquantile range
+## only doing this for the variables that seemed to deviate from normality
+
+# pec - ml
+pec_peakNetGRF_ml_bp <-  boxplot(InterpML_BW ~ species, data = pec_peakNetGRFs, range = 2)
+pec_peakNetGRF_ml_noOutliers <- subset(pec_peakNetGRFs, !InterpML_BW %in% c(pec_peakNetGRF_ml_bp$out))
+pec_peakNetGRF_ml_noOutliers_lmm <- lmer(InterpML_BW ~ species + (1|individual), data = pec_peakNetGRF_ml_noOutliers)
+plotQQ(pec_peakNetGRF_ml_noOutliers_lmm)
+shapiro.test(resid(pec_peakNetGRF_ml_noOutliers_lmm))
+# the QQ plot is improved by removing the one outlier
+pec_peakNetGRF_ml_noOutliers_emm <- emmeans(pec_peakNetGRF_ml_noOutliers_lmm, "species")
+
+# pec - ap 
+pec_peakNetGRF_ap_bp <-  boxplot(InterpAP_BW ~ species, data = pec_peakNetGRFs, range = 2)
+pec_peakNetGRF_ap_noOutliers <- subset(pec_peakNetGRFs, !InterpAP_BW %in% c(pec_peakNetGRF_ap_bp$out))
+pec_peakNetGRF_ap_noOutliers_lmm <- lmer(InterpAP_BW ~ species + (1|individual), data = pec_peakNetGRF_ap_noOutliers)
+plotQQ(pec_peakNetGRF_ap_noOutliers_lmm)
+shapiro.test(resid(pec_peakNetGRF_ap_noOutliers_lmm))
+pec_peakNetGRF_ap_noOutliers_emm <- emmeans(pec_peakNetGRF_ap_noOutliers_lmm, "species")
+# note: no outliers, so no change in the estimates
+
+# pec - ml angle
+pec_peakNetGRF_mlang_bp <-  boxplot(MLAngle_Convert_deg ~ species, data = pec_peakNetGRFs, range = 2)
+pec_peakNetGRF_mlang_noOutliers <- subset(pec_peakNetGRFs, !MLAngle_Convert_deg %in% c(pec_peakNetGRF_mlang_bp$out))
+pec_peakNetGRF_mlang_noOutliers_lmm <- lmer(MLAngle_Convert_deg ~ species + (1|individual), data = pec_peakNetGRF_mlang_noOutliers)
+plotQQ(pec_peakNetGRF_mlang_noOutliers_lmm)
+shapiro.test(resid(pec_peakNetGRF_mlang_noOutliers_lmm))
+# the QQ plot is improved by removing the two outliers
+pec_peakNetGRF_mlang_noOutliers_emm <- emmeans(pec_peakNetGRF_mlang_noOutliers_lmm, "species")
+
+# pec - ap angle
+pec_peakNetGRF_apang_bp <-  boxplot(APAngle_Convert_deg ~ species, data = pec_peakNetGRFs, range = 2)
+pec_peakNetGRF_apang_noOutliers <- subset(pec_peakNetGRFs, !APAngle_Convert_deg %in% c(pec_peakNetGRF_apang_bp$out))
+pec_peakNetGRF_apang_noOutliers_lmm <- lmer(APAngle_Convert_deg ~ species + (1|individual), data = pec_peakNetGRF_apang_noOutliers)
+plotQQ(pec_peakNetGRF_apang_noOutliers_lmm)
+shapiro.test(resid(pec_peakNetGRF_apang_noOutliers_lmm))
+# the QQ plot is improved by removing the one outlier
+pec_peakNetGRF_apang_noOutliers_emm <- emmeans(pec_peakNetGRF_apang_noOutliers_lmm, "species")
+
+
+# pel - ap angle
+pel_peakNetGRF_apang_bp <-  boxplot(APAngle_Convert_deg ~ species, data = pel_peakNetGRFs, range = 2)
+pel_peakNetGRF_apang_noOutliers <- subset(pel_peakNetGRFs, !APAngle_Convert_deg %in% c(pel_peakNetGRF_apang_bp$out))
+pel_peakNetGRF_apang_noOutliers_lmm <- lmer(APAngle_Convert_deg ~ species + (1|individual), data = pel_peakNetGRF_apang_noOutliers)
+plotQQ(pel_peakNetGRF_apang_noOutliers_lmm)
+shapiro.test(resid(pel_peakNetGRF_apang_noOutliers_lmm))
+# the QQ plot is improved by removing the one outlier
+pel_peakNetGRF_apang_noOutliers_emm <- emmeans(pel_peakNetGRF_apang_noOutliers_lmm, "species")
+
+
+
+
+#### YANK - CALCULATIONS ####
+
+pec_yank <- list(
+  vertical = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), yank = yank(x$PercentStance, x$InterpV_BW)[,4])),
+  mediolateral = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), yank = yank(x$PercentStance, x$InterpML_BW)[,4])),
+  anteroposterior = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), yank = yank(x$PercentStance, x$InterpAP_BW)[,4])),
+  net = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), yank = yank(x$PercentStance, x$NetGRF_BW)[,4]))
+)
+
+pel_yank <- list(
+  vertical = lapply(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), yank = yank(x$PercentStance, x$InterpV_BW)[,4])),
+  mediolateral = lapply(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), yank = yank(x$PercentStance, x$InterpML_BW)[,4])),
+  anteroposterior = lapply(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), yank = yank(x$PercentStance, x$InterpAP_BW)[,4])),
+  net = lapply(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), yank = yank(x$PercentStance, x$NetGRF_BW)[,4]))
+)
   
 
-  #### REMOVING OUTLIERS ####
+pec_yank_combined <- list(
+  vertical = melt(pec_yank$vertical, id.vars = "percentStance", value.name = "yank"),
+  mediolateral = melt(pec_yank$mediolateral, id.vars = "percentStance", value.name = "yank"),
+  anteroposterior = melt(pec_yank$anteroposterior, id.vars = "percentStance", value.name = "yank"),
+  net = melt(pec_yank$net, id.vars = "percentStance", value.name = "yank")
+)
+
+for (i in 1:length(pec_yank_combined)) {
+  pec_yank_combined[[i]]$species = substring(pec_yank_combined[[i]][,4], 1, 2)
+}
+
+pel_yank_combined <- list(
+  vertical = melt(pel_yank$vertical, id.vars = "percentStance", value.name = "yank"),
+  mediolateral = melt(pel_yank$mediolateral, id.vars = "percentStance", value.name = "yank"),
+  anteroposterior = melt(pel_yank$anteroposterior, id.vars = "percentStance", value.name = "yank"),
+  net = melt(pel_yank$net, id.vars = "percentStance", value.name = "yank")
+)
+
+for (i in 1:length(pel_yank_combined)) {
+  pel_yank_combined[[i]]$species = substring(pel_yank_combined[[i]][,4], 1, 2)
+}
+
+#### YANK - PLOTS ####
+
+
+## Pectoral - yank plots (in units of BW per percent of stance)
+pec_yank_pv <- profilePlotR(pec_yank_combined$vertical, "percentStance", "yank", "species", "Percent Stance", "Yank - vertical", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_yank_pml <- profilePlotR(pec_yank_combined$mediolateral, "percentStance", "yank", "species", "Percent Stance", "Yank - mediolateral", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_yank_pap <- profilePlotR(pec_yank_combined$anteroposterior, "percentStance", "yank", "species", "Percent Stance", "Yank - anteroposterior", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_yank_pnet <- profilePlotR(pec_yank_combined$net, "percentStance", "yank", "species", "Percent Stance", "Yank - Net", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+
+pec_yank_prow <- cowplot::plot_grid(
+                   pec_yank_pv + theme(axis.title.x = element_blank(),
+                                       legend.position = "none"), 
+                   pec_yank_pml + theme(axis.title.x = element_blank(),
+                                       legend.position = "none" ), 
+                   pec_yank_pap + theme(axis.title.x = element_blank(),
+                                       legend.position = "none" ),
+                   pec_yank_pnet + theme(axis.title.x = element_blank(),
+                                       legend.position = "none" ),
+                   nrow = 2,
+                   labels = "auto")
+
+
+pec_yank_legend <- get_legend(pec_yank_pv)
+
+# Produce plot with insets and common x-axis label
+grid.arrange(arrangeGrob(pec_yank_prow, bottom = x.grob), pec_yank_legend, heights = c(1, .2))
+
+
+## Pelvic - yank plots
+pel_yank_pv <- profilePlotR(pel_yank_combined$vertical, "percentStance", "yank", "species", "Percent Stance", "Yank - vertical", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pel_yank_pml <- profilePlotR(pel_yank_combined$mediolateral, "percentStance", "yank", "species", "Percent Stance", "Yank - mediolateral", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pel_yank_pap <- profilePlotR(pel_yank_combined$anteroposterior, "percentStance", "yank", "species", "Percent Stance", "Yank - anteroposterior", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pel_yank_pnet <- profilePlotR(pel_yank_combined$net, "percentStance", "yank", "species", "Percent Stance", "Yank - Net", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+
+pel_yank_prow <- cowplot::plot_grid(
+  pel_yank_pv + theme(axis.title.x = element_blank(),
+                      legend.position = "none"), 
+  pel_yank_pml + theme(axis.title.x = element_blank(),
+                       legend.position = "none" ), 
+  pel_yank_pap + theme(axis.title.x = element_blank(),
+                       legend.position = "none" ),
+  pel_yank_pnet + theme(axis.title.x = element_blank(),
+                        legend.position = "none" ),
+  nrow = 2,
+  labels = "auto")
+
+
+pel_yank_legend <- get_legend(pel_yank_pv)
+
+# Produce plot with insets and common x-axis label
+grid.arrange(arrangeGrob(pel_yank_prow, bottom = x.grob), pel_yank_legend, heights = c(1, .2))
+
+
+
+
+#### YANK - SUMMARY (pooled data) #####
+## remove the scientific notation
+options(scipen=999)
+
+
+### PECTORAL 
+## calculating values of the mean and standard deviation for each percent of stance between the species
+# vertical
+pec_yank_sumStats_v <- aggregate(yank~percentStance*species, data = pec_yank_combined$vertical, function(x) c(mean = mean(x), sd = sd(x)))
+
+# mediolateral
+pec_yank_sumStats_ml <- aggregate(yank~percentStance*species, data = pec_yank_combined$mediolateral, function(x) c(mean = mean(x), sd = sd(x)))
+
+# anteroposterior
+pec_yank_sumStats_ap <- aggregate(yank~percentStance*species, data = pec_yank_combined$anteroposterior, function(x) c(mean = mean(x), sd = sd(x)))
+
+# net
+pec_yank_sumStats_net <- aggregate(yank~percentStance*species, data = pec_yank_combined$net, function(x) c(mean = mean(x), sd = sd(x)))
+
+
+
+## calculating maximum yank from the average values
+# don't need to substract 1 from which.max output for some reason
+
+# vertical
+aggregate(yank[,1]~species, data = pec_yank_sumStats_v, function(x) max(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pec_yank_sumStats_v, function(x) which.max(x))
+
+
+# mediolateral
+aggregate(yank[,1]~species, data = pec_yank_sumStats_ml, function(x) max(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pec_yank_sumStats_ml, function(x) which.max(x))
+
+# anteroposterior
+aggregate(yank[,1]~species, data = pec_yank_sumStats_ap, function(x) max(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pec_yank_sumStats_ap, function(x) which.max(x))
+
+
+# net
+aggregate(yank[,1]~species, data = pec_yank_sumStats_net, function(x) max(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pec_yank_sumStats_net, function(x) which.max(x))
+
+
+## calculating minimum yank from the average values
+# don't need to substract 1 from which.max output for some reason
+
+# vertical
+aggregate(yank[,1]~species, data = pec_yank_sumStats_v, function(x) min(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pec_yank_sumStats_v, function(x) which.min(x))
+
+# mediolateral
+aggregate(yank[,1]~species, data = pec_yank_sumStats_ml, function(x) min(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pec_yank_sumStats_ml, function(x) which.min(x))
+
+# anteroposterior
+aggregate(yank[,1]~species, data = pec_yank_sumStats_ap, function(x) min(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pec_yank_sumStats_ap, function(x) which.min(x))
+
+# net
+aggregate(yank[,1]~species, data = pec_yank_sumStats_net, function(x) min(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pec_yank_sumStats_ap, function(x) which.min(x))
+
+
+
+### PELVIC
+## calculating values of the mean and standard deviation for each percent of stance between the species
+# vertical
+pel_yank_sumStats_v <- aggregate(yank~percentStance*species, data = pel_yank_combined$vertical, function(x) c(mean = mean(x), sd = sd(x)))
+
+# mediolateral
+pel_yank_sumStats_ml <- aggregate(yank~percentStance*species, data = pel_yank_combined$mediolateral, function(x) c(mean = mean(x), sd = sd(x)))
+
+# anteroposterior
+pel_yank_sumStats_ap <- aggregate(yank~percentStance*species, data = pel_yank_combined$anteroposterior, function(x) c(mean = mean(x), sd = sd(x)))
+
+# net
+pel_yank_sumStats_net <- aggregate(yank~percentStance*species, data = pel_yank_combined$net, function(x) c(mean = mean(x), sd = sd(x)))
+
+
+
+## calculating maximum yank from the average values
+# don't need to substract 1 from which.max output for some reason
+
+# vertical
+aggregate(yank[,1]~species, data = pel_yank_sumStats_v, function(x) max(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pel_yank_sumStats_v, function(x) which.max(x))
+
+# mediolateral
+aggregate(yank[,1]~species, data = pel_yank_sumStats_ml, function(x) max(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pel_yank_sumStats_ml, function(x) which.max(x))
+
+# anteroposterior
+aggregate(yank[,1]~species, data = pel_yank_sumStats_ap, function(x) max(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pel_yank_sumStats_ap, function(x) which.max(x))
+
+# net
+aggregate(yank[,1]~species, data = pel_yank_sumStats_net, function(x) max(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pel_yank_sumStats_net, function(x) which.max(x))
+
+
+## calculating minimum yank from the average values
+# don't need to substract 1 from which.max output for some reason
+
+# vertical
+aggregate(yank[,1]~species, data = pel_yank_sumStats_v, function(x) min(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pel_yank_sumStats_v, function(x) which.min(x))
+
+# mediolateral
+aggregate(yank[,1]~species, data = pel_yank_sumStats_ml, function(x) min(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pel_yank_sumStats_ml, function(x) which.min(x))
+
+# anteroposterior
+aggregate(yank[,1]~species, data = pel_yank_sumStats_ap, function(x) min(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pel_yank_sumStats_ap, function(x) which.min(x))
+
+# net
+aggregate(yank[,1]~species, data = pel_yank_sumStats_net, function(x) min(x, na.rm = TRUE))
+# which percent of stance this occurs 
+aggregate(yank[,1]~species, data = pel_yank_sumStats_net, function(x) which.min(x))
+
+
+#### YANK - SUMMARY (unpooled data) ####
+## this calculates the maximum and minimum yank values within each trial, rather than from the averaged data
+
+### PECTORAL
+## substrating one from which.max because the first observation is 0% of stance
+
+## Maximum
+# vertical 
+pec_yank_v_max <- data.frame(yank_max = unlist(cbind(lapply(pec_yank$vertical, FUN = function(x) max(x[,2], na.rm = TRUE)))))
+pec_yank_v_max$species <- substring(names(pec_yank$vertical), 1, 2)
+pec_yank_v_max$individual <- substring(names(pec_yank$vertical), 1, 4)
+aggregate(yank_max~species, data = pec_yank_v_max, function(x) c(mean = mean(x), sd = sd(x)))
+
+pec_yank_v_maxwhich <- data.frame(yank_maxwhich = unlist(cbind(lapply(pec_yank$vertical, FUN = function(x) which.max(x[,2])-1))))
+pec_yank_v_maxwhich$species <- substring(names(pec_yank$vertical), 1, 2)
+aggregate(yank_maxwhich~species, data = pec_yank_v_maxwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+# mediolateral 
+pec_yank_ml_max <- data.frame(yank_max = unlist(cbind(lapply(pec_yank$mediolateral, FUN = function(x) max(x[,2], na.rm = TRUE)))))
+pec_yank_ml_max$species <- substring(names(pec_yank$mediolateral), 1, 2)
+pec_yank_ml_max$individual <- substring(names(pec_yank$mediolateral), 1, 4)
+aggregate(yank_max~species, data = pec_yank_ml_max, function(x) c(mean = mean(x), sd = sd(x)))
+
+pec_yank_ml_maxwhich <- data.frame(yank_maxwhich = unlist(cbind(lapply(pec_yank$mediolateral, FUN = function(x) which.max(x[,2])-1))))
+pec_yank_ml_maxwhich$species <- substring(names(pec_yank$mediolateral), 1, 2)
+aggregate(yank_maxwhich~species, data = pec_yank_ml_maxwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+# anteroposterior
+pec_yank_ap_max <- data.frame(yank_max = unlist(cbind(lapply(pec_yank$anteroposterior, FUN = function(x) max(x[,2], na.rm = TRUE)))))
+pec_yank_ap_max$species <- substring(names(pec_yank$anteroposterior), 1, 2)
+pec_yank_ap_max$individual <- substring(names(pec_yank$anteroposterior), 1, 4)
+aggregate(yank_max~species, data = pec_yank_ap_max, function(x) c(mean = mean(x), sd = sd(x)))
+
+pec_yank_ap_maxwhich <- data.frame(yank_maxwhich = unlist(cbind(lapply(pec_yank$anteroposterior, FUN = function(x) which.max(x[,2])-1))))
+pec_yank_ap_maxwhich$species <- substring(names(pec_yank$anteroposterior), 1, 2)
+aggregate(yank_maxwhich~species, data = pec_yank_ap_maxwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+# net
+pec_yank_net_max <- data.frame(yank_max = unlist(cbind(lapply(pec_yank$net, FUN = function(x) max(x[,2], na.rm = TRUE)))))
+pec_yank_net_max$species <- substring(names(pec_yank$net), 1, 2)
+pec_yank_net_max$individual <- substring(names(pec_yank$net), 1, 4)
+aggregate(yank_max~species, data = pec_yank_net_max, function(x) c(mean = mean(x), sd = sd(x)))
+
+pec_yank_net_maxwhich <- data.frame(yank_maxwhich = unlist(cbind(lapply(pec_yank$net, FUN = function(x) which.max(x[,2])-1))))
+pec_yank_net_maxwhich$species <- substring(names(pec_yank$net), 1, 2)
+aggregate(yank_maxwhich~species, data = pec_yank_net_maxwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+
+## Minimum
+# vertical 
+pec_yank_v_min <- data.frame(yank_min = unlist(cbind(lapply(pec_yank$vertical, FUN = function(x) min(x[,2], na.rm = TRUE)))))
+pec_yank_v_min$species <- substring(names(pec_yank$vertical), 1, 2)
+pec_yank_v_min$individual <- substring(names(pec_yank$vertical), 1, 4)
+aggregate(yank_min~species, data = pec_yank_v_min, function(x) c(mean = mean(x), sd = sd(x)))
+
+pec_yank_v_minwhich <- data.frame(yank_minwhich = unlist(cbind(lapply(pec_yank$vertical, FUN = function(x) which.min(x[,2])-1))))
+pec_yank_v_minwhich$species <- substring(names(pec_yank$vertical), 1, 2)
+aggregate(yank_minwhich~species, data = pec_yank_v_minwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+# mediolateral 
+pec_yank_ml_min <- data.frame(yank_min = unlist(cbind(lapply(pec_yank$mediolateral, FUN = function(x) min(x[,2], na.rm = TRUE)))))
+pec_yank_ml_min$species <- substring(names(pec_yank$mediolateral), 1, 2)
+pec_yank_ml_min$individual <- substring(names(pec_yank$mediolateral), 1, 4)
+aggregate(yank_min~species, data = pec_yank_ml_min, function(x) c(mean = mean(x), sd = sd(x)))
+
+pec_yank_ml_minwhich <- data.frame(yank_minwhich = unlist(cbind(lapply(pec_yank$mediolateral, FUN = function(x) which.min(x[,2])-1))))
+pec_yank_ml_minwhich$species <- substring(names(pec_yank$mediolateral), 1, 2)
+aggregate(yank_minwhich~species, data = pec_yank_ml_minwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+# anteroposterior
+pec_yank_ap_min <- data.frame(yank_min = unlist(cbind(lapply(pec_yank$anteroposterior, FUN = function(x) min(x[,2], na.rm = TRUE)))))
+pec_yank_ap_min$species <- substring(names(pec_yank$anteroposterior), 1, 2)
+pec_yank_ap_min$individual <- substring(names(pec_yank$anteroposterior), 1, 4)
+aggregate(yank_min~species, data = pec_yank_ap_min, function(x) c(mean = mean(x), sd = sd(x)))
+
+pec_yank_ap_minwhich <- data.frame(yank_minwhich = unlist(cbind(lapply(pec_yank$anteroposterior, FUN = function(x) which.min(x[,2])-1))))
+pec_yank_ap_minwhich$species <- substring(names(pec_yank$anteroposterior), 1, 2)
+aggregate(yank_minwhich~species, data = pec_yank_ap_minwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+# net
+pec_yank_net_min <- data.frame(yank_min = unlist(cbind(lapply(pec_yank$net, FUN = function(x) min(x[,2], na.rm = TRUE)))))
+pec_yank_net_min$species <- substring(names(pec_yank$net), 1, 2)
+pec_yank_net_min$individual <- substring(names(pec_yank$net), 1, 4)
+aggregate(yank_min~species, data = pec_yank_net_min, function(x) c(mean = mean(x), sd = sd(x)))
+
+pec_yank_net_minwhich <- data.frame(yank_minwhich = unlist(cbind(lapply(pec_yank$net, FUN = function(x) which.min(x[,2])-1))))
+pec_yank_net_minwhich$species <- substring(names(pec_yank$net), 1, 2)
+aggregate(yank_minwhich~species, data = pec_yank_net_minwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+
+### PELVIC
+## substrating one from which.max because the first observation is 0% of stance
+
+## Maximum
+# vertical 
+pel_yank_v_max <- data.frame(yank_max = unlist(cbind(lapply(pel_yank$vertical, FUN = function(x) max(x[,2], na.rm = TRUE)))))
+pel_yank_v_max$species <- substring(names(pel_yank$vertical), 1, 2)
+pel_yank_v_max$individual <- substring(names(pel_yank$vertical), 1, 4)
+aggregate(yank_max~species, data = pel_yank_v_max, function(x) c(mean = mean(x), sd = sd(x)))
+
+pel_yank_v_maxwhich <- data.frame(yank_maxwhich = unlist(cbind(lapply(pel_yank$vertical, FUN = function(x) which.max(x[,2])-1))))
+pel_yank_v_maxwhich$species <- substring(names(pel_yank$vertical), 1, 2)
+aggregate(yank_maxwhich~species, data = pel_yank_v_maxwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+# mediolateral 
+pel_yank_ml_max <- data.frame(yank_max = unlist(cbind(lapply(pel_yank$mediolateral, FUN = function(x) max(x[,2], na.rm = TRUE)))))
+pel_yank_ml_max$species <- substring(names(pel_yank$mediolateral), 1, 2)
+pel_yank_ml_max$individual <- substring(names(pel_yank$mediolateral), 1, 4)
+aggregate(yank_max~species, data = pel_yank_ml_max, function(x) c(mean = mean(x), sd = sd(x)))
+
+pel_yank_ml_maxwhich <- data.frame(yank_maxwhich = unlist(cbind(lapply(pel_yank$mediolateral, FUN = function(x) which.max(x[,2])-1))))
+pel_yank_ml_maxwhich$species <- substring(names(pel_yank$mediolateral), 1, 2)
+aggregate(yank_maxwhich~species, data = pel_yank_ml_maxwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+# anteroposterior
+pel_yank_ap_max <- data.frame(yank_max = unlist(cbind(lapply(pel_yank$anteroposterior, FUN = function(x) max(x[,2], na.rm = TRUE)))))
+pel_yank_ap_max$species <- substring(names(pel_yank$anteroposterior), 1, 2)
+pel_yank_ap_max$individual <- substring(names(pel_yank$anteroposterior), 1, 4)
+aggregate(yank_max~species, data = pel_yank_ap_max, function(x) c(mean = mean(x), sd = sd(x)))
+
+pel_yank_ap_maxwhich <- data.frame(yank_maxwhich = unlist(cbind(lapply(pel_yank$anteroposterior, FUN = function(x) which.max(x[,2])-1))))
+pel_yank_ap_maxwhich$species <- substring(names(pel_yank$anteroposterior), 1, 2)
+aggregate(yank_maxwhich~species, data = pel_yank_ap_maxwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+# net
+pel_yank_net_max <- data.frame(yank_max = unlist(cbind(lapply(pel_yank$net, FUN = function(x) max(x[,2], na.rm = TRUE)))))
+pel_yank_net_max$species <- substring(names(pel_yank$net), 1, 2)
+pel_yank_net_max$individual <- substring(names(pel_yank$net), 1, 4)
+aggregate(yank_max~species, data = pel_yank_net_max, function(x) c(mean = mean(x), sd = sd(x)))
+
+pel_yank_net_maxwhich <- data.frame(yank_maxwhich = unlist(cbind(lapply(pel_yank$net, FUN = function(x) which.max(x[,2])-1))))
+pel_yank_net_maxwhich$species <- substring(names(pel_yank$net), 1, 2)
+aggregate(yank_maxwhich~species, data = pel_yank_net_maxwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+## Minimum
+# vertical 
+pel_yank_v_min <- data.frame(yank_min = unlist(cbind(lapply(pel_yank$vertical, FUN = function(x) min(x[,2], na.rm = TRUE)))))
+pel_yank_v_min$species <- substring(names(pel_yank$vertical), 1, 2)
+pel_yank_v_min$individual <- substring(names(pel_yank$vertical), 1, 4)
+aggregate(yank_min~species, data = pel_yank_v_min, function(x) c(mean = mean(x), sd = sd(x)))
+
+pel_yank_v_minwhich <- data.frame(yank_minwhich = unlist(cbind(lapply(pel_yank$vertical, FUN = function(x) which.min(x[,2])-1))))
+pel_yank_v_minwhich$species <- substring(names(pel_yank$vertical), 1, 2)
+aggregate(yank_minwhich~species, data = pel_yank_v_minwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+# mediolateral 
+pel_yank_ml_min <- data.frame(yank_min = unlist(cbind(lapply(pel_yank$mediolateral, FUN = function(x) min(x[,2], na.rm = TRUE)))))
+pel_yank_ml_min$species <- substring(names(pel_yank$mediolateral), 1, 2)
+pel_yank_ml_min$individual <- substring(names(pel_yank$mediolateral), 1, 4)
+aggregate(yank_min~species, data = pel_yank_ml_min, function(x) c(mean = mean(x), sd = sd(x)))
+
+pel_yank_ml_minwhich <- data.frame(yank_minwhich = unlist(cbind(lapply(pel_yank$mediolateral, FUN = function(x) which.min(x[,2])-1))))
+pel_yank_ml_minwhich$species <- substring(names(pel_yank$mediolateral), 1, 2)
+aggregate(yank_minwhich~species, data = pel_yank_ml_minwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+# anteroposterior
+pel_yank_ap_min <- data.frame(yank_min = unlist(cbind(lapply(pel_yank$anteroposterior, FUN = function(x) min(x[,2], na.rm = TRUE)))))
+pel_yank_ap_min$species <- substring(names(pel_yank$anteroposterior), 1, 2)
+pel_yank_ap_min$individual <- substring(names(pel_yank$anteroposterior), 1, 4)
+aggregate(yank_min~species, data = pel_yank_ap_min, function(x) c(mean = mean(x), sd = sd(x)))
+
+pel_yank_ap_minwhich <- data.frame(yank_minwhich = unlist(cbind(lapply(pel_yank$anteroposterior, FUN = function(x) which.min(x[,2])-1))))
+pel_yank_ap_minwhich$species <- substring(names(pel_yank$anteroposterior), 1, 2)
+aggregate(yank_minwhich~species, data = pel_yank_ap_minwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+# net
+pel_yank_net_min <- data.frame(yank_min = unlist(cbind(lapply(pel_yank$net, FUN = function(x) min(x[,2], na.rm = TRUE)))))
+pel_yank_net_min$species <- substring(names(pel_yank$net), 1, 2)
+pel_yank_net_min$individual <- substring(names(pel_yank$net), 1, 4)
+aggregate(yank_min~species, data = pel_yank_net_min, function(x) c(mean = mean(x), sd = sd(x)))
+
+pel_yank_net_minwhich <- data.frame(yank_minwhich = unlist(cbind(lapply(pel_yank$net, FUN = function(x) which.min(x[,2])-1))))
+pel_yank_net_minwhich$species <- substring(names(pel_yank$net), 1, 2)
+aggregate(yank_minwhich~species, data = pel_yank_net_minwhich, function(x) c(mean = mean(x), sd = sd(x)))
+
+
+## Zu omega squared to assess the 'goodness of fit' for the entire model
+# Xu's omega method: http://onlinelibrary.wiley.com/doi/10.1002/sim.1572/abstract
+## or through the performance package: (got the same exact results as my code)
+# performance::r2_xu(pec_LMM)
+
+# Xu_omega2 <- function(lmm, ...) {
+#   1-var(residuals(lmm))/(var(model.response(model.frame(lmm))))
+# }
+
+
+
+#### YANK - PEC - LMM ####
+
+## double-check number of trials in each species
+table(factor(pec_yank_v_max$species, levels = c("af", "pw", "pb"))) 
+
+### Maximum - magnitude 
+# vertical 
+pec_yank_v_max_lmm <- lmer(yank_max ~ species + (1|individual), data = pec_yank_v_max)
+pec_yank_v_max_emm <- emmeans(pec_yank_v_max_lmm, "species")
+pairs(pec_yank_v_max_emm)
+pec_yank_v_max_lmm_omega2 <- performance::r2_xu(pec_yank_v_max_lmm) # 0.2424792
+performance::r2_nakagawa(pec_yank_v_max_lmm) # c = 0.218, m = 0.083
+
+# medioateral
+pec_yank_ml_max_lmm <- lmer(yank_max ~ species + (1|individual), data = pec_yank_ml_max)
+pec_yank_ml_max_emm <- emmeans(pec_yank_ml_max_lmm, "species")
+pairs(pec_yank_ml_max_emm)
+pec_yank_ml_max_lmm_omega2 <- performance::r2_xu(pec_yank_ml_max_lmm) # 0.418855
+performance::r2_nakagawa(pec_yank_ml_max_lmm) # c = 0.391, m = 0.122
+
+# anteroposterior
+pec_yank_ap_max_lmm <- lmer(yank_max ~ species + (1|individual), data = pec_yank_ap_max)
+pec_yank_ap_max_emm <- emmeans(pec_yank_ap_max_lmm, "species")
+pairs(pec_yank_ap_max_emm)
+pec_yank_ap_max_lmm_omega2 <- performance::r2_xu(pec_yank_ap_max_lmm) # 0.3946568
+performance::r2_nakagawa(pec_yank_ap_max_lmm) # c = 0.366, m = 0.243
+
+# net
+pec_yank_net_max_lmm <- lmer(yank_max ~ species + (1|individual), data = pec_yank_net_max)
+pec_yank_net_max_emm <- emmeans(pec_yank_net_max_lmm, "species")
+pairs(pec_yank_net_max_emm)
+pec_yank_net_max_lmm_omega2 <- performance::r2_xu(pec_yank_net_max_lmm) # 0.2503454
+performance::r2_nakagawa(pec_yank_net_max_lmm) # c = 0.230, m = 0.060
+
+
+### Minimum - magnitude
+
+# vertical
+pec_yank_v_min_lmm <- lmer(yank_min ~ species + (1|individual), data = pec_yank_v_min)
+pec_yank_v_min_emm <- emmeans(pec_yank_v_min_lmm, "species")
+pairs(pec_yank_v_min_emm)
+pec_yank_v_min_lmm_omega2 <- performance::r2_xu(pec_yank_v_min_lmm) # 0.1692728
+performance::r2_nakagawa(pec_yank_v_min_lmm) # c = 0.152, 0.109
+
+# mediolateral
+pec_yank_ml_min_lmm <- lmer(yank_min ~ species + (1|individual), data = pec_yank_ml_min)
+pec_yank_ml_min_emm <- emmeans(pec_yank_ml_min_lmm, "species")
+pairs(pec_yank_ml_min_emm)
+pec_yank_ml_min_lmm_omega2 <- performance::r2_xu(pec_yank_ml_min_lmm) # 0.3740738 
+performance::r2_nakagawa(pec_yank_ml_min_lmm) # c = 0.363, m = 0.118
+
+# anteroposterior
+pec_yank_ap_min_lmm <- lmer(yank_min ~ species + (1|individual), data = pec_yank_ap_min)
+pec_yank_ap_min_emm <- emmeans(pec_yank_ap_min_lmm, "species")
+pairs(pec_yank_ap_min_emm)
+pec_yank_ap_min_lmm_omega2 <- performance::r2_xu(pec_yank_ap_min_lmm) # 0.3512727
+performance::r2_nakagawa(pec_yank_ap_min_lmm) # c = 0.335, m = 0.165
+
+# net
+pec_yank_net_min_lmm <- lmer(yank_min ~ species + (1|individual), data = pec_yank_net_min)
+pec_yank_net_min_emm <- emmeans(pec_yank_net_min_lmm, "species")
+pairs(pec_yank_net_min_emm)
+pec_yank_net_min_lmm_omega2 <- performance::r2_xu(pec_yank_net_min_lmm) # 0.1636566
+performance::r2_nakagawa(pec_yank_net_min_lmm) # c = 0.145, m = 0.081
+
+
+
+#### YANK - PEL - LMM ####
+
+## double-check number of trials in each species
+table(factor(pel_yank_v_max$species, levels = c("af", "pw", "pb"))) 
+
+### Maximum - magnitude 
+# vertical 
+pel_yank_v_max_lmm <- lmer(yank_max ~ species + (1|individual), data = pel_yank_v_max)
+pel_yank_v_max_emm <- emmeans(pel_yank_v_max_lmm, "species")
+pairs(pel_yank_v_max_emm)
+pel_yank_v_max_lmm_omega2 <- performance::r2_xu(pel_yank_v_max_lmm) # 0.2254354
+performance::r2_nakagawa(pel_yank_v_max_lmm) # c = 0.204, m = 0.106
+
+# medioateral
+pel_yank_ml_max_lmm <- lmer(yank_max ~ species + (1|individual), data = pel_yank_ml_max)
+pel_yank_ml_max_emm <- emmeans(pel_yank_ml_max_lmm, "species")
+pairs(pel_yank_ml_max_emm)
+pel_yank_ml_max_lmm_omega2 <- performance::r2_xu(pel_yank_ml_max_lmm) # .3096737
+performance::r2_nakagawa(pel_yank_ml_max_lmm) # c = 0.314,  m = 0.001
+
+# anteroposterior
+pel_yank_ap_max_lmm <- lmer(yank_max ~ species + (1|individual), data = pel_yank_ap_max)
+pel_yank_ap_max_emm <- emmeans(pel_yank_ap_max_lmm, "species")
+pairs(pel_yank_ap_max_emm)
+pel_yank_ap_max_lmm_omega2 <- performance::r2_xu(pel_yank_ap_max_lmm) # 0.2067791
+performance::r2_nakagawa(pel_yank_ap_max_lmm) # c = 0.171, m = 0.083
+
+# net
+pel_yank_net_max_lmm <- lmer(yank_max ~ species + (1|individual), data = pel_yank_net_max)
+pel_yank_net_max_emm <- emmeans(pel_yank_net_max_lmm, "species")
+pairs(pel_yank_net_max_emm)
+pel_yank_net_max_lmm_omega2 <- performance::r2_xu(pel_yank_net_max_lmm) # 0.1992901
+performance::r2_nakagawa(pel_yank_net_max_lmm) # c = 0.180, m = 0.102
+
+
+### Minimum - magnitude
+
+# vertical
+pel_yank_v_min_lmm <- lmer(yank_min ~ species + (1|individual), data = pel_yank_v_min)
+pel_yank_v_min_emm <- emmeans(pel_yank_v_min_lmm, "species")
+pairs(pel_yank_v_min_emm)
+pel_yank_v_min_lmm_omega2 <- performance::r2_xu(pel_yank_v_min_lmm) # 0.6515398
+performance::r2_nakagawa(pel_yank_v_min_lmm) # c = 0.629, m = 0.401
+
+# mediolateral
+pel_yank_ml_min_lmm <- lmer(yank_min ~ species + (1|individual), data = pel_yank_ml_min)
+pel_yank_ml_min_emm <- emmeans(pel_yank_ml_min_lmm, "species")
+pairs(pel_yank_ml_min_emm)
+pel_yank_ml_min_lmm_omega2 <- performance::r2_xu(pel_yank_ml_min_lmm) # 0.07954376
+performance::r2_nakagawa(pel_yank_ml_min_lmm) # c = 0.063, m = 0.001
+
+# anteroposterior
+pel_yank_ap_min_lmm <- lmer(yank_min ~ species + (1|individual), data = pel_yank_ap_min)
+pel_yank_ap_min_emm <- emmeans(pel_yank_ap_min_lmm, "species")
+pairs(pel_yank_ap_min_emm)
+pel_yank_ap_min_lmm_omega2 <- performance::r2_xu(pel_yank_ap_min_lmm) # 0.2469142
+performance::r2_nakagawa(pel_yank_ap_min_lmm) # c = 0.208, m = 0.035
+
+# net
+pel_yank_net_min_lmm <- lmer(yank_min ~ species + (1|individual), data = pel_yank_net_min)
+pel_yank_net_min_emm <- emmeans(pel_yank_net_min_lmm, "species")
+pairs(pel_yank_net_min_emm)
+pel_yank_net_min_lmm_omega2 <- performance::r2_xu(pel_yank_net_min_lmm) # 0.6509524
+performance::r2_nakagawa(pel_yank_net_min_lmm) # c = 0.619, m = 0.454
+
+
+### YANK - SHAPIRO-WILK ####
+
+## a) Don't need to test for linearity of data because the predictors are categorical
+
+## b) evaluating the normality of the residuals
+# the null of the Shapiro-Wilk test is that the input (e.g., residuals of data) are normal
+
+## Pec - max
+shapiro.test(resid(pec_yank_v_max_lmm)) # p-value = 0.871
+shapiro.test(resid(pec_yank_ml_max_lmm)) # p-value = 0.0000052
+shapiro.test(resid(pec_yank_ap_max_lmm)) # p-value =  0.0000001552
+shapiro.test(resid(pec_yank_net_max_lmm)) # p-value = 0.866
+
+## Pec - min
+shapiro.test(resid(pec_yank_v_min_lmm)) # p-value = 0.4643
+shapiro.test(resid(pec_yank_ml_min_lmm)) # p-value = 0.0006225
+shapiro.test(resid(pec_yank_ap_min_lmm)) # p-value =  0.0006075
+shapiro.test(resid(pec_yank_net_min_lmm)) # p-value = 0.3703
+
+## Pel - max
+shapiro.test(resid(pel_yank_v_max_lmm)) # p-value = 0.00000358
+shapiro.test(resid(pel_yank_ml_max_lmm)) # p-value = 0.02667
+shapiro.test(resid(pel_yank_ap_max_lmm)) # p-value = 0.000001058
+shapiro.test(resid(pel_yank_net_max_lmm)) # p-value = 0.000009399
+
+## Pel - min
+shapiro.test(resid(pel_yank_v_min_lmm)) # p-value = 0.07706
+shapiro.test(resid(pel_yank_ml_min_lmm)) # p-value = 0.00008501
+shapiro.test(resid(pel_yank_ap_min_lmm)) # p-value = 0.001612
+shapiro.test(resid(pel_yank_net_min_lmm)) # p-value = 0.05154
+
+
+#### YANK - QQ PLOT ASSUMPTIONS ####
+## (export as 500 width x 600 height)
+
+### PECTORAL - MAX
+pec_yank_v_max_lmm_QQ <- plotQQ(pec_yank_v_max_lmm)
+pec_yank_v_max_lmm_Fitted <- plot(pec_yank_v_max_lmm)
+
+pec_yank_ml_max_lmm_QQ <- plotQQ(pec_yank_ml_max_lmm)
+pec_yank_ml_max_lmm_Fitted <- plot(pec_yank_ml_max_lmm)
+
+pec_yank_ap_max_lmm_QQ <- plotQQ(pec_yank_ap_max_lmm)
+pec_yank_ap_max_lmm_Fitted <- plot(pec_yank_ap_max_lmm)
+
+pec_yank_net_max_lmm_QQ <- plotQQ(pec_yank_net_max_lmm)
+pec_yank_net_max_lmm_Fitted <- plot(pec_yank_net_max_lmm)
+
+
+### PECTORAL - MIN
+pec_yank_v_min_lmm_QQ <- plotQQ(pec_yank_v_min_lmm)
+pec_yank_v_min_lmm_Fitted <- plot(pec_yank_v_min_lmm)
+
+pec_yank_ml_min_lmm_QQ <- plotQQ(pec_yank_ml_min_lmm)
+pec_yank_ml_min_lmm_Fitted <- plot(pec_yank_ml_min_lmm)
+
+pec_yank_ap_min_lmm_QQ <- plotQQ(pec_yank_ap_min_lmm)
+pec_yank_ap_min_lmm_Fitted <- plot(pec_yank_ap_min_lmm)
+
+pec_yank_net_min_lmm_QQ <- plotQQ(pec_yank_net_min_lmm)
+pec_yank_net_min_lmm_Fitted <- plot(pec_yank_net_min_lmm)
+
+
+### PELVIC - MAX
+pel_yank_v_max_lmm_QQ <- plotQQ(pel_yank_v_max_lmm)
+pel_yank_v_max_lmm_Fitted <- plot(pel_yank_v_max_lmm)
+
+pel_yank_ml_max_lmm_QQ <- plotQQ(pel_yank_ml_max_lmm)
+pel_yank_ml_max_lmm_Fitted <- plot(pel_yank_ml_max_lmm)
+
+pel_yank_ap_max_lmm_QQ <- plotQQ(pel_yank_ap_max_lmm)
+pel_yank_ap_max_lmm_Fitted <- plot(pel_yank_ap_max_lmm)
+
+pel_yank_net_max_lmm_QQ <- plotQQ(pel_yank_net_max_lmm)
+pel_yank_net_max_lmm_Fitted <- plot(pel_yank_net_max_lmm)
+
+
+### PELVIC - MIN
+pel_yank_v_min_lmm_QQ <- plotQQ(pel_yank_v_min_lmm)
+pel_yank_v_min_lmm_Fitted <- plot(pel_yank_v_min_lmm)
+
+pel_yank_ml_min_lmm_QQ <- plotQQ(pel_yank_ml_min_lmm)
+pel_yank_ml_min_lmm_Fitted <- plot(pel_yank_ml_min_lmm)
+
+pel_yank_ap_min_lmm_QQ <- plotQQ(pel_yank_ap_min_lmm)
+pel_yank_ap_min_lmm_Fitted <- plot(pel_yank_ap_min_lmm)
+
+pel_yank_net_min_lmm_QQ <- plotQQ(pel_yank_net_min_lmm)
+pel_yank_net_min_lmm_Fitted <- plot(pel_yank_net_min_lmm)
+
+
+jpeg("pec_yank_max_QQ.jpg", width = 10, height = 6, units = "in", res = 300)
+cowplot::plot_grid(pec_yank_net_max_lmm_QQ, pec_yank_v_max_lmm_QQ, pec_yank_ml_max_lmm_QQ, pec_yank_ap_max_lmm_QQ, labels = c("a", "b", "c", "d"))
+dev.off()
+
+jpeg("pec_yank_min_QQ.jpg", width = 10, height = 6, units = "in", res = 300)
+cowplot::plot_grid(pec_yank_net_min_lmm_QQ, pec_yank_v_min_lmm_QQ, pec_yank_ml_min_lmm_QQ, pec_yank_ap_min_lmm_QQ, labels = c("a", "b", "c", "d"))
+dev.off()
+
+jpeg("pel_yank_max_QQ.jpg", width = 10, height = 6, units = "in", res = 300)
+cowplot::plot_grid(pel_yank_net_max_lmm_QQ, pel_yank_v_max_lmm_QQ, pel_yank_ml_max_lmm_QQ, pel_yank_ap_max_lmm_QQ, labels = c("a", "b", "c", "d"))
+dev.off()
+
+jpeg("pel_yank_min_QQ.jpg", width = 10, height = 6, units = "in", res = 300)
+cowplot::plot_grid(pel_yank_net_min_lmm_QQ, pel_yank_v_min_lmm_QQ, pel_yank_ml_min_lmm_QQ, pel_yank_ap_min_lmm_QQ, labels = c("a", "b", "c", "d"))
+dev.off()
+
+
+#### YANK - REMOVING OUTLIERS ####
+## outliers are set as those points falling outside 2x the interquantile range
+## only doing this for the variables that seemed to deviate from normality
+
+# pec - ml - max
+pec_yank_ml_max_bp <-  boxplot(yank_max ~ species, data = pec_yank_ml_max, range = 2)
+pec_yank_ml_max_noOutliers <- subset(pec_yank_ml_max, !yank_max %in% c(pec_yank_ml_max_bp$out))
+pec_yank_ml_max_noOutliers_lmm <- lmer(yank_max ~ species + (1|individual), data = pec_yank_ml_max_noOutliers)
+plotQQ(pec_yank_ml_max_noOutliers_lmm)
+shapiro.test(resid(pec_yank_ml_max_noOutliers_lmm))
+# the QQ plot is improved by removing the two outliers
+pec_yank_ml_max_noOutliers_emm <- emmeans(pec_yank_ml_max_noOutliers_lmm, "species")
+
+# pec - ap - max
+pec_yank_ap_max_bp <-  boxplot(yank_max ~ species, data = pec_yank_ap_max, range = 2)
+pec_yank_ap_max_noOutliers <- subset(pec_yank_ap_max, !yank_max %in% c(pec_yank_ap_max_bp$out))
+pec_yank_ap_max_noOutliers_lmm <- lmer(yank_max ~ species + (1|individual), data = pec_yank_ap_max_noOutliers)
+plotQQ(pec_yank_ap_max_noOutliers_lmm)
+shapiro.test(resid(pec_yank_ap_max_noOutliers_lmm))
+# the QQ plot is improved by removing the one outlier
+pec_yank_ap_max_noOutliers_emm <- emmeans(pec_yank_ap_max_noOutliers_lmm, "species")
+
+# pec - ml - min
+pec_yank_ml_min_bp <-  boxplot(yank_min ~ species, data = pec_yank_ml_min, range = 2)
+pec_yank_ml_min_noOutliers <- subset(pec_yank_ml_min, !yank_min %in% c(pec_yank_ml_min_bp$out))
+pec_yank_ml_min_noOutliers_lmm <- lmer(yank_min ~ species + (1|individual), data = pec_yank_ml_min_noOutliers)
+plotQQ(pec_yank_ml_min_noOutliers_lmm)
+shapiro.test(resid(pec_yank_ml_min_noOutliers_lmm))
+# the QQ plot is improved by removing the three outliers
+pec_yank_ml_min_noOutliers_emm <- emmeans(pec_yank_ml_min_noOutliers_lmm, "species")
+
+# pec - ap - min
+pec_yank_ap_min_bp <-  boxplot(yank_min ~ species, data = pec_yank_ap_min, range = 2)
+pec_yank_ap_min_noOutliers <- subset(pec_yank_ap_min, !yank_min %in% c(pec_yank_ap_min_bp$out))
+pec_yank_ap_min_noOutliers_lmm <- lmer(yank_min ~ species + (1|individual), data = pec_yank_ap_min_noOutliers)
+plotQQ(pec_yank_ap_min_noOutliers_lmm)
+shapiro.test(resid(pec_yank_ap_min_noOutliers_lmm))
+# the QQ plot is improved by removing the two outliers
+pec_yank_ap_min_noOutliers_emm <- emmeans(pec_yank_ap_min_noOutliers_lmm, "species")
+
+
+# pel - v - max
+pel_yank_v_max_bp <-  boxplot(yank_max ~ species, data = pel_yank_v_max, range = 2)
+pel_yank_v_max_noOutliers <- subset(pel_yank_v_max, !yank_max %in% c(pel_yank_v_max_bp$out))
+pel_yank_v_max_noOutliers_lmm <- lmer(yank_max ~ species + (1|individual), data = pel_yank_v_max_noOutliers)
+plotQQ(pel_yank_v_max_noOutliers_lmm)
+shapiro.test(resid(pel_yank_v_max_noOutliers_lmm))
+# the QQ plot didn't really change
+pel_yank_v_max_noOutliers_emm <- emmeans(pel_yank_v_max_noOutliers_lmm, "species")
+
+
+# pel - ap - max
+pel_yank_ap_max_bp <-  boxplot(yank_max ~ species, data = pel_yank_ap_max, range = 2)
+pel_yank_ap_max_noOutliers <- subset(pel_yank_ap_max, !yank_max %in% c(pel_yank_ap_max_bp$out))
+pel_yank_ap_max_noOutliers_lmm <- lmer(yank_max ~ species + (1|individual), data = pel_yank_ap_max_noOutliers)
+plotQQ(pel_yank_ap_max_noOutliers_lmm)
+shapiro.test(resid(pel_yank_ap_max_noOutliers_lmm))
+# the QQ plot is improved by removing the 6 outliers
+pel_yank_ap_max_noOutliers_emm <- emmeans(pel_yank_ap_max_noOutliers_lmm, "species")
+
+
+# pel - net - max
+pel_yank_net_max_bp <-  boxplot(yank_max ~ species, data = pel_yank_net_max, range = 2)
+pel_yank_net_max_noOutliers <- subset(pel_yank_net_max, !yank_max %in% c(pel_yank_net_max_bp$out))
+pel_yank_net_max_noOutliers_lmm <- lmer(yank_max ~ species + (1|individual), data = pel_yank_net_max_noOutliers)
+plotQQ(pel_yank_net_max_noOutliers_lmm)
+shapiro.test(resid(pel_yank_net_max_noOutliers_lmm))
+# the QQ plot didn't really change
+pel_yank_net_max_noOutliers_emm <- emmeans(pel_yank_net_max_noOutliers_lmm, "species")
+
+
+# pel - ml - min
+pel_yank_ml_min_bp <-  boxplot(yank_min ~ species, data = pel_yank_ml_min, range = 2)
+pel_yank_ml_min_noOutliers <- subset(pel_yank_ml_min, !yank_min %in% c(pel_yank_ml_min_bp$out))
+pel_yank_ml_min_noOutliers_lmm <- lmer(yank_min ~ species + (1|individual), data = pel_yank_ml_min_noOutliers)
+plotQQ(pel_yank_ml_min_noOutliers_lmm)
+shapiro.test(resid(pel_yank_ml_min_noOutliers_lmm))
+# the QQ plot is improved by removing the two outliers
+pel_yank_ml_min_noOutliers_emm <- emmeans(pel_yank_ml_min_noOutliers_lmm, "species")
+
+
+# pel - ap - min
+pel_yank_ap_min_bp <-  boxplot(yank_min ~ species, data = pel_yank_ap_min, range = 2)
+pel_yank_ap_min_noOutliers <- subset(pel_yank_ap_min, !yank_min %in% c(pel_yank_ap_min_bp$out))
+pel_yank_ap_min_noOutliers_lmm <- lmer(yank_min ~ species + (1|individual), data = pel_yank_ap_min_noOutliers)
+plotQQ(pel_yank_ap_min_noOutliers_lmm)
+shapiro.test(resid(pel_yank_ap_min_noOutliers_lmm))
+# the QQ plot is improved by removing the two outliers
+pel_yank_ap_min_noOutliers_emm <- emmeans(pel_yank_ap_min_noOutliers_lmm, "species")
+
+
+
+#### YANK - ROBUST LMM ####
+
+pec_yank_ml_max_rlmm <- rlmer(yank_max ~ species + (1|individual), data = pec_yank_ml_max)
+pec_yank_ml_max_rlmm_resids <- resid(pec_yank_ml_max_rlmm)
+pec_yank_ml_max_rlmm_noOutliers <- rlmer(yank_max ~ species + (1|individual), data = pec_yank_ml_max_noOutliers)
+pec_yank_ml_max_rlmm_noOutliers_resids <- resid(pec_yank_ml_max_rlmm_noOutliers)
+
+
+jpeg("pec_yank_max_QQ.jpg", width = 10, height = 6, units = "in", res = 300)
+cowplot::plot_grid(pec_yank_net_max_lmm_QQ, pec_yank_v_max_lmm_QQ, pec_yank_ml_max_lmm_QQ, pec_yank_ap_max_lmm_QQ, labels = c("a", "b", "c", "d"))
+dev.off()
+
+
+
+
+#### REMOVING OUTLIERS ####
   
-  ## ggplot2 calculates more outliers bc baseplot::boxplot doesn't actually calculate the 1st and 3rd quantiles with even n
-  # https://stackoverflow.com/questions/21793715/why-geom-boxplot-identify-more-outliers-than-base-boxplot
+## ggplot2 calculates more outliers bc baseplot::boxplot doesn't actually calculate the 1st and 3rd quantiles with even n
+# https://stackoverflow.com/questions/21793715/why-geom-boxplot-identify-more-outliers-than-base-boxplot
 
-  # This function returns errors about 'subscript out of bounds' when the outlierRange is different from 1.5
-removeOutliers <- function(df, yName, group, labelName, outlierRange, ... ){
-  bp <- vector("list", nVars)
-  outliers <- vector("list", nVars)
-  usableData <- list()
-  for(i in 1:length(yName)){
-    # changing the range affects how far beyond the IQR is considered an outlier (1.5 set as default)
-    bp[[i]] <- car::Boxplot(df[,yName[i]] ~ group, id.method = labelName, data = df, ylab = yName[i], range = outlierRange)
-    outliers[[i]] <- df[bp[[i]],]
-  }
-  outliersCombined <- data.frame(do.call("rbind", outliers))
-  outliersUnique <- unique(outliersCombined)
-  usableData <- df[ ! df[,labelName] %in% outliersUnique$filename, ]
+## Use LMERConvenienceFunctions because it can handle LMMs
 
+# Write LMMs
+mod1 <- lmer(PercentStance ~ group + (1|individual), data = pec_peakNetGRFs)
+
+# Check model assumptions of full data set
+mcp.fnc(mod1)
+
+# Remove outliers
+# default is to trim data that are more than 2.5 residuals from the mean
+data_trimmed <- romr.fnc(mod1, pec_peakNetGRFs, trim = 2.5)
+
+# Re-run LMM with the data set that has outliers removed
+mod2 <- lmer(PercentStance ~ group + (1|individual), data = data_trimmed$data)
+
+# Check model assumptions for data set without outliers
+mcp.fnc(mod2)
+
+# group <- "group"
+# labelName <- "filename"
+# outlierRange = 2
+
+
+## remove this function?
+removeOutliers_lm_cooks <- function(df, yName, xName, fileName, ...) {
+  # yName <- df[,yName]
+  # xName <- df[,xName]
+  f <- as.formula(paste(yName, xName, sep = " ~ "))
+  fit <- lm(f, data = df); 
+  df$cooksd <- cooks.distance(fit); 
+  # Defining outliers based on 4/n criteria; 
+  df$outlier <- ifelse(df$cooksd < 4/nrow(df), "keep","delete")
+  
+  # Removing Outliers
+  # influential row numbers
+  sample_size <- nrow(df)
+  influential <- subset(df, cooksd > (4/sample_size))
+  df_screen <- subset(df, cooksd < (4/sample_size))
+  
+  plot3 <- ggplot(data = df, aes_string(x = xName, y = yName)) +
+    geom_point() + 
+    geom_smooth(method = lm) +
+    xlim(0, 20) + ylim(0, 220) + 
+    ggtitle("Before")
+  plot4 <- ggplot(data = df_screen, aes_string(x = xName, y = yName)) +
+    geom_point() + 
+    geom_smooth(method = lm) +
+    xlim(0, 20) + ylim(0, 220) + 
+    ggtitle("After")
+  
+  gridExtra::grid.arrange(plot3, plot4, ncol=2)
+  
   output <- list(
-    outliers = outliersUnique,
-    usableData = usableData
+    outliers = influential,
+    usableData = df_screen
   )
   return(output)
 }
 
-### identifying the outliers across all of the variables for the pectoral peak net GRF dataset
-## changing outlier range to 2 so 'outliers' are points falling 2x away from the IQR
-pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[1:7], "group", "filename", outlierRange = 2)
+removeOutliers_lm_cooks(pec_peakNetGRFs, "PercentStance", "group")
 
 
+library(influence.ME)
+
+removeOutliers_lmer_cooks <- function(df, yName, xName, RE, ...) {
+  RE_formula <- paste("(1|", RE, ")", sep = "")
+  f <- (paste(paste(yName, xName, sep = " ~ "), "+", RE_formula, sep = " "))
+  fit <- lmer(as.formula(f), data = df)
+  estex <- influence(fit, RE)
+  cd <- cooks.distance(estex, group = RE,
+                 sort=TRUE)
+  
+  plot(estex, which="cook",
+       cutoff=4/length(unique(pec_peakNetGRFs[,RE])), sort=TRUE,
+       xlab="Cook´s Distance",
+       ylab=yName)
+  
+  output <- list(
+    influence = estex,
+    cooksDistance = cd
+  )
+  
+  return(output)
+}
+
+removeOutliers_lmer_cooks(pec_peakNetGRFs, "PercentStance", "group", "individual" )
+# this works but it only identifies problems at the individual level, rather than the specific file
+
+## The following code will allow me to ID which observations were the major influencers
+school23 <- within(school23,
+                   homework <- unclass(homework))
+estex.obs <- influence(m23, obs=TRUE)
+cks.d <- cooks.distance(estex.obs, parameter=3)
+which(cks.d > 4/519)
+school23_noOutliers <- school23[-(which(cks.d > 4/519)),]
+
+## SMK: Determine how "extreme" the outliers are, as they may not be worth removing
 
   #### LINEAR MIXED EFFECTS MODELS ####
   ## This will be used to compare the means between groups while accounting for the repeated trials within individuals
@@ -989,53 +2228,6 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
   
   #### FIGURES - PEAK NET GRFs ####
   
-  ## Create function to produce box plots with jitter points and marginal densities on the sides
-  boxWithDensityPlot <- function(df, xName, yName, xLabel, yLabel) {
-    # create the plot
-    original_plot <- df %>% 
-      ggplot(aes_string(x = xName, y = yName)) + 
-      geom_boxplot(aes_string(color = xName), show.legend = FALSE) +
-      geom_jitter(position=position_jitter(0.2), alpha = 0.5, aes_string(color = xName), show.legend = FALSE) +
-      xlab(paste("\n", xLabel)) +
-      ylab(paste(yLabel, "\n")) +
-      theme_pubr() + 
-      border()      
-    
-    y_density <- axis_canvas(original_plot, axis = "y", coord_flip = TRUE) +
-      geom_density(data = df, aes_string(x = yName, fill = xName), color = NA, alpha = 0.5) +
-      coord_flip()
-    
-    # create the combined plot
-    #combined_plot %<>% insert_yaxis_grob(., y_density, position = "right")
-    combined_plot <- insert_yaxis_grob(original_plot, y_density, position = "right")
-    
-    # plot the resulting combined plot
-    ggdraw(combined_plot)
-  }
-  
-  
-  ### With all data 
-  pec_peakNetGRFs$species <- substring(pec_peakNetGRFs$group, 1, 2)
-
-  pec_peakNetGRFs_VBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpV_BW", "", "GRF - vertical")
-  pec_peakNetGRFs_MLBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpML_BW", "", "GRF - mediolateral")
-  pec_peakNetGRFs_APBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpAP_BW", "", "GRF - anteroposterior")
-  pec_peakNetGRFs_netBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "NetGRF_BW", "", "GRF - net")
-  pec_peakNetGRFs_MLangle_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "MLAngle_Convert_deg", "", "mediolateral angle")
-  pec_peakNetGRFs_APangle_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "APAngle_Convert_deg", "", "anteroposterior angle")
-  
-  jpeg("pec_peakNetGRF_plots.jpg", width = 8.5, height = 11, units = "in", res = 300)
-  cowplot::plot_grid(pec_peakNetGRFs_VBW_plot, 
-                     pec_peakNetGRFs_MLBW_plot, 
-                     pec_peakNetGRFs_APBW_plot,
-                     pec_peakNetGRFs_netBW_plot, 
-                     pec_peakNetGRFs_MLangle_plot,
-                     pec_peakNetGRFs_APangle_plot,
-                     ncol = 3,
-                     #labels = c("a", "b", "c", "d", "e", "f")
-                     labels = "AUTO"
-                     )
-  dev.off()
   
   
   ### With Outliers removed
@@ -1056,6 +2248,20 @@ pec_peakNetGRF_noOutliers <- removeOutliers(pec_peakNetGRFs, variablesToAnalyze[
                      pec_peakNetGRFs_noOutliers_netBW_plot, 
                      pec_peakNetGRFs_noOutliers_MLangle_plot,
                      pec_peakNetGRFs_noOutliers_APangle_plot,
+                     ncol = 3,
+                     #labels = c("a", "b", "c", "d", "e", "f")
+                     labels = "AUTO"
+  )
+  dev.off()
+  
+  ### pec and pel combined - no outliers
+  full_peakNetGRF_noOutliers <- rbind(pec_peakNetGRF_noOutliers$usableData, pel_peakNetGRF_noOutliers$usableData)
+  
+  jpeg("pec_peakNetGRF_noOutliers_plots_GRFcomponents.jpg", width = 8.5, height = 11, units = "in", res = 300)
+  cowplot::plot_grid(pec_peakNetGRFs_noOutliers_VBW_plot, 
+                     pec_peakNetGRFs_noOutliers_MLBW_plot, 
+                     pec_peakNetGRFs_noOutliers_APBW_plot,
+                     pec_peakNetGRFs_noOutliers_netBW_plot,
                      ncol = 3,
                      #labels = c("a", "b", "c", "d", "e", "f")
                      labels = "AUTO"
