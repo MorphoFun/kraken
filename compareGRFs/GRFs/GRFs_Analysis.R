@@ -334,6 +334,8 @@ get_legend<-function(myggplot){
   return(legend)
 }
 
+
+### Compiling pectoral data
 pec_GRFs <- list(
   vertical = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), InterpV_BW = x$InterpV_BW)),
   mediolateral = lapply(GRFs$Pectoral$Pec_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), InterpML_BW = x$InterpML_BW)),
@@ -347,9 +349,9 @@ pec_GRFs_combined <- list(
   vertical = melt(pec_GRFs$vertical, id.vars = "percentStance", value.name = "vertical_BW"),
   mediolateral = melt(pec_GRFs$mediolateral, id.vars = "percentStance", value.name = "mediolateral_BW"),
   anteroposterior = melt(pec_GRFs$anteroposterior, id.vars = "percentStance", value.name = "anteroposterior_BW"),
-  net = melt(pec_GRFs$net, id.vars = "percentStance", value.name = "net"), 
-  ml_ang = melt(pec_GRFs$ml_angle, id.vars = "percentStance", value.name = "mediolateral_BW"),
-  ap_ang = melt(pec_GRFs$ap_angle, id.vars = "percentStance", value.name = "anteroposterior_BW")
+  net = melt(pec_GRFs$net, id.vars = "percentStance", value.name = "net_BW"), 
+  ml_ang = melt(pec_GRFs$ml_angle, id.vars = "percentStance", value.name = "mlang_deg"),
+  ap_ang = melt(pec_GRFs$ap_angle, id.vars = "percentStance", value.name = "apang_deg")
 )
 
 for (i in 1:length(pec_GRFs_combined)) {
@@ -357,35 +359,98 @@ for (i in 1:length(pec_GRFs_combined)) {
 }
 
 
-## Pectoral - yank plots (in units of BW per percent of stance)
-# need to edit this so it's the full dataset and not just the peak net GRF data
-pec_GRF_v <- profilePlotR(pec_GRFs_combined$vertical, "percentStance", "vertical_BW", "species", "Percent Stance", "GRF - vertical (BW)", colorpalette = cbPalette, yrange = c(-0.5, 0.5))
-
-pec_GRF_ml <- profilePlotR(pec_peakNetGRFs, "PercentStance", "InterpML_BW", "species", "Percent Stance", "GRF - mediolateral (BW)", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-pec_GRF_ap <- profilePlotR(pec_peakNetGRFs, "PercentStance", "InterpAP_BW", "species", "Percent Stance", "GRF - anteroposterior (BW)", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-pec_GRF_net <- profilePlotR(pec_peakNetGRFs, "PercentStance", "NetGRF_BW", "species", "Percent Stance", "GRF - Net (BW)", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-pec_GRF_mlang <- profilePlotR(pec_peakNetGRFs, "PercentStance", "MLAngle_Convert_deg", "species", "Percent Stance", "GRF - mediolateral angle (degrees)", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-pec_GRF_apang <- profilePlotR(pec_peakNetGRFs, "PercentStance", "APAngle_Convert_deg", "species", "Percent Stance", "GRF - anteroposterior angle (degrees)", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+## Pectoral - GRF plots (in units of BW per percent of stance)
+pec_GRF_v <- profilePlotR(pec_GRFs_combined$vertical, "percentStance", "vertical_BW", "species", "Percent Stance", "GRF - vertical (BW)", colorpalette = cbPalette, yrange = c(0, 0.5))
+pec_GRF_ml <- profilePlotR(pec_GRFs_combined$mediolateral, "percentStance", "mediolateral_BW", "species", "Percent Stance", "GRF - mediolateral (BW)", colorpalette = cbPalette, yrange = c(-0.2, 0.2))
+pec_GRF_ap <- profilePlotR(pec_GRFs_combined$anteroposterior, "percentStance", "anteroposterior_BW", "species", "Percent Stance", "GRF - anteroposterior (BW)", colorpalette = cbPalette, yrange = c(-0.2, 0.2))
+pec_GRF_net <- profilePlotR(pec_GRFs_combined$net, "percentStance", "net_BW", "species", "Percent Stance", "GRF - Net (BW)", colorpalette = cbPalette, yrange = c(0, 0.5))
+pec_GRF_mlang <- profilePlotR(pec_GRFs_combined$ml_ang, "percentStance", "mlang_deg", "species", "Percent Stance", "GRF - mediolateral angle (deg)", colorpalette = cbPalette, yrange = c(-50, 50))
+pec_GRF_apang <- profilePlotR(pec_GRFs_combined$ap_ang, "percentStance", "apang_deg", "species", "Percent Stance", "GRF - anteroposterior angle (deg)", colorpalette = cbPalette, yrange = c(-50, 50))
 
 
 
-pec_yank_prow <- cowplot::plot_grid(
-  pec_yank_pv + theme(axis.title.x = element_blank(),
+pec_GRF_prow <- cowplot::plot_grid(
+  pec_GRF_net + theme(axis.title.x = element_blank(),
+                      legend.position = "none" ),
+  pec_GRF_v + theme(axis.title.x = element_blank(),
                       legend.position = "none"), 
-  pec_yank_pml + theme(axis.title.x = element_blank(),
+  pec_GRF_ml + theme(axis.title.x = element_blank(),
                        legend.position = "none" ), 
-  pec_yank_pap + theme(axis.title.x = element_blank(),
+  pec_GRF_ap + theme(axis.title.x = element_blank(),
                        legend.position = "none" ),
-  pec_yank_pnet + theme(axis.title.x = element_blank(),
-                        legend.position = "none" ),
-  nrow = 2,
+  pec_GRF_mlang + theme(axis.title.x = element_blank(),
+                      legend.position = "none" ),
+  pec_GRF_apang + theme(axis.title.x = element_blank(),
+                      legend.position = "none" ),
+  ncol = 2,
   labels = "auto")
 
 
-pec_yank_legend <- get_legend(pec_yank_pv)
+pec_GRF_legend <- get_legend(pec_GRF_v)
 
 # Produce plot with insets and common x-axis label
-grid.arrange(arrangeGrob(pec_yank_prow, bottom = x.grob), pec_yank_legend, heights = c(1, .2))
+jpeg("pec_profile_plots.jpg", width = 8.5, height = 11, units = "in", res = 600)
+  grid.arrange(arrangeGrob(pec_GRF_prow, bottom = x.grob), pec_GRF_legend, heights = c(1, .2))
+dev.off()
+
+
+### Compiling pelvic data
+pel_GRFs <- list(
+  vertical = lapply(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), InterpV_BW = x$InterpV_BW)),
+  mediolateral = lapply(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), InterpML_BW = x$InterpML_BW)),
+  anteroposterior = lapply(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), InterpAP_BW = x$InterpAP_BW)),
+  net = lapply(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), net = x$NetGRF_BW)),
+  ml_angle =   lapply(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), MLAngle_Convert_deg = x$MLAngle_Convert_deg)),
+  ap_angle = lapply(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap, function(x) data.frame(percentStance = seq(0,100), APAngle_Convert_deg = x$APAngle_Convert_deg))
+)
+
+pel_GRFs_combined <- list(
+  vertical = melt(pel_GRFs$vertical, id.vars = "percentStance", value.name = "vertical_BW"),
+  mediolateral = melt(pel_GRFs$mediolateral, id.vars = "percentStance", value.name = "mediolateral_BW"),
+  anteroposterior = melt(pel_GRFs$anteroposterior, id.vars = "percentStance", value.name = "anteroposterior_BW"),
+  net = melt(pel_GRFs$net, id.vars = "percentStance", value.name = "net_BW"), 
+  ml_ang = melt(pel_GRFs$ml_angle, id.vars = "percentStance", value.name = "mlang_deg"),
+  ap_ang = melt(pel_GRFs$ap_angle, id.vars = "percentStance", value.name = "apang_deg")
+)
+
+for (i in 1:length(pel_GRFs_combined)) {
+  pel_GRFs_combined[[i]]$species = substring(pel_GRFs_combined[[i]][,4], 1, 2)
+}
+
+
+## Pelvic - GRF plots (in units of BW per percent of stance)
+pel_GRF_v <- profilePlotR(pel_GRFs_combined$vertical, "percentStance", "vertical_BW", "species", "Percent Stance", "GRF - vertical (BW)", colorpalette = cbPalette, yrange = c(0, 0.5))
+pel_GRF_ml <- profilePlotR(pel_GRFs_combined$mediolateral, "percentStance", "mediolateral_BW", "species", "Percent Stance", "GRF - mediolateral (BW)", colorpalette = cbPalette, yrange = c(-0.2, 0.2))
+pel_GRF_ap <- profilePlotR(pel_GRFs_combined$anteroposterior, "percentStance", "anteroposterior_BW", "species", "Percent Stance", "GRF - anteroposterior (BW)", colorpalette = cbPalette, yrange = c(-0.2, 0.2))
+pel_GRF_net <- profilePlotR(pel_GRFs_combined$net, "percentStance", "net_BW", "species", "Percent Stance", "GRF - Net (BW)", colorpalette = cbPalette, yrange = c(0, 0.5))
+pel_GRF_mlang <- profilePlotR(pel_GRFs_combined$ml_ang, "percentStance", "mlang_deg", "species", "Percent Stance", "GRF - mediolateral angle (deg)", colorpalette = cbPalette, yrange = c(-50, 50))
+pel_GRF_apang <- profilePlotR(pel_GRFs_combined$ap_ang, "percentStance", "apang_deg", "species", "Percent Stance", "GRF - anteroposterior angle (deg)", colorpalette = cbPalette, yrange = c(-50, 50))
+
+
+
+pel_GRF_prow <- cowplot::plot_grid(
+  pel_GRF_net + theme(axis.title.x = element_blank(),
+                      legend.position = "none" ),
+  pel_GRF_v + theme(axis.title.x = element_blank(),
+                    legend.position = "none"), 
+  pel_GRF_ml + theme(axis.title.x = element_blank(),
+                     legend.position = "none" ), 
+  pel_GRF_ap + theme(axis.title.x = element_blank(),
+                     legend.position = "none" ),
+  pel_GRF_mlang + theme(axis.title.x = element_blank(),
+                        legend.position = "none" ),
+  pel_GRF_apang + theme(axis.title.x = element_blank(),
+                        legend.position = "none" ),
+  ncol = 2,
+  labels = "auto")
+
+
+pel_GRF_legend <- get_legend(pel_GRF_v)
+
+# Produce plot with insets and common x-axis label
+jpeg("pel_profile_plots.jpg", width = 8.5, height = 11, units = "in", res = 600)
+grid.arrange(arrangeGrob(pel_GRF_prow, bottom = x.grob), pel_GRF_legend, heights = c(1, .2))
+dev.off()
 
 
 
@@ -481,10 +546,10 @@ pec_peakNetGRFs_MLangle_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "
 pec_peakNetGRFs_APangle_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "APAngle_Convert_deg", "", "anteroposterior angle", colorPalette = cbPalette)
 
 jpeg("pec_peakNetGRF_plots.jpg", width = 8.5, height = 11, units = "in", res = 300)
-cowplot::plot_grid(pec_peakNetGRFs_VBW_plot, 
+cowplot::plot_grid(pec_peakNetGRFs_netBW_plot,
+                   pec_peakNetGRFs_VBW_plot, 
                    pec_peakNetGRFs_MLBW_plot, 
                    pec_peakNetGRFs_APBW_plot,
-                   pec_peakNetGRFs_netBW_plot, 
                    pec_peakNetGRFs_MLangle_plot,
                    pec_peakNetGRFs_APangle_plot,
                    ncol = 3,
@@ -505,10 +570,10 @@ pel_peakNetGRFs_MLangle_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "
 pel_peakNetGRFs_APangle_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "APAngle_Convert_deg", "", "anteroposterior angle", colorPalette = cbPalette)
 
 jpeg("pel_peakNetGRF_plots.jpg", width = 8.5, height = 11, units = "in", res = 300)
-cowplot::plot_grid(pel_peakNetGRFs_VBW_plot, 
+cowplot::plot_grid(pel_peakNetGRFs_netBW_plot, 
+                   pel_peakNetGRFs_VBW_plot, 
                    pel_peakNetGRFs_MLBW_plot, 
                    pel_peakNetGRFs_APBW_plot,
-                   pel_peakNetGRFs_netBW_plot, 
                    pel_peakNetGRFs_MLangle_plot,
                    pel_peakNetGRFs_APangle_plot,
                    ncol = 3,
@@ -564,6 +629,13 @@ pairs(pec_peakNetGRF_apang_emm)
 pec_peakNetGRF_apang_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_apang_lmm) # 0.6657909
 performance::r2_nakagawa(pec_peakNetGRF_apang_lmm) # c = 0.645, m = 0.543
 
+# percent stance
+pec_peakNetGRF_percentstance_lmm <- lmer(PercentStance ~ species + (1|individual), data = pec_peakNetGRFs)
+pec_peakNetGRF_percentstance_emm <- emmeans(pec_peakNetGRF_percentstance_lmm, "species")
+pairs(pec_peakNetGRF_percentstance_emm)
+pec_peakNetGRF_percentstance_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_percentstance_lmm) # 0.4574002
+performance::r2_nakagawa(pec_peakNetGRF_percentstance_lmm) # c = 0.462, m = 0.226
+
 
 ### PELVIC
 # vertical 
@@ -607,6 +679,14 @@ pel_peakNetGRF_apang_emm <- emmeans(pel_peakNetGRF_apang_lmm, "species")
 pairs(pel_peakNetGRF_apang_emm)
 pel_peakNetGRF_apang_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_apang_lmm) # 0.3052985
 performance::r2_nakagawa(pel_peakNetGRF_apang_lmm) # c = 0.315, m = 0.001
+
+# percent stance
+pel_peakNetGRF_percentstance_lmm <- lmer(PercentStance ~ species + (1|individual), data = pel_peakNetGRFs)
+pel_peakNetGRF_percentstance_emm <- emmeans(pel_peakNetGRF_percentstance_lmm, "species")
+pairs(pel_peakNetGRF_percentstance_emm)
+pel_peakNetGRF_percentstance_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_percentstance_lmm) # 0.1924656
+performance::r2_nakagawa(pel_peakNetGRF_percentstance_lmm) # c = 0.183, m = 0.019
+
 
 
 #### PEAK NET GRF - QQ PLOTS ####
@@ -787,13 +867,13 @@ pec_yank_pap <- profilePlotR(pec_yank_combined$anteroposterior, "percentStance",
 pec_yank_pnet <- profilePlotR(pec_yank_combined$net, "percentStance", "yank", "species", "Percent Stance", "Yank - Net", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
 
 pec_yank_prow <- cowplot::plot_grid(
-                   pec_yank_pv + theme(axis.title.x = element_blank(),
+                  pec_yank_pnet + theme(axis.title.x = element_blank(),
+                                      legend.position = "none" ),                 
+                  pec_yank_pv + theme(axis.title.x = element_blank(),
                                        legend.position = "none"), 
                    pec_yank_pml + theme(axis.title.x = element_blank(),
                                        legend.position = "none" ), 
                    pec_yank_pap + theme(axis.title.x = element_blank(),
-                                       legend.position = "none" ),
-                   pec_yank_pnet + theme(axis.title.x = element_blank(),
                                        legend.position = "none" ),
                    nrow = 2,
                    labels = "auto")
@@ -802,8 +882,9 @@ pec_yank_prow <- cowplot::plot_grid(
 pec_yank_legend <- get_legend(pec_yank_pv)
 
 # Produce plot with insets and common x-axis label
+jpeg("compareGRFs_pec_yank.jpg", width = 8, height = 10, units = "in", res = 300)
 grid.arrange(arrangeGrob(pec_yank_prow, bottom = x.grob), pec_yank_legend, heights = c(1, .2))
-
+dev.off()
 
 ## Pelvic - yank plots
 pel_yank_pv <- profilePlotR(pel_yank_combined$vertical, "percentStance", "yank", "species", "Percent Stance", "Yank - vertical", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
@@ -812,14 +893,14 @@ pel_yank_pap <- profilePlotR(pel_yank_combined$anteroposterior, "percentStance",
 pel_yank_pnet <- profilePlotR(pel_yank_combined$net, "percentStance", "yank", "species", "Percent Stance", "Yank - Net", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
 
 pel_yank_prow <- cowplot::plot_grid(
+  pel_yank_pnet + theme(axis.title.x = element_blank(),
+                        legend.position = "none" ),
   pel_yank_pv + theme(axis.title.x = element_blank(),
                       legend.position = "none"), 
   pel_yank_pml + theme(axis.title.x = element_blank(),
                        legend.position = "none" ), 
   pel_yank_pap + theme(axis.title.x = element_blank(),
                        legend.position = "none" ),
-  pel_yank_pnet + theme(axis.title.x = element_blank(),
-                        legend.position = "none" ),
   nrow = 2,
   labels = "auto")
 
@@ -827,8 +908,9 @@ pel_yank_prow <- cowplot::plot_grid(
 pel_yank_legend <- get_legend(pel_yank_pv)
 
 # Produce plot with insets and common x-axis label
+jpeg("compareGRFs_pel_yank.jpg", width = 8, height = 10, units = "in", res = 300)
 grid.arrange(arrangeGrob(pel_yank_prow, bottom = x.grob), pel_yank_legend, heights = c(1, .2))
-
+dev.off()
 
 
 
@@ -1496,851 +1578,7 @@ pec_yank_ml_max_rlmm_noOutliers <- rlmer(yank_max ~ species + (1|individual), da
 pec_yank_ml_max_rlmm_noOutliers_resids <- resid(pec_yank_ml_max_rlmm_noOutliers)
 
 
-jpeg("pec_yank_max_QQ.jpg", width = 10, height = 6, units = "in", res = 300)
-cowplot::plot_grid(pec_yank_net_max_lmm_QQ, pec_yank_v_max_lmm_QQ, pec_yank_ml_max_lmm_QQ, pec_yank_ap_max_lmm_QQ, labels = c("a", "b", "c", "d"))
-dev.off()
 
-
-
-
-#### REMOVING OUTLIERS ####
-  
-## ggplot2 calculates more outliers bc baseplot::boxplot doesn't actually calculate the 1st and 3rd quantiles with even n
-# https://stackoverflow.com/questions/21793715/why-geom-boxplot-identify-more-outliers-than-base-boxplot
-
-## Use LMERConvenienceFunctions because it can handle LMMs
-
-# Write LMMs
-mod1 <- lmer(PercentStance ~ group + (1|individual), data = pec_peakNetGRFs)
-
-# Check model assumptions of full data set
-mcp.fnc(mod1)
-
-# Remove outliers
-# default is to trim data that are more than 2.5 residuals from the mean
-data_trimmed <- romr.fnc(mod1, pec_peakNetGRFs, trim = 2.5)
-
-# Re-run LMM with the data set that has outliers removed
-mod2 <- lmer(PercentStance ~ group + (1|individual), data = data_trimmed$data)
-
-# Check model assumptions for data set without outliers
-mcp.fnc(mod2)
-
-# group <- "group"
-# labelName <- "filename"
-# outlierRange = 2
-
-
-## remove this function?
-removeOutliers_lm_cooks <- function(df, yName, xName, fileName, ...) {
-  # yName <- df[,yName]
-  # xName <- df[,xName]
-  f <- as.formula(paste(yName, xName, sep = " ~ "))
-  fit <- lm(f, data = df); 
-  df$cooksd <- cooks.distance(fit); 
-  # Defining outliers based on 4/n criteria; 
-  df$outlier <- ifelse(df$cooksd < 4/nrow(df), "keep","delete")
-  
-  # Removing Outliers
-  # influential row numbers
-  sample_size <- nrow(df)
-  influential <- subset(df, cooksd > (4/sample_size))
-  df_screen <- subset(df, cooksd < (4/sample_size))
-  
-  plot3 <- ggplot(data = df, aes_string(x = xName, y = yName)) +
-    geom_point() + 
-    geom_smooth(method = lm) +
-    xlim(0, 20) + ylim(0, 220) + 
-    ggtitle("Before")
-  plot4 <- ggplot(data = df_screen, aes_string(x = xName, y = yName)) +
-    geom_point() + 
-    geom_smooth(method = lm) +
-    xlim(0, 20) + ylim(0, 220) + 
-    ggtitle("After")
-  
-  gridExtra::grid.arrange(plot3, plot4, ncol=2)
-  
-  output <- list(
-    outliers = influential,
-    usableData = df_screen
-  )
-  return(output)
-}
-
-removeOutliers_lm_cooks(pec_peakNetGRFs, "PercentStance", "group")
-
-
-library(influence.ME)
-
-removeOutliers_lmer_cooks <- function(df, yName, xName, RE, ...) {
-  RE_formula <- paste("(1|", RE, ")", sep = "")
-  f <- (paste(paste(yName, xName, sep = " ~ "), "+", RE_formula, sep = " "))
-  fit <- lmer(as.formula(f), data = df)
-  estex <- influence(fit, RE)
-  cd <- cooks.distance(estex, group = RE,
-                 sort=TRUE)
-  
-  plot(estex, which="cook",
-       cutoff=4/length(unique(pec_peakNetGRFs[,RE])), sort=TRUE,
-       xlab="Cook´s Distance",
-       ylab=yName)
-  
-  output <- list(
-    influence = estex,
-    cooksDistance = cd
-  )
-  
-  return(output)
-}
-
-removeOutliers_lmer_cooks(pec_peakNetGRFs, "PercentStance", "group", "individual" )
-# this works but it only identifies problems at the individual level, rather than the specific file
-
-## The following code will allow me to ID which observations were the major influencers
-school23 <- within(school23,
-                   homework <- unclass(homework))
-estex.obs <- influence(m23, obs=TRUE)
-cks.d <- cooks.distance(estex.obs, parameter=3)
-which(cks.d > 4/519)
-school23_noOutliers <- school23[-(which(cks.d > 4/519)),]
-
-## SMK: Determine how "extreme" the outliers are, as they may not be worth removing
-
-  #### LINEAR MIXED EFFECTS MODELS ####
-  ## This will be used to compare the means between groups while accounting for the repeated trials within individuals
-  ## Since there are no pelvic data for Periophthalmus, we'll have three models:
-  ## 1) pectoral comparison between Periophthalmus, Ambystoma, and Pleurodeles
-  ## 2) pelvic comparison between Amvbystoma and Pleurodeles
-  ## 3) pectoral versus pelvic for Ambystoma and Pleurodeles
-  ## The effect sizes of individual independent variables can be assessed through the fixed effects: 
-  ## https://stat.ethz.ch/pipermail/r-sig-mixed-models/2013q4/021102.html
-  ## Or, could consider the f2 value (Aiken and West 1991): https://largescaleassessmentsineducation.springeropen.com/articles/10.1186/s40536-018-0061-2
-  
-  #### LMER with random intercepts: Peak net GRF - Pectoral ####
-  
-  ### a) Run lmers
-  
-  ## with outliers and without outliers
-  modelFormulae <- list()
-  pec_LMM <- list()
-  pec_LMM_noOutliers <- list()
-  pec_LMM_residuals <- list()
-  pec_LMM_noOutliers_residuals <- list()
-  for (i in 1:nVars) {
-    modelFormulae[[i]] <- as.formula(paste(variablesToAnalyze[i], "~group+(1|individual)", sep = ""))
-    pec_LMM[[i]] <- lmer(modelFormulae[[i]], data = pec_peakNetGRFs)
-    pec_LMM_residuals[[i]] <- resid(pec_LMM[[i]])
-    pec_LMM_noOutliers[[i]] <- lmer(modelFormulae[[i]], data = data.frame(pec_peakNetGRF_noOutliers$usableData))
-    pec_LMM_noOutliers_residuals[[i]] <- resid(pec_LMM_noOutliers[[i]])
-  }
-  names(pec_LMM) <- modelFormulae
-  names(pec_LMM_noOutliers) <- modelFormulae
-  names(pec_LMM_residuals) <- variablesToAnalyze[1:7]
-  names(pec_LMM_noOutliers_residuals) <- variablesToAnalyze[1:7]
-
-  pec_LMM_resids <- data.frame(do.call("cbind", pec_LMM_residuals))
-  # problems with this one because there are different number of observations in each variable
-  pec_LMM_noOutliers_resids <- data.frame(do.call("cbind", pec_LMM_noOutliers_residuals))
-  
-
-  #### Testing the assumptions ####
-  ## Don't need to test for linearity of data because the predictors are categorical
-
-  ## b) evaluating the normality of the residuals
-  # the null of the Shapiro-Wilk test is that the input (e.g., residuals of data) are normal
-  
-  # For data with outliers
-  pec_LMM_shapiro <- list()
-  for (i in 1:nVars) {
-    pec_LMM_shapiro[[i]] <- shapiro.test(resid(pec_LMM[[i]]))
-    qqPlot(resid(pec_LMM[[i]]), ylab = paste(names(pec_LMM)[[i]], " residuals"))
-  }
-  #do.call(grid.arrange, grobs = list(qqplots)) # can't use grid.arrange on car plots
-  names(pec_LMM_shapiro) <- modelFormulae
-  # Only InterpAP_BW met the assumption of normality based on the Shapiro-Wilk tests
-  # However, the graphs show that the values tended to deviate from normality mainly because
-  # the smallest points tended to underestimate the fitted values, which is more conservative
-  # than having the largest values overestimate the qq-line
-  
-  # For data without outliers
-  pec_LMM_noOutliers_shapiro <- list()
-  for (i in 1:nVars) {
-    pec_LMM_noOutliers_shapiro[[i]] <- shapiro.test(resid(pec_LMM_noOutliers[[i]]))
-    qqPlot(resid(pec_LMM_noOutliers[[i]]), ylab = paste(names(pec_LMM_noOutliers)[[i]], " residuals"))
-  }
-  names(pec_LMM_noOutliers_shapiro) <- modelFormulae
-  # removing the outliers made it so more variables met the assumption of normal residuals
-  # only Percent Stance and ML_BW were not normal
-
-  
-  ## c) Testing homogeneity of variances
-  # the Bartlett's test is more sensitive to non-normal data so people often use Levene's
-  # more info here; http://www.sthda.com/english/wiki/compare-multiple-sample-variances-in-r
-  # The Fligner-Killeen test can be used for non-normal data  
-  
-  # with full data set
-  apply(pec_peakNetGRFs[,variablesToAnalyze[1:7]],2,function(x) {leveneTest(x ~ as.factor(pec_peakNetGRFs$group))})
-  apply(pec_peakNetGRFs[,variablesToAnalyze[1:7]],2,function(x) {fligner.test(x ~ as.factor(pec_peakNetGRFs$group))})
-  
-  # can also evaluate the homogeneity of variances graphically
-  pp <- list()
-  for (i in 1:nVars) {
-    pp[[i]] <- plot(pec_LMM[[i]])
-  }
-  names(pp) <- names(pec_LMM)
-  # there does not appear to be any observable pattern in the residuals vs. fitted plots, which suggests
-  # that the variances are homogeneous
-  
-  # Testing assumption when the outliers were removed
-  apply(pec_peakNetGRF_noOutliers$usableData[,variablesToAnalyze[1:7]],2,function(x) {leveneTest(x ~ as.factor(pec_peakNetGRF_noOutliers$usableData$group))})
-  apply(pec_peakNetGRF_noOutliers$usableData[,variablesToAnalyze[1:7]],2,function(x) {fligner.test(x ~ as.factor(pec_peakNetGRF_noOutliers$usableData$group))})
-  
-  ## d) Testing the normality of the random effects
-  # following suggestions from: https://stats.stackexchange.com/questions/117170/testing-whether-random-effects-are-normally-distributed-in-r
-  
-  ## random intercepts model
-  r_int<- ranef(pec_LMM[[1]])$individual$`(Intercept)`
-  qqnorm(r_int)
-  qqline(r_int)
-  shapiro.test(r_int)
-
-  
-  ### NOTE: LMMs with random intercepts and slopes were attempted but the sample size of the pectoral data set were not large enough to handle the more 
-  ### complex random effects structure for certain variable, so only a random intercepts LMM was used to make the comparisons consistent
-
-  
-  
-  ## Zu omega squared to assess the 'goodness of fit' for the entire model
-  # Xu's omega method: http://onlinelibrary.wiley.com/doi/10.1002/sim.1572/abstract
-  ## or through the performance package: (got the same exact results as my code)
-  # performance::r2_xu(pec_LMM)
-  
-  Xu_omega2 <- function(lmm, ...) {
-    1-var(residuals(lmm))/(var(model.response(model.frame(lmm))))
-  }
-  
-  pec_LMM_omega2 <- lapply(pec_LMM, FUN = function(x) Xu_omega2(x))
-
-   
-  ## Can also do post-hoc pair-wise comparisons for the fixed effects: https://stats.stackexchange.com/questions/237512/how-to-perform-post-hoc-test-on-lmer-model
-  ## This describes that the differences between the post-hoc options: https://stats.stackexchange.com/questions/204741/which-multiple-comparison-method-to-use-for-a-lmer-model-lsmeans-or-glht
-  ## The main difference is how they calculate the p-value, which doesn't matter to LMMs. 
-  ## multcomp::glht() can produces shorter CIs and small p-values (which may be due to assumming infinite dfs),
-  ## so might be better to use lsmeans::lsmeans() to be more conservative. 
-  ## lsmeans also handles interactions better. 
-  ## lsmeans has migrated to emmeans. This describes how to get the contrasts: 
-  ## https://stats.stackexchange.com/questions/331238/post-hoc-pairwise-comparison-of-interaction-in-mixed-effects-lmer-model
-  ## and https://stats.stackexchange.com/questions/355611/pairwise-comparisons-with-emmeans-for-a-mixed-three-way-interaction-in-a-linear
-  # pec_EMM <- emmeans(pec_LMM[[1]], ~ group)
-  # contrast(pec_EMM[[1]], interaction = "pairwise")
-  
-  pec_EMM <- lapply(pec_LMM, FUN = function(x) emmeans(x, ~ group))
-  pec_EMM_contrasts <- lapply(pec_EMM, FUN = function(x) contrast(x, interaction = "pairwise"))
-  
-  ## Cohen's f2 to estimate the effect size of a fixed effect: https://github.com/finch-f/effect-size-in-Linear-mixed-model/blob/master/How%20to%20calculate%20effect%20size%20of%20a%20fixed%20effect.pdf
-  Cohen_f2 <- function(y, FE = NULL, RE = NULL, df = NULL, ...) {
-    LMM_formula <- as.formula(paste(y, " ~ ", FE, " + ", RE))
-    LMM <- lmer(LMM_formula, data = df)
-    LMM_null_formula <- as.formula(paste(y, " ~ 1 + ", RE))
-    LMM_null <- lmer(LMM_null_formula, data = df)
-    LMM_pseudoR2 <- piecewiseSEM::rsquared(LMM)
-    LMM_null_pseudoR2 <- piecewiseSEM::rsquared(LMM_null)
-    LMM_f2 <- (LMM_pseudoR2[,5:6] - LMM_null_pseudoR2[,5:6])/(1 - LMM_pseudoR2[,5:6])
-    # double-check last line bc I got a conditional f2 that was lower than the marginal, which shouldn't be possible
-    # maybe that's because I should only be calculating the f2 for the marginal values
-  }
-  
-  pec_LMM_null <- lmer(PercentStance ~ 1 + (1 |individual), data = subset(peakNetGRF, appendage == "pectoral"), REML = TRUE)
-  pec_LMM_pseudoR2 <- piecewiseSEM::rsquared(pec_LMM)
-  pec_LMM_null_pseudoR2 <- piecewiseSEM::rsquared(pec_LMM_null)
-  pec_LMM_F2 <- (pec_LMM_null_pseudoR2 - pec_LMM_pseudoR2)/(1 - pec_LMM_null_pseudoR2)
-  # got a lot of warnings about "In Ops.factor(left, right) : ‘-’ not meaningful for factors"
-  pec_LMM_F2 <- (pec_LMM_pseudoR2[,5:6] - pec_LMM_null_pseudoR2[,5:6])/(1 - pec_LMM_pseudoR2[,5:6])
-  # this worked, though. Values were different from MuMIn::r.squaredGLMM(pec_LMM)
-  # using the marginal values since Cohen's f2 is based on the fixed effects, and the conditional value includes both the fixed and random effects.
-  
-  ## when plotting the vertical and net GRF data, maybe use filled regions to help highlight the areas of overlap 
-  
-  
-  ### Calculating the Inter Class Correlation ###
-  ## Based on: https://www.ssc.wisc.edu/sscc/pubs/MM/MM_DiagInfer.html
-  ## This represents the variation due to the random effect
-  ## see info for "sc": https://www.rdocumentation.org/packages/lme4/versions/1.1-21/topics/VarCorr
-  ## or use: https://www.rdocumentation.org/packages/sjstats/versions/0.17.4/topics/icc
-  ## looks like sjstats::icc has been changed to performance::icc
-  ## ICC might already be reported in the MuMIn pseudo-R2 code, though
-  
-  r1Var <- as.numeric(VarCorr(pec_LMM[[1]])[["individual"]])
-  residVar <- attr(VarCorr(pec_LMM[[1]]), "sc")^2
-  r1Var
-  residVar
-  r1Var / (r1Var + residVar) # same as the adjusted ICC from performance::icc()
-  
-  ## performance::icc(pec_LMM[[1]])
-  
-  
-  #### Robust LMM ####
-  
-  pec_RLMM <- list()
-  pec_RLMM_noOutliers <- list()
-  pec_RLMM_residuals <- list()
-  pec_RLMM_noOutliers_residuals <- list()
-  for (i in 1:nVars) {
-    pec_RLMM[[i]] <- rlmer(modelFormulae[[i]], data = pec_peakNetGRFs)
-    pec_RLMM_residuals[[i]] <- resid(pec_RLMM[[i]])
-    pec_RLMM_noOutliers[[i]] <- rlmer(modelFormulae[[i]], data = data.frame(pec_peakNetGRF_noOutliers$usableData))
-    pec_RLMM_noOutliers_residuals[[i]] <- resid(pec_RLMM_noOutliers[[i]])
-  }
-  names(pec_RLMM) <- modelFormulae
-  names(pec_RLMM_noOutliers) <- modelFormulae
-  names(pec_RLMM_residuals) <- variablesToAnalyze[1:7]
-  names(pec_RLMM_noOutliers_residuals) <- variablesToAnalyze[1:7]
-  
-  pec_RLMM_resids <- data.frame(do.call("cbind", pec_RLMM_residuals))
-  pec_RLMM_noOutliers_resids <- data.frame(do.call("cbind", pec_RLMM_noOutliers_residuals))
-  
-  
-  # to improve the efficiency of the random effect
-  pec_RLMM2 <- list()
-  pec_RLMM2_noOutliers <- list()
-  pec_RLMM2_residuals <- list()
-  pec_RLMM2_noOutliers_residuals <- list()
-  pec_RLMM_compare <- list()
-  for (i in 1:nVars) {
-    pec_RLMM2[[i]] <- update(pec_RLMM[[i]], rho.sigma.e = psi2propII(smoothPsi, k = 2.28),rho.sigma.b = psi2propII(smoothPsi, k = 2.28))
-    pec_RLMM2_residuals[[i]] <- resid(pec_RLMM[[i]])
-    pec_RLMM2_noOutliers[[i]] <- update(pec_RLMM_noOutliers[[i]], rho.sigma.e = psi2propII(smoothPsi, k = 2.28),rho.sigma.b = psi2propII(smoothPsi, k = 2.28))
-    pec_RLMM2_noOutliers_residuals[[i]] <- resid(pec_RLMM2_noOutliers[[i]])
-    pec_RLMM_compare[[i]] <- compare(pec_LMM[[i]], pec_RLMM[[i]], pec_RLMM2[[i]], pec_LMM_noOutliers[[i]], pec_RLMM_noOutliers[[i]], pec_RLMM2_noOutliers[[i]], show.rho.functions = FALSE)
-  }
-  names(pec_RLMM2) <- modelFormulae
-  names(pec_RLMM2_noOutliers) <- modelFormulae
-  names(pec_RLMM2_residuals) <- variablesToAnalyze[1:7]
-  names(pec_RLMM2_noOutliers_residuals) <- variablesToAnalyze[1:7]
-  names(pec_RLMM_compare) <- modelFormulae
-  
-  pec_RLMM2_resids <- data.frame(do.call("cbind", pec_RLMM2_residuals))
-  pec_RLMM2_noOutliers_resids <- data.frame(do.call("cbind", pec_RLMM2_noOutliers_residuals))
-  
-  
-  ### Shapiro-Wilk tests but this isn't the best way to evaluate normality
-  # For data with outliers
-  pec_RLMM_shapiro <- list()
-  pec_RLMM2_shapiro <- list()
-  for (i in 1:nVars) {
-    pec_RLMM_shapiro[[i]] <- shapiro.test(resid(pec_RLMM[[i]]))
-    pec_RLMM2_shapiro[[i]] <- shapiro.test(resid(pec_RLMM2[[i]]))
-  }
-
-  names(pec_RLMM_shapiro) <- modelFormulae
-  # Only InterpAP_BW met the assumption of normality based on the Shapiro-Wilk tests
-  
-  names(pec_RLMM2_shapiro) <- modelFormulae
-  
-  
-  # For data without outliers
-  pec_RLMM_noOutliers_shapiro <- list()
-  pec_RLMM2_noOutliers_shapiro <- list()
-  for (i in 1:nVars) {
-    pec_RLMM_noOutliers_shapiro[[i]] <- shapiro.test(resid(pec_RLMM_noOutliers[[i]]))
-    pec_RLMM2_noOutliers_shapiro[[i]] <- shapiro.test(resid(pec_RLMM2_noOutliers[[i]]))
-  }
-  names(pec_RLMM_noOutliers_shapiro) <- modelFormulae
-  names(pec_RLMM2_noOutliers_shapiro) <- modelFormulae
-  # removing the outliers made it so more variables met the assumption of normal residuals
-  # only V_BW and NetGRF_BW were normal
-  
-  
-  
-
-  #### NLME with random intercepts: peak net GRF - Pectoral ####
-  ## based on: https://stats.stackexchange.com/questions/77891/checking-assumptions-lmer-lme-mixed-models-in-r
-  
-  lm.base2 <- lme(PercentStance ~ group, random= ~1|individual, method="ML", data= pec_peakNetGRF_noOutliers$usableData)
-  plot(lm.base2)
-  qqnorm(resid(lm.base2))
-  
-  
-  ### a) Run lmes
-  
-  ## with outliers and without outliers
-  # make sure the iterations are high enough to allow the models to converge
-  lmeControl(msMaxIter = 50)
-  
-  modelFormulae2 <- list()
-  pec_LMM2 <- list()
-  pec_LMM2_noOutliers <- list()
-  pec_LMM2_residuals <- list()
-  pec_LMM2_noOutliers_residuals <- list()
-  for (i in 1:nVars) {
-    modelFormulae2[[i]] <- as.formula(paste(variablesToAnalyze[i], "~group", sep = ""))
-    pec_LMM2[[i]] <- lme(modelFormulae2[[i]], random = ~1|individual, weights = varIdent(form = ~ 1 | group), data = pec_peakNetGRFs)
-    pec_LMM2_residuals[[i]] <- residuals(pec_LMM2[[i]])
-    pec_LMM2_noOutliers[[i]] <- lme(modelFormulae2[[i]], random = ~1|individual, weights = varIdent(form = ~ 1 | group), data = data.frame(pec_peakNetGRF_noOutliers$usableData))
-    pec_LMM2_noOutliers_residuals[[i]] <- residuals(pec_LMM2_noOutliers[[i]])
-  }
-  names(pec_LMM2) <- modelFormulae2
-  names(pec_LMM2_noOutliers) <- modelFormulae2
-  names(pec_LMM2_residuals) <- variablesToAnalyze[1:7]
-  names(pec_LMM2_noOutliers_residuals) <- variablesToAnalyze[1:7]
-  
-  pec_LMM2_resids <- data.frame(do.call("cbind", pec_LMM2_residuals))
-  pec_LMM2_noOutliers_resids <- data.frame(do.call("cbind", pec_LMM2_noOutliers_residuals))
-  
-  
-  
-  #### Testing the assumptions ####
-  ## Don't need to test for linearity of data because the predictors are categorical
-  
-  ## b) evaluating the normality of the residuals
-  # the null of the Shapiro-Wilk test is that the input (e.g., residuals of data) are normal
-  
-  # For data with outliers
-  pec_LMM2_shapiro <- list()
-  for (i in 1:nVars) {
-    pec_LMM2_shapiro[[i]] <- shapiro.test(resid(pec_LMM2[[i]]))
-    qqPlot(resid(pec_LMM2[[i]]), ylab = paste(names(pec_LMM2)[[i]], " residuals"))
-  }
- 
-  names(pec_LMM2_shapiro) <- modelFormulae2
-  # Only InterpAP_BW met the assumption of normality based on the Shapiro-Wilk tests
-  
-  # For data without outliers
-  pec_LMM2_noOutliers_shapiro <- list()
-  for (i in 1:nVars) {
-    pec_LMM2_noOutliers_shapiro[[i]] <- shapiro.test(resid(pec_LMM2_noOutliers[[i]]))
-    qqPlot(resid(pec_LMM2_noOutliers[[i]]), ylab = paste(names(pec_LMM2_noOutliers)[[i]], " residuals"))
-  }
-  names(pec_LMM2_noOutliers_shapiro) <- modelFormulae2
-  # removing the outliers made it so more variables met the assumption of normal residuals
-  # however, still not as many variables as the lmer models
-  
-  
-  ## c) Testing homogeneity of variances
-  # the Bartlett's test is more sensitive to non-normal data so people often use Levene's
-  # more info here; http://www.sthda.com/english/wiki/compare-multiple-sample-variances-in-r
-  # The Fligner-Killeen test can be used for non-normal data  
-  
-  # with full data set (same as lmer)
-  apply(pec_peakNetGRFs[,variablesToAnalyze[1:7]],2,function(x) {leveneTest(x ~ as.factor(pec_peakNetGRFs$group))})
-  apply(pec_peakNetGRFs[,variablesToAnalyze[1:7]],2,function(x) {fligner.test(x ~ as.factor(pec_peakNetGRFs$group))})
-  
-  # can also evaluate the homogeneity of variances graphically
-  pp2 <- list()
-  for (i in 1:nVars) {
-    pp2[[i]] <- plot(pec_LMM2[[i]])
-  }
-  names(pp2) <- names(pec_LMM2)
-  # there does not appear to be any observable pattern in the residuals vs. fitted plots, which suggests
-  # that the variances are homogeneous
-  
-  # Testing assumption when the outliers were removed (same as lmer)
-  apply(pec_peakNetGRF_noOutliers$usableData[,variablesToAnalyze[1:7]],2,function(x) {leveneTest(x ~ as.factor(pec_peakNetGRF_noOutliers$usableData$group))})
-  apply(pec_peakNetGRF_noOutliers$usableData[,variablesToAnalyze[1:7]],2,function(x) {fligner.test(x ~ as.factor(pec_peakNetGRF_noOutliers$usableData$group))})
-  
-  # can also evaluate the homogeneity of variances graphically
-  pp2_noOutliers <- list()
-  for (i in 1:nVars) {
-    pp2_noOutliers[[i]] <- plot(pec_LMM2_noOutliers[[i]])
-  }
-  names(pp2_noOutliers) <- names(pec_LMM2_noOutliers)
-  
-  
-  ## d) Testing the normality of the random effects
-  # following suggestions from: https://stats.stackexchange.com/questions/117170/testing-whether-random-effects-are-normally-distributed-in-r
-  
-  # ## random intercepts model
-  # r_int2<- ranef(pec_LMM2[[1]])$individual$`(Intercept)`
-  # qqnorm(r_int2)
-  # qqline(r_int2)
-  # shapiro.test(r_int2)
-  # 
-  # ## checking for equal variances across the random effects
-  # jpeg("pec_peakNetGRF_PercentStance_REs.jpg", width = 10, height = 6, units = "in", res = 300)
-  # plot( lm.base2, resid(., type = "p") ~ fitted(.) | individual,
-  #       id = 0.05, adj = -0.3 )
-  # dev.off()
-  
-  
-  
-  
-  #### FIGURES - STAT ASSUMPTIONS ####
-  
-  plotQQ <- function(lmm, ...) {
-    lmm_resids <- data.frame(resids = residuals(lmm))
-    ggplot(data = lmm_resids, mapping = aes(sample = resids)) +
-      stat_qq_band() +
-      stat_qq_line() +
-      stat_qq_point() +
-      labs(x = "Theoretical Quantiles", y = "Residual Quantiles") + 
-      theme_classic()
-  }
-  
-  #### Testing assumptions of LMER (full vs. no outlier) ####
-  ## (export as 500 width x 600 height)
-  
-  ## PercentStance assumptions
-  pec_LMM_PercentStance_QQ <- plotQQ(pec_LMM[[1]])
-  pec_LMM_PercentStance_Fitted <- plot(pec_LMM[[1]])
-  
-  pec_LMM_noOutliers_PercentStance_QQ <- plotQQ(pec_LMM_noOutliers[[1]]) 
-  pec_LMM_noOutliers_PercentStance_Fitted <- plot(pec_LMM_noOutliers[[1]])
-  
-  jpeg("pec_peakNetGRF_percentStance_stats.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM_PercentStance_QQ, pec_LMM_PercentStance_Fitted, pec_LMM_noOutliers_PercentStance_QQ, pec_LMM_noOutliers_PercentStance_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  ## Vertical GRF assumptions
-  pec_LMM_VBW_QQ <- plotQQ(pec_LMM[[2]]) 
-  pec_LMM_VBW_Fitted <- plot(pec_LMM[[2]])
-  
-  pec_LMM_noOutliers_VBW_QQ <- plotQQ(pec_LMM_noOutliers[[2]]) 
-  pec_LMM_noOutliers_VBW_Fitted <- plot(pec_LMM_noOutliers[[2]])
-  
-  jpeg("pec_peakNetGRF_VBW_stats.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM_VBW_QQ, pec_LMM_VBW_Fitted, pec_LMM_noOutliers_VBW_QQ, pec_LMM_noOutliers_VBW_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  ## Mediolateral GRF assumptions
-  pec_LMM_MLBW_QQ <- plotQQ(pec_LMM[[3]]) 
-  pec_LMM_MLBW_Fitted <- plot(pec_LMM[[3]])
-  
-  pec_LMM_noOutliers_MLBW_QQ <- plotQQ(pec_LMM_noOutliers[[3]])
-  pec_LMM_noOutliers_MLBW_Fitted <- plot(pec_LMM_noOutliers[[3]])
-  
-  jpeg("pec_peakNetGRF_MLBW_stats.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM_MLBW_QQ, pec_LMM_MLBW_Fitted, pec_LMM_noOutliers_MLBW_QQ, pec_LMM_noOutliers_MLBW_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  ## Anteroposterior GRF assumptions
-  pec_LMM_APBW_QQ <- plotQQ(pec_LMM[[4]])
-  pec_LMM_APBW_Fitted <- plot(pec_LMM[[4]])
-  
-  pec_LMM_noOutliers_APBW_QQ <- plotQQ(pec_LMM_noOutliers[[4]])
-  pec_LMM_noOutliers_APBW_Fitted <- plot(pec_LMM_noOutliers[[4]])
-  
-  jpeg("pec_peakNetGRF_APBW_stats.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM_APBW_QQ, pec_LMM_APBW_Fitted, pec_LMM_noOutliers_APBW_QQ, pec_LMM_noOutliers_APBW_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  ## Net GRF assumptions
-  pec_LMM_NetGRFBW_QQ <- plotQQ(pec_LMM[[5]])
-  pec_LMM_NetGRFBW_Fitted <- plot(pec_LMM[[5]])
-  
-  pec_LMM_noOutliers_NetGRFBW_QQ <- plotQQ(pec_LMM_noOutliers[[5]])
-  pec_LMM_noOutliers_NetGRFBW_Fitted <- plot(pec_LMM_noOutliers[[5]])
-  
-  jpeg("pec_peakNetGRF_NetGRFBW_stats.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM_NetGRFBW_QQ, pec_LMM_NetGRFBW_Fitted, pec_LMM_noOutliers_NetGRFBW_QQ, pec_LMM_noOutliers_NetGRFBW_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  ## ML Angle assumptions
-  pec_LMM_MLAngleConvert_QQ <- plotQQ(pec_LMM[[6]])
-  pec_LMM_MLAngleConvert_Fitted <- plot(pec_LMM[[6]])
-  
-  pec_LMM_noOutliers_MLAngleConvert_QQ <- plotQQ(pec_LMM_noOutliers[[6]])
-  pec_LMM_noOutliers_MLAngleConvert_Fitted <- plot(pec_LMM_noOutliers[[6]])
-  
-  jpeg("pec_peakNetGRF_MLAngleConvert_stats.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM_MLAngleConvert_QQ, pec_LMM_MLAngleConvert_Fitted, pec_LMM_noOutliers_MLAngleConvert_QQ, pec_LMM_noOutliers_MLAngleConvert_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  ## AP Angle assumptions
-  pec_LMM_APAngleConvert_QQ <- plotQQ(pec_LMM[[7]])
-  pec_LMM_APAngleConvert_Fitted <- plot(pec_LMM[[7]])
-  
-  pec_LMM_noOutliers_APAngleConvert_QQ <- plotQQ(pec_LMM_noOutliers[[7]])
-  pec_LMM_noOutliers_APAngleConvert_Fitted <- plot(pec_LMM_noOutliers[[7]])
-  
-  jpeg("pec_peakNetGRF_APAngleConvert_stats.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM_APAngleConvert_QQ, pec_LMM_APAngleConvert_Fitted, pec_LMM_noOutliers_APAngleConvert_QQ, pec_LMM_noOutliers_APAngleConvert_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  
-  #### Plotting assumptions of LMER (no outliers) ####
-  jpeg("pec_peakNetGRF_noOutlier_stats1.jpg", width = 8.5, height = 11, units = "in", res = 300)
-  cowplot::plot_grid(
-    pec_LMM_noOutliers_PercentStance_QQ, pec_LMM_noOutliers_PercentStance_Fitted,
-    pec_LMM_noOutliers_VBW_QQ, pec_LMM_noOutliers_VBW_Fitted,
-    pec_LMM_noOutliers_MLBW_QQ, pec_LMM_noOutliers_MLBW_Fitted,
-    pec_LMM_noOutliers_APBW_QQ, pec_LMM_noOutliers_APBW_Fitted,
-    ncol = 2,
-    labels = c("a", "b", "c", "d", "e", "f", "g", "h")
-    )
-  dev.off()
-  
-  jpeg("pec_peakNetGRF_noOutlier_stats2.jpg", width = 8.5, height = 11, units = "in", res = 300)
-  cowplot::plot_grid(
-  pec_LMM_noOutliers_NetGRFBW_QQ, pec_LMM_noOutliers_NetGRFBW_Fitted,
-  pec_LMM_noOutliers_MLAngleConvert_QQ, pec_LMM_noOutliers_MLAngleConvert_Fitted,
-  pec_LMM_noOutliers_APAngleConvert_QQ, pec_LMM_noOutliers_APAngleConvert_Fitted,
-  ncol = 2,
-  labels = c("i", "j", "k", "l", "m", "n")
-  )
-  dev.off()
-  
-  
-  
-  #### Testing assumptions of LME (full vs. no outlier) ####
-  ## (export as 500 width x 600 height)
-  
-  ## PercentStance assumptions
-  pec_LMM2_PercentStance_QQ <- plotQQ(pec_LMM2[[1]])
-  pec_LMM2_PercentStance_Fitted <- plot(pec_LMM2[[1]])
-  
-  pec_LMM2_noOutliers_PercentStance_QQ <- plotQQ(pec_LMM2_noOutliers[[1]])
-  pec_LMM2_noOutliers_PercentStance_Fitted <- plot(pec_LMM2_noOutliers[[1]])
-  
-  jpeg("pec_peakNetGRF_percentStance_stats2.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM2_PercentStance_QQ, pec_LMM2_PercentStance_Fitted, pec_LMM2_noOutliers_PercentStance_QQ, pec_LMM2_noOutliers_PercentStance_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  ## Vertical GRF assumptions
-  pec_LMM2_VBW_QQ <- plotQQ(pec_LMM2[[2]])
-  pec_LMM2_VBW_Fitted <- plot(pec_LMM2[[2]])
-  
-  pec_LMM2_noOutliers_VBW_QQ <- plotQQ(pec_LMM2_noOutliers[[2]])
-  pec_LMM2_noOutliers_VBW_Fitted <- plot(pec_LMM2_noOutliers[[2]])
-  
-  jpeg("pec_peakNetGRF_VBW_stats2.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM2_VBW_QQ, pec_LMM2_VBW_Fitted, pec_LMM2_noOutliers_VBW_QQ, pec_LMM2_noOutliers_VBW_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  ## Mediolateral GRF assumptions
-  pec_LMM2_MLBW_QQ <- plotQQ(pec_LMM2[[3]])
-  pec_LMM2_MLBW_Fitted <- plot(pec_LMM2[[3]])
-  
-  pec_LMM2_noOutliers_MLBW_QQ <- plotQQ(pec_LMM2_noOutliers[[3]])
-  pec_LMM2_noOutliers_MLBW_Fitted <- plot(pec_LMM2_noOutliers[[3]])
-  
-  jpeg("pec_peakNetGRF_MLBW_stats2.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM2_MLBW_QQ, pec_LMM2_MLBW_Fitted, pec_LMM2_noOutliers_MLBW_QQ, pec_LMM2_noOutliers_MLBW_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  ## Anteroposterior GRF assumptions
-  pec_LMM2_APBW_QQ <- plotQQ(pec_LMM2[[4]])
-  pec_LMM2_APBW_Fitted <- plot(pec_LMM2[[4]])
-  
-  pec_LMM2_noOutliers_APBW_QQ <- plotQQ(pec_LMM2_noOutliers[[4]])
-  pec_LMM2_noOutliers_APBW_Fitted <- plot(pec_LMM2_noOutliers[[4]])
-  
-  jpeg("pec_peakNetGRF_APBW_stats2.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM2_APBW_QQ, pec_LMM2_APBW_Fitted, pec_LMM2_noOutliers_APBW_QQ, pec_LMM2_noOutliers_APBW_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  ## Net GRF assumptions
-  pec_LMM2_NetGRFBW_QQ <- plotQQ(pec_LMM2[[5]])
-  pec_LMM2_NetGRFBW_Fitted <- plot(pec_LMM2[[5]])
-  
-  pec_LMM2_noOutliers_NetGRFBW_QQ <- plotQQ(pec_LMM2_noOutliers[[5]])
-  pec_LMM2_noOutliers_NetGRFBW_Fitted <- plot(pec_LMM2_noOutliers[[5]])
-  
-  jpeg("pec_peakNetGRF_NetGRFBW_stats2.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM2_NetGRFBW_QQ, pec_LMM2_NetGRFBW_Fitted, pec_LMM2_noOutliers_NetGRFBW_QQ, pec_LMM2_noOutliers_NetGRFBW_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  ## ML Angle assumptions
-  pec_LMM2_MLAngleConvert_QQ <- plotQQ(pec_LMM2[[6]])
-  pec_LMM2_MLAngleConvert_Fitted <- plot(pec_LMM2[[6]])
-  
-  pec_LMM2_noOutliers_MLAngleConvert_QQ <- plotQQ(pec_LMM2_noOutliers[[6]])
-  pec_LMM2_noOutliers_MLAngleConvert_Fitted <- plot(pec_LMM2_noOutliers[[6]])
-  
-  jpeg("pec_peakNetGRF_MLAngleConvert_stats2.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM2_MLAngleConvert_QQ, pec_LMM2_MLAngleConvert_Fitted, pec_LMM2_noOutliers_MLAngleConvert_QQ, pec_LMM2_noOutliers_MLAngleConvert_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  ## AP Angle assumptions
-  pec_LMM2_APAngleConvert_QQ <- plotQQ(pec_LMM2[[7]])
-  pec_LMM2_APAngleConvert_Fitted <- plot(pec_LMM2[[7]])
-  
-  pec_LMM2_noOutliers_APAngleConvert_QQ <- plotQQ(pec_LMM2_noOutliers[[7]])
-  pec_LMM2_noOutliers_APAngleConvert_Fitted <- plot(pec_LMM2_noOutliers[[7]])
-  
-  jpeg("pec_peakNetGRF_APAngleConvert_stats2.jpg", width = 10, height = 6, units = "in", res = 300)
-  cowplot::plot_grid(pec_LMM2_APAngleConvert_QQ, pec_LMM2_APAngleConvert_Fitted, pec_LMM2_noOutliers_APAngleConvert_QQ, pec_LMM2_noOutliers_APAngleConvert_Fitted, labels = c("a", "b", "c", "d"))
-  dev.off()
-  
-  
-  #### Plotting assumptions of LME (no outliers) ####
-  jpeg("pec_peakNetGRF_noOutlier_stats1_LME.jpg", width = 8.5, height = 11, units = "in", res = 300)
-  cowplot::plot_grid(
-    pec_LMM2_noOutliers_PercentStance_QQ, pec_LMM2_noOutliers_PercentStance_Fitted,
-    pec_LMM2_noOutliers_VBW_QQ, pec_LMM2_noOutliers_VBW_Fitted,
-    pec_LMM2_noOutliers_MLBW_QQ, pec_LMM2_noOutliers_MLBW_Fitted,
-    pec_LMM2_noOutliers_APBW_QQ, pec_LMM2_noOutliers_APBW_Fitted,
-    ncol = 2,
-    labels = c("a", "b", "c", "d", "e", "f", "g", "h")
-  )
-  dev.off()
-  
-  jpeg("pec_peakNetGRF_noOutlier_stats2_LME.jpg", width = 8.5, height = 11, units = "in", res = 300)
-  cowplot::plot_grid(
-    pec_LMM2_noOutliers_NetGRFBW_QQ, pec_LMM2_noOutliers_NetGRFBW_Fitted,
-    pec_LMM2_noOutliers_MLAngleConvert_QQ, pec_LMM2_noOutliers_MLAngleConvert_Fitted,
-    pec_LMM2_noOutliers_APAngleConvert_QQ, pec_LMM2_noOutliers_APAngleConvert_Fitted,
-    ncol = 2,
-    labels = c("i", "j", "k", "l", "m", "n")
-  )
-  dev.off()
-  
-
-  
-  
-  
-  
-  
-  #### Testing assumptions of RLMER (full vs. no outlier) ####
-  
-  savePlots_RLMM <- function(rlmm, fileName, width = 10, height = 6, units = "in", res = 300, nGraphs = 3, ...) {
-    saveName <- list("_FittedVsResiduals.jpg",
-                     "_NormalQQVsResiduals.jpg",
-                     "_NormalQQVsREs.jpg", 
-                     "_REsForGroup.jpg"
-    )
-    for (i in 1:nGraphs) {
-      robustlmm::plot(rlmm, which = i)
-      ggsave(paste(fileName, saveName[[i]], sep = ""))
-    }
-  }
-  
-  #### Plotting assumptions of original RLMER models with default weightings ####
-  for (i in 1:7) { 
-    savePlots_RLMM(pec_RLMM[[i]], paste("pec_RLMM_", variablesToAnalyze[i], sep = ""))
-  }
-  
-  for (i in 1:7) { 
-    savePlots_RLMM(pec_RLMM_noOutliers[[i]], paste("pec_RLMM_noOutliers_", variablesToAnalyze[i], sep = ""))
-  }
-  
-  
-  #### Plotting assumptions of RLMER models with improved efficiency ####
-  for (i in 1:7) { 
-    savePlots_RLMM(pec_RLMM2[[i]], paste("pec_RLMM2_", variablesToAnalyze[i], sep = ""))
-  }
-  
-  for (i in 1:7) { 
-    savePlots_RLMM(pec_RLMM2_noOutliers[[i]], paste("pec_RLMM2_noOutliers_", variablesToAnalyze[i], sep = ""))
-  }
-  
-  
-  
-  
-  #### FIGURES - PEAK NET GRFs ####
-  
-  
-  
-  ### With Outliers removed
- 
-  #pec_peakNetGRFs$species <- substring(pec_peakNetGRFs$group, 1, 2)
-  
-  pec_peakNetGRFs_noOutliers_VBW_plot <- boxWithDensityPlot(pec_peakNetGRF_noOutliers$usableData, "species", "InterpV_BW", "", "GRF - vertical")
-  pec_peakNetGRFs_noOutliers_MLBW_plot <- boxWithDensityPlot(pec_peakNetGRF_noOutliers$usableData, "species", "InterpML_BW", "", "GRF - mediolateral")
-  pec_peakNetGRFs_noOutliers_APBW_plot <- boxWithDensityPlot(pec_peakNetGRF_noOutliers$usableData, "species", "InterpAP_BW", "", "GRF - anteroposterior")
-  pec_peakNetGRFs_noOutliers_netBW_plot <- boxWithDensityPlot(pec_peakNetGRF_noOutliers$usableData, "species", "NetGRF_BW", "", "GRF - net")
-  pec_peakNetGRFs_noOutliers_MLangle_plot <- boxWithDensityPlot(pec_peakNetGRF_noOutliers$usableData, "species", "MLAngle_Convert_deg", "", "mediolateral angle")
-  pec_peakNetGRFs_noOutliers_APangle_plot <- boxWithDensityPlot(pec_peakNetGRF_noOutliers$usableData, "species", "APAngle_Convert_deg", "", "anteroposterior angle")
-  
-  jpeg("pec_peakNetGRF_noOutliers_plots.jpg", width = 8.5, height = 11, units = "in", res = 300)
-  cowplot::plot_grid(pec_peakNetGRFs_noOutliers_VBW_plot, 
-                     pec_peakNetGRFs_noOutliers_MLBW_plot, 
-                     pec_peakNetGRFs_noOutliers_APBW_plot,
-                     pec_peakNetGRFs_noOutliers_netBW_plot, 
-                     pec_peakNetGRFs_noOutliers_MLangle_plot,
-                     pec_peakNetGRFs_noOutliers_APangle_plot,
-                     ncol = 3,
-                     #labels = c("a", "b", "c", "d", "e", "f")
-                     labels = "AUTO"
-  )
-  dev.off()
-  
-  ### pec and pel combined - no outliers
-  full_peakNetGRF_noOutliers <- rbind(pec_peakNetGRF_noOutliers$usableData, pel_peakNetGRF_noOutliers$usableData)
-  
-  jpeg("pec_peakNetGRF_noOutliers_plots_GRFcomponents.jpg", width = 8.5, height = 11, units = "in", res = 300)
-  cowplot::plot_grid(pec_peakNetGRFs_noOutliers_VBW_plot, 
-                     pec_peakNetGRFs_noOutliers_MLBW_plot, 
-                     pec_peakNetGRFs_noOutliers_APBW_plot,
-                     pec_peakNetGRFs_noOutliers_netBW_plot,
-                     ncol = 3,
-                     #labels = c("a", "b", "c", "d", "e", "f")
-                     labels = "AUTO"
-  )
-  dev.off()
-  
-  
-  #### FIGURES - PROFILE PLOTS ####
-  pel_GRF_NetBW <- data.frame(do.call("rbind", lapply(GRFs$Pelvic$Pel_GRFs_Filtered_dataset_noOverlap, function(x) x[,"NetGRF_BW"])))
-  pel_GRF_NetBW$filename <- row.names(pel_GRF_NetBW)
-  
-  # pelvic - ambystoma
-  pel_GRF_NetBW_af_mean <- sapply(subset(pel_GRF_NetBW, substring(pel_GRF_NetBW$filename, 1, 2) == "af")[,1:101], FUN=function(x) mean(x, na.rm=TRUE))
-  pel_GRF_NetBW_af_se <- sapply(subset(pel_GRF_NetBW, substring(pel_GRF_NetBW$filename, 1, 2) == "af")[,1:101], FUN=function(x) parameters::standard_error(x, na.rm=TRUE))
-  Stance5 <- seq(1,101,5)
-  pel_GRF_NetBW_af_mean_SE <- data.frame(pel_GRF_NetBW_af_mean[Stance5], pel_GRF_NetBW_af_se[Stance5], seq(0,100,5))
-  pel_GRF_NetBW_af_mean_SE$Type <- "pel"
-  pel_GRF_NetBW_af_mean_SE$species <- "af"
-  names(pel_GRF_NetBW_af_mean_SE) <- c("Mean", "SE", "Stance", "Type", "species")
-  
-  # pelvic - pleurodeles
-  pel_GRF_NetBW_pw_mean <- sapply(subset(pel_GRF_NetBW, substring(pel_GRF_NetBW$filename, 1, 2) == "pw")[,1:101], FUN=function(x) mean(x, na.rm=TRUE))
-  pel_GRF_NetBW_pw_se <- sapply(subset(pel_GRF_NetBW, substring(pel_GRF_NetBW$filename, 1, 2) == "pw")[,1:101], FUN=function(x) parameters::standard_error(x, na.rm=TRUE))
-  Stance5 <- seq(1,101,5)
-  pel_GRF_NetBW_pw_mean_SE <- data.frame(pel_GRF_NetBW_pw_mean[Stance5], pel_GRF_NetBW_pw_se[Stance5], seq(0,100,5))
-  pel_GRF_NetBW_pw_mean_SE$Type <- "pel"
-  pel_GRF_NetBW_pw_mean_SE$species <- "pw"
-  names(pel_GRF_NetBW_pw_mean_SE) <- c("Mean", "SE", "Stance", "Type", "species")
-  
-  
-  pel_GRF_NetBW_Mean_SE <- rbind(pel_GRF_NetBW_af_mean_SE, pel_GRF_NetBW_pw_mean_SE)
-  pel_GRF_NetBW_MaxMin <- aes(ymax=pel_GRF_NetBW_Mean_SE$Mean + pel_GRF_NetBW_Mean_SE$SE, ymin = pel_GRF_NetBW_Mean_SE$Mean - pel_GRF_NetBW_Mean_SE$SE)
-  
-  tiff(filename=paste("Salamander_Pel_NetGRF_Comparison_", SaveDate, ".tif", sep=""), height=8.08661*300, width=9.5*300, res=300)
-  ggplot(data=pel_GRF_NetBW_Mean_SE, aes(x=pel_GRF_NetBW_Mean_SE$Stance, y=pel_GRF_NetBW_Mean_SE$Mean, fill=species, linetype=species))+
-    scale_y_continuous("Net GRF (BW)\n") +
-    scale_x_continuous("\n Percent Stance") +
-    geom_line(size=1, alpha=0.75) +
-    geom_ribbon(pel_GRF_NetBW_MaxMin, alpha=0.5) +
-    scale_colour_manual(name="species:", # changing legend title
-                        labels=c("Ambystoma  ", "Pleurodeles  "), # Changing legend labels
-                        values=c("ivory4", "ivory4"))+
-    scale_fill_manual(name="species:", 
-                      labels=c("Ambystoma  ", "Pleurodeles  "),
-                      values=c("red","blue"))+
-    scale_linetype_manual(name="species:", 
-                          labels=c("Ambystoma  ", "Pleurodeles  "),
-                          values=c("dashed", "solid"))+
-    theme(axis.title.x=element_text(colour="black", size = 25))+ # vjust=0 puts a little more spacing btwn the axis text and label
-    theme(axis.title.y=element_text(colour='black', size = 25))+
-    theme(axis.text.x=element_text(colour='black', size = 20))+
-    theme(axis.text.y=element_text(colour='black', size = 20))+
-    theme(panel.grid.minor=element_blank(), panel.grid.major=element_blank())+ # get rid of gridlines
-    theme(panel.background=element_blank())+ # make background white
-    theme(axis.line=element_line(colour="black", linetype="solid"))+ # put black lines for axes
-    theme(legend.position="bottom", legend.direction="horizontal", legend.text = element_text(size = 15), legend.title = element_text(size = 20))+
-    theme(plot.title=element_text(size=8))
-    #annotate("text",  x=95, y = 160, label = "Extension", size=3)+
-    #annotate("text", label = "Flexion", x = 95, y = 60, size=3)+
-    #ggtitle("D\n") + theme(plot.title=element_text(hjust=0, size=15, face="bold"))
-  dev.off()
-  
-  
-  profilePlotR <- function(d = d, xname = xname, yname = yname, groupname = groupname, subgroupname = subgroupname, rowname = rowname, title = "plot", xlab = "x", ylab = "y", colorlinesby = subgroupname, highlight = NULL, ...) {
-    interact <- c(groupname, subgroupname, rowname)
-    ggplot(d, aes_string(x = xname, y = yname)) +
-      geom_line(aes_string(group = paste0('interaction(', paste0(interact, collapse = ', ' ),')'), color = colorlinesby, linetype = groupname), alpha = 0.3) +
-      geom_smooth(aes_string(fill = groupname, linetype = groupname, color = groupname), color = "black",  alpha = 0.6) + # include means for each ind with 95% CI shading
-      theme(panel.grid.minor=element_blank(), panel.grid.major=element_blank()) + # get rid of gridlines
-      theme(panel.background=element_blank()) + # make background white
-      theme(axis.line.x =element_line(colour="black", linetype="solid"),
-            axis.line.y =element_line(colour="black", linetype="solid")) + # put black lines for axes
-      ggtitle(title) + theme(plot.title=element_text(hjust=0.5, size=15, face="bold")) +
-      labs(x = xlab, y = ylab) +
-      if(is.null(highlight) == FALSE) {
-        geom_line(data = highlight, aes_string(group = paste0('interaction(', paste0(interact, collapse = ', ' ),')'), color = subgroupname, linetype = groupname),  size = 1.5, alpha = 0.5)
-      }
-  }
-  
   #### SAVING THE DATA ####
   ## go to the parent directory then save output in 'output' folder
   setwd('..')
@@ -2349,7 +1587,7 @@ school23_noOutliers <- school23[-(which(cks.d > 4/519)),]
   
   ## Pectoral data
   
-  ## Save the dataset that was filtered and had areas of overlap excluded
+  ## Save the dataset that was filtered and had areas of overlap included
   Save_FilterAll_Pec <- NULL
   for (i in 1:length(GRFs$Pectoral$Pec_GRFs_Filtered_dataset)) {
     Save_FilterAll_Pec[[i]] <- paste(names(GRFs$Pectoral$Pec_GRFs_Filtered_dataset)[[i]], "_Pec_Filtered_",SaveDate, ".csv", sep="")    
