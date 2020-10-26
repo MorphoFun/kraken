@@ -36,7 +36,7 @@ pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
 #'
 #' @name profilePlotR
 #'
-#' @description The following function calculates the summary statistics for groups that have multiple observations and then plots the mean and confidence interval for each group.
+#' @description The following function calculates the summary statistics for groups that have multiple observations and then plots the mean and confidence interval for each group. The confidence interval is based on the lower and upper Gaussian confidence limits based on the t-distribution.
 #'
 #' @usage profilePlotR(d = d, xvar = xvar, yvar = yvar, groupname = groupname, xlab = "x", ylab = "y", colorPalette = c("#D55E00", "#0072B2", "#56B4E9"), linetypes = NULL, grouplevels = NULL, title = NULL, ...)
 #'
@@ -67,12 +67,13 @@ pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
 #' 
 #' @export
 
-profilePlotR <- function(d = d, xvar = xvar, yvar = yvar, groupname = groupname, xlab = "x", ylab = "y", colorPalette = c("#D55E00", "#0072B2", "#56B4E9"), linetypes = NULL, grouplevels = NULL, title = NULL, ...) {
+profilePlotR <- function(d = d, xvar = xvar, yvar = yvar, groupname = groupname, xlab = "x", ylab = "y", colorPalette = c("#D55E00", "#0072B2", "#56B4E9"), linetypes = NULL, grouplevels = NULL, title = NULL, xrange = NULL, yrange = NULL, ...) {
   if(is.null(grouplevels)) {grouplevels = unique(d[,groupname])}
   if(is.null(linetypes)) {linetypes = 1:(length(unique(d[,groupname])))}
-  ggplot(d, aes_string(x= xname, y = yname)) + 
-    scale_y_continuous(paste(ylab, "\n")) +
-    scale_x_continuous(paste("\n ", xlab)) +
+  ggplot(d, aes_string(x= xvar, y = yvar)) + 
+    scale_y_continuous(limits = c(yrange[1], yrange[2]),  paste(ylab, "\n")) +
+    scale_x_continuous(limits = c(xrange[1], xrange[2]), paste("\n ", xlab)) +
+    geom_rect(aes(xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=0), fill="gray95") +
     stat_summary(aes_string(linetype = groupname), fun = mean, geom = 'line', size=1, alpha=0.9) +
     stat_summary(aes_string(fill = groupname), fun.data = mean_cl_normal, geom = "ribbon", fun.args = list(mult = 1), alpha = 0.5) + 
     scale_color_manual(name = groupname, # changing legend title
@@ -799,7 +800,7 @@ pitchAngle <- function(P1, P2, ...) {
 #'
 #' @description Calculates the net ground reaction force (GRF) and angles of the GRF orientation using information about the vertical, mediolaterl, and anteroposterior components of the GRF.
 #'
-#' @usage GRFAngles <- function(myData, ...)
+#' @usage GRFAngles(myData, ...)
 #'
 #' @param \code{myData} A data.frame of four columns of numeric data in the following order: Measure of time (e.g., seconds, percent of stance), vertical component of the GRF, mediolateral component of the GRF, and anteroposterior component of the GRF.
 #' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016.
@@ -838,7 +839,7 @@ GRFAngles <- function(myData, ...) {
 #'
 #' @description Identifies portions of the dataset where two occurrences overlap and replaces with NAs.
 #'
-#' @usage removeOverlaps <- function(df, primary, secondary, filmRate, ...) 
+#' @usage removeOverlaps(df, primary, secondary, filmRate, ...) 
 #'
 #' @param \code{df} A data.frame containing variables of interest.
 #' @param \code{primary} A data.frame containing two numeric values that correspond to the beginning and end of an event (e.g., stance phase of forelimb).
@@ -925,7 +926,7 @@ removeOverlaps <- function(df, primary, secondary, filmRate, ...) {
 #'
 #' @description Calculates yank as a measure of the change in force per unit of time.
 #'
-#' @usage yank <- function(time, force ...)
+#' @usage yank(time, force ...)
 #'
 #' @param \code{time} Numeric values representing the time elapsed in units of seconds.
 #' @param \code{force} Numeric values representing the force measured at each time point.
@@ -957,7 +958,7 @@ yank <- function(time, force, ...) {
 #'
 #' @description Biomechanical model to estimate the peak stresses experienced by the femur of a quadrupedal tetrapod during terrestrial locomotion. This computational model was developed to estimate peak limb bone stresses in extinct nonmammalian therapsids but could be applied to living tetrapods as well. GRF represents the ground reaction force. 
 #'
-#' @usage boneload_extinct <- function(Anat, BW, minalpha, maxalpha, stepalpha, species = NULL, ...) 
+#' @usage boneload_extinct(Anat, BW, minalpha, maxalpha, stepalpha, species = NULL, ...) 
 #'
 #' @param \code{Anat} Numeric values representing the anatomy of the study species. Anatomical variables include: mass_kg (in kilograms), rQuads_m (moment arm of the knee extensors, in units of meters), rAextAnk_m (moment arm of the ankle extensors about the ankle, in units of meters), rAextKnee_m (moment arm of the ankle extensors about the knee, in units of meters), thetaQuad_degrees (angle between extensor force and the knee extensor moment arm about the midshaft centroid, in units of degrees), LFemur_m (length of the femur, in units of meters), AFem_m2 (cross-sectional area of the femur, in units of meters squared), yDV_m (distance from neutral axis to cortex in the dorsoventral direction, in units of meters), IDV_m4 (second moment of area in the dorsoventral direction, in units of meters to the fourth power), RCFemDV_m (moment arm due to bone curvature in the dorsoventral direction, in units of meters), yAP_m (distance from neutral axis to cortex in the anteroposterior direction, in units of meters), IAP_m4 IDV_m4 (second moment of area in the anteroposterior direction, in units of meters to the fourth power), RCFemAP_m (moment arm due to bone curvature in the anteroposterior direction, in units of meters), RGRFKnee_m (moment arm of the GRF to the joint, in units of meters), LFoot_m (length of the foot, in units of meters), rQuadShaft_m (knee extensor moment arm about midshaft centroid, in units of meters)
 #' @param \code{BW} Numeric values representing the magnitude of the net GRF in units of proportion of body mass (e.g., 0.5 for 50 percent of the animal's body mass).
@@ -1109,6 +1110,91 @@ boneload_extinct <- function(Anat, BW, minalpha, maxalpha, stepalpha, species = 
   )
   
   return(output)
+}
+
+
+
+############# smootheR ##########
+
+
+#' @title Smooth numerical data using a polynomial smoothing spline
+#'
+#' @name smootheR
+#'
+#' @description This is a basic procedure to smooth numerica data using splines, which is partly useful for kinematic analyses.
+#'
+#' @usage smootheR(df, method = 1, norder = 3, spar = NULL, ...)
+#'
+#' @param \code{df} Numerical values that represent points to smooth. This could either be a vector or a data.frame.
+#' @param \code{method} An integer numver that codes for the method is based on the different options available to smooth the data, following the description in the signal::smooth.Pspline() function. 
+#' @param \code{norder} An integer number that codes the order for the polynomial used for the spline, following the description in the signal::smooth.Pspline() function.
+#' @param \code{spar} An optional vector that can be provided to use custom parameters for smoothing the data, following the description in the signal::smooth.Pspline() function.
+#' @details These procedures follow the methodology described in Kawano et al. 2016. 
+#' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
+#'
+#' @examples
+#' 
+#' 
+#'
+#' @export
+#' @importFrom pspline smooth.Pspline
+#' 
+
+smootheR <- function(df, method = 1, norder = 3, spar = NULL, ...) {
+  
+  if (length(dim(df)) ==2) {
+    smooth <- sapply(df, FUN = function(x) smooth.Pspline(1:nrow(df), df, norder= norder, method = method, spar = spar)$ysmth)
+  } else {
+    smooth <- smooth.Pspline(1:length(df), df, norder= norder, method = method, spar = spar)$ysmth
+  }
+  return(smooth)
+}
+
+
+
+############# interpolateR ##########
+
+
+#' @title Interpolate numerical data
+#'
+#' @name interpolateR
+#'
+#' @description This is a basic procedure to interpolate numerica data into a different number of points, which is partly useful to standardize data in kinematic analyses.
+#'
+#' @usage interpolateR(df, n, method = 'spline', ...) 
+#'
+#' @param \code{df} Numerical values that represent points to interpolate. This could either be a vector or a data.frame.
+#' @param \code{n} An integer numver for the number of points that you want to divide your data into. 
+#' @param \code{method} A character string to indicate the interpolation method, following the description in the signal::interp1() function.The 'spline' is chosen as a default. 
+#' @details These procedures follow the methodology described in Kawano et al. 2016. 
+#' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
+#'
+#' @examples
+#' 
+#' x <- seq(1, 10, 1)
+#' y <- rnorm(10, 5, 0.1)
+#' xy <- data.frame(x,y)
+#' interpolateR(xy, 20, method = "cubic")
+#' 
+#'
+#' @export
+#' @importFrom signal interp1
+#' 
+
+
+interpolateR <- function(df, n, method = 'spline', ...) {
+  
+  # Determining 101 equally spaced points between the total number of frames / rows
+  N <- nrow(df)/n
+  
+  # determining the points to interpolated depending on whether it's a vector vs. data.frame / matrix
+  if (length(dim(df))==2) {
+    X <- seq(1, nrow(df), length.out = n)
+    apply(df, 2, FUN=function(x) interp1(1:nrow(df), x, X, method = method))
+  } else {
+    X <- seq(1, length(df), length.out = n)
+    interp1(1:length(df), df, X, method = method)
+  }
 }
 
 
