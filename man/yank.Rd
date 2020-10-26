@@ -4,7 +4,7 @@
 \alias{yank}
 \title{Calculating yank for force data}
 \usage{
-yank <- function(time, force ...)
+yank(time, force ...)
 }
 \arguments{
 \item{\code{time}}{Numeric values representing the time elapsed in units of seconds.}

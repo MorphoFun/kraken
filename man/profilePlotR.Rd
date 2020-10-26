@@ -4,7 +4,7 @@
 \alias{profilePlotR}
 \title{Generating profile plots for longitudinal data, with repeated measures}
 \usage{
-profilePlotR(df, "percentstance", "yank", "species", "Percent Stance", "Yank (BW per sec)", colorpalette = cbPalette, linetypes= c("solid", "dashed"), grouplevels = grouplevels)
+profilePlotR(d = d, xvar = xvar, yvar = yvar, groupname = groupname, xlab = "x", ylab = "y", colorPalette = c("#D55E00", "#0072B2", "#56B4E9"), linetypes = NULL, grouplevels = NULL, title = NULL, ...)
 }
 \arguments{
 \item{\code{d}}{data (currently only accepts input for one variable at a time).}
@@ -28,7 +28,7 @@ profilePlotR(df, "percentstance", "yank", "species", "Percent Stance", "Yank (BW
 \item{\code{title}}{character string for the title of the plot.}
 }
 \description{
-The following function calculates the summary statistics for groups that have multiple observations and then plots the mean and confidence interval for each group.
+The following function calculates the summary statistics for groups that have multiple observations and then plots the mean and confidence interval for each group. The confidence interval is based on the lower and upper Gaussian confidence limits based on the t-distribution.
 }
 \details{
 Function to quickly generate profile plots for data. For instance, kinematic plots over time for multiple individuals that have multiple trials of data collected.
@@ -40,6 +40,6 @@ species = c("ab" , "ab", "ab", "ab", "ab", "ab", "ab", "ab", "ab", "ab", "cd", "
 df <- data.frame(percentStance, yank, species)
 cbPalette <- c("#D55E00", "#0072B2")
 grouplevels = c("Aa bb", "Cc dd")
-profilePlotR(df, "percentstance", "yank", "species", "Percent Stance", "Yank (BW per sec)", colorpalette = cbPalette, linetypes= c("solid", "dashed"), grouplevels = grouplevels)
+profilePlotR(df, "percentstance", "yank", "species", "Percent Stance", "Yank (BW per sec)", colorpalette = cbPalette, grouplevels = grouplevels)
 
 }

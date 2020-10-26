@@ -4,7 +4,7 @@
 \alias{GRFAngles}
 \title{Calculate angles of orientation for ground reaction forces}
 \usage{
-GRFAngles <- function(myData, ...)
+GRFAngles(myData, ...)
 }
 \arguments{
 \item{\code{myData}}{A data.frame of four columns of numeric data in the following order: Measure of time (e.g., seconds, percent of stance), vertical component of the GRF, mediolateral component of the GRF, and anteroposterior component of the GRF.}

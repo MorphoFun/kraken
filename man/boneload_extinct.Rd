@@ -4,7 +4,7 @@
 \alias{boneload_extinct}
 \title{Estimating peak stresses to the limb bones in extinct tetrapods}
 \usage{
-boneload_extinct <- function(Anat, BW, minalpha, maxalpha, stepalpha, species = NULL, ...)
+boneload_extinct(Anat, BW, minalpha, maxalpha, stepalpha, species = NULL, ...)
 }
 \arguments{
 \item{\code{Anat}}{Numeric values representing the anatomy of the study species. Anatomical variables include: mass_kg (in kilograms), rQuads_m (moment arm of the knee extensors, in units of meters), rAextAnk_m (moment arm of the ankle extensors about the ankle, in units of meters), rAextKnee_m (moment arm of the ankle extensors about the knee, in units of meters), thetaQuad_degrees (angle between extensor force and the knee extensor moment arm about the midshaft centroid, in units of degrees), LFemur_m (length of the femur, in units of meters), AFem_m2 (cross-sectional area of the femur, in units of meters squared), yDV_m (distance from neutral axis to cortex in the dorsoventral direction, in units of meters), IDV_m4 (second moment of area in the dorsoventral direction, in units of meters to the fourth power), RCFemDV_m (moment arm due to bone curvature in the dorsoventral direction, in units of meters), yAP_m (distance from neutral axis to cortex in the anteroposterior direction, in units of meters), IAP_m4 IDV_m4 (second moment of area in the anteroposterior direction, in units of meters to the fourth power), RCFemAP_m (moment arm due to bone curvature in the anteroposterior direction, in units of meters), RGRFKnee_m (moment arm of the GRF to the joint, in units of meters), LFoot_m (length of the foot, in units of meters), rQuadShaft_m (knee extensor moment arm about midshaft centroid, in units of meters)}

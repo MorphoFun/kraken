@@ -4,7 +4,7 @@
 \alias{removeOverlaps}
 \title{Remove sections of the data where there is overlap}
 \usage{
-removeOverlaps <- function(df, primary, secondary, filmRate, ...)
+removeOverlaps(df, primary, secondary, filmRate, ...)
 }
 \arguments{
 \item{\code{df}}{A data.frame containing variables of interest.}
