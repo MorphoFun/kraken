@@ -1143,7 +1143,7 @@ boneload_extinct <- function(Anat, BW, minalpha, maxalpha, stepalpha, species = 
 smootheR <- function(df, method = 1, norder = 3, spar = NULL, ...) {
   
   if (length(dim(df)) ==2) {
-    smooth <- sapply(df, FUN = function(x) smooth.Pspline(1:nrow(df), df, norder= norder, method = method, spar = spar)$ysmth)
+    smooth <- apply(df, 2, FUN = function(x) smooth.Pspline(1:nrow(df), x, norder= norder, method = method, spar = spar)$ysmth)
   } else {
     smooth <- smooth.Pspline(1:length(df), df, norder= norder, method = method, spar = spar)$ysmth
   }
