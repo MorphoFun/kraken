@@ -638,7 +638,7 @@ protraction <- function(P1,P2,P3, Yaw, ...) {
   }
   
   ## Cross rpdouct between two row vectors 
-  library(pracma) # for the cross() function that returns a vector
+  #library(pracma) # for the cross() function that returns a vector
   wcross <- function(a, b) {
     c <- t(pracma::cross(t(a),t(b)))
     return(c)
@@ -727,7 +727,7 @@ pitchAngle <- function(P1, P2, ...) {
   }
   
   ## Cross rpdouct between two row vectors 
-  library(pracma) # for the cross() function that returns a vector
+  #library(pracma) # for the cross() function that returns a vector
   wcross <- function(a, b) {
     c <- t(pracma::cross(t(a),t(b)))
     return(c)
