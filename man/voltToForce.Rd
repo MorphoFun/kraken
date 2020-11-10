@@ -37,7 +37,7 @@ These procedures follow the methodology used in Kawano and Blob (2013) and Kawan
 }
 \examples{
 
-voltToForce(df, calib = c(-0.710, 1.337, 1.563), lightStartFrame = 248, startFrame = 20, endFrame = 196, filename = "af01f01")
+voltToForce(af01f18, calib = c(-0.7126, 1.3243, 1.3476), lightStartFrame = 276, startFrame = 35, endFrame = 148, zeroStart = 35, filename = "af01f18")
 
 }
 \references{
