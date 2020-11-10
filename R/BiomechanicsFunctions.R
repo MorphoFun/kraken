@@ -163,7 +163,7 @@ impulse <- function(time, GRF) {
 #'
 #' @examples
 #' 
-#' voltToForce(df, calib = c(-0.710, 1.337, 1.563), lightStartFrame = 248, startFrame = 20, endFrame = 196, filename = "af01f01")
+#' voltToForce(af01f18, calib = c(-0.7126, 1.3243, 1.3476), lightStartFrame = 276, startFrame = 35, endFrame = 148, zeroStart = 35, filename = "af01f18")
 #'
 #' @export
 #' 
@@ -303,7 +303,7 @@ voltToForce <- function(df, calib, zeroStart, lightStartFrame, startFrame, endFr
 #'
 #' @examples
 #' 
-#' GRF <- voltToForce(df, calib = c(-0.710, 1.337, 1.563), lightStartFrame = 248, startFrame = 20, endFrame = 196, zeroStart = 22000)
+#' GRF <- voltToForce(af01f18, calib = c(-0.7126, 1.3243, 1.3476), lightStartFrame = 276, startFrame = 35, endFrame = 148, zeroStart = 35, filename = "af01f18")
 #' GRF_filtered <- butterFilteR(GRF, saveAs = "af01f18_Pec_Filter.pdf", saveGraph = "yes")
 #'
 #' @import signal
