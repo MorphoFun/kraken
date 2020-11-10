@@ -10,6 +10,8 @@ LazyData: TRUE
 Imports:
     devtools,
     ggplot2,
+    signal,
+    pspline,
     zoo
 Suggests:
     knitr
