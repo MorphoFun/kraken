@@ -11,6 +11,7 @@ Imports:
     devtools,
     ggplot2,
     signal,
+    pracma,
     pspline,
     zoo
 Suggests:
