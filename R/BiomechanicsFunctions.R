@@ -67,7 +67,7 @@ pcsa <- function(mass, pennationAngle, fascicleLength, density = 1060, ...) {
 #' 
 #' @export
 
-profilePlotR <- function(d = d, xvar = xvar, yvar = yvar, groupname = groupname, xlab = "x", ylab = "y", colorPalette = c("#D55E00", "#0072B2", "#56B4E9"), linetypes = NULL, grouplevels = NULL, title = NULL, xrange = NULL, yrange = NULL, ...) {
+profilePlotR <- function(d = d, xvar = xvar, yvar = yvar, groupname = groupname, xlab = "x", ylab = "y", colorPalette = c("#661100", "#56B4E9", "#009E73"), linetypes = NULL, grouplevels = NULL, title = NULL, xrange = NULL, yrange = NULL, ...) {
   if(is.null(grouplevels)) {grouplevels = unique(d[,groupname])}
   if(is.null(linetypes)) {linetypes = 1:(length(unique(d[,groupname])))}
   ggplot(d, aes_string(x= xvar, y = yvar)) + 
