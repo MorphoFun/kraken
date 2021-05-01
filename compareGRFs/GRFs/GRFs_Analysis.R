@@ -25,20 +25,14 @@ library(lme4) # for lmer()
 library(reshape2) # for melt()
 library(MuMIn) # for r.squaredGLMM()
 library(emmeans) # for emmeans() and pairs(); contrast() could be an option, too
-library(piecewiseSEM) # for rsquared()
 library(gridExtra) # for grid.arrange()
 library(grid) # for textGrob()
 library(car) # for qqPlot()
 library(ggplot2) # for ggplot()
 library(cowplot) # for plot_grid() and ggdraw()
+library(performance) # r2_nakagawa()
 library(qqplotr) # for stat_qq_band()
 library(ggpubr) # for theme_pubr
-library(robustlmm) # for rlmer()
-library(nlme) # for lme() to allow unequal variances across groups in the random effects
-library(LMERConvenienceFunctions) # for the outlier removal steps
-
-library(EMAtools) # for lme.dscore(); although, may not use this
-library(effsize) # for cohen.d(); although, may not use this
 
 forcePath = "./force_rawFiles"
 setwd(forcePath)
@@ -312,7 +306,11 @@ GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet$appendage <- "pectoral"
 peakNetGRF <- rbind(GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet, GRFs$Pectoral$Pec_GRFs_Filtered_PeakNet)
 peakNetGRF$group <- paste(substring(peakNetGRF$filename, 1, 2), substring(peakNetGRF$appendage, 1, 3), sep = "_")
 peakNetGRF$individual <- substring(peakNetGRF$filename, 1, 4)
-peakNetGRF$species <- substring(peakNetGRF$filename, 1, 2)
+peakNetGRF$speciesCode <- substring(peakNetGRF$filename, 1, 2)
+
+peakNetGRF$species <- gsub('pb', 'P. barbarus', peakNetGRF$species)
+peakNetGRF$species <- gsub('pw', 'P. waltl', peakNetGRF$species)
+peakNetGRF$species <- gsub('af', 'A. tigrinum', peakNetGRF$species)
 
 ## Subsetting peak net GRF data into groups to analyze
 pec_peakNetGRFs <- subset(peakNetGRF, appendage == "pectoral")
@@ -321,6 +319,14 @@ sal_peakNetGRFs <- subset(peakNetGRF, !substring(filename, 1, 2) == "pb")
 
 
 #### GRF - PROFILE PLOTS ####
+
+## Choosing a color palette that is friendly to color blindness
+#brown, light blue, green
+cbPalette <- c("#661100", "#56B4E9", "#009E73")
+
+#brown, green
+cbPalette_brgr <- c("#661100", "#009E73")
+
 
 # Create common label for x-axis
 x.grob <- textGrob("\n Percent Stance", 
@@ -355,17 +361,18 @@ pec_GRFs_combined <- list(
 )
 
 for (i in 1:length(pec_GRFs_combined)) {
-  pec_GRFs_combined[[i]]$species = substring(pec_GRFs_combined[[i]][,4], 1, 2)
+  pec_GRFs_combined[[i]]$speciesCode = substring(pec_GRFs_combined[[i]][,4], 1, 2)
+  pec_GRFs_combined[[i]]$species <- ifelse(pec_GRFs_combined[[i]]$speciesCode == "pb", "P. barbarus", ifelse(pec_GRFs_combined[[i]]$speciesCode == "af", "A. tigrinum", "P. waltl"))
 }
 
 
 ## Pectoral - GRF plots (in units of BW per percent of stance)
-pec_GRF_v <- profilePlotR(pec_GRFs_combined$vertical, "percentStance", "vertical_BW", "species", "Percent Stance", "GRF - vertical (BW)", colorpalette = cbPalette, yrange = c(0, 0.5))
-pec_GRF_ml <- profilePlotR(pec_GRFs_combined$mediolateral, "percentStance", "mediolateral_BW", "species", "Percent Stance", "GRF - mediolateral (BW)", colorpalette = cbPalette, yrange = c(-0.2, 0.2))
-pec_GRF_ap <- profilePlotR(pec_GRFs_combined$anteroposterior, "percentStance", "anteroposterior_BW", "species", "Percent Stance", "GRF - anteroposterior (BW)", colorpalette = cbPalette, yrange = c(-0.2, 0.2))
-pec_GRF_net <- profilePlotR(pec_GRFs_combined$net, "percentStance", "net_BW", "species", "Percent Stance", "GRF - Net (BW)", colorpalette = cbPalette, yrange = c(0, 0.5))
-pec_GRF_mlang <- profilePlotR(pec_GRFs_combined$ml_ang, "percentStance", "mlang_deg", "species", "Percent Stance", "GRF - mediolateral angle (deg)", colorpalette = cbPalette, yrange = c(-50, 50))
-pec_GRF_apang <- profilePlotR(pec_GRFs_combined$ap_ang, "percentStance", "apang_deg", "species", "Percent Stance", "GRF - anteroposterior angle (deg)", colorpalette = cbPalette, yrange = c(-50, 50))
+pec_GRF_v <- profilePlotR(pec_GRFs_combined$vertical, "percentStance", "vertical_BW", "species", "Percent Stance", "GRF - vertical (BW)", colorPalette = cbPalette, yrange = c(0, 0.5))
+pec_GRF_ml <- profilePlotR(pec_GRFs_combined$mediolateral, "percentStance", "mediolateral_BW", "species", "Percent Stance", "GRF - mediolateral (BW)", colorPalette = cbPalette, yrange = c(-0.2, 0.2))
+pec_GRF_ap <- profilePlotR(pec_GRFs_combined$anteroposterior, "percentStance", "anteroposterior_BW", "species", "Percent Stance", "GRF - anteroposterior (BW)", colorPalette = cbPalette, yrange = c(-0.2, 0.2))
+pec_GRF_net <- profilePlotR(pec_GRFs_combined$net, "percentStance", "net_BW", "species", "Percent Stance", "GRF - Net (BW)", colorPalette = cbPalette, yrange = c(0, 0.5))
+pec_GRF_mlang <- profilePlotR(pec_GRFs_combined$ml_ang, "percentStance", "mlang_deg", "species", "Percent Stance", "GRF - mediolateral angle (deg)", colorPalette = cbPalette, yrange = c(-50, 50))
+pec_GRF_apang <- profilePlotR(pec_GRFs_combined$ap_ang, "percentStance", "apang_deg", "species", "Percent Stance", "GRF - anteroposterior angle (deg)", colorPalette = cbPalette, yrange = c(-50, 50))
 
 
 
@@ -393,6 +400,9 @@ jpeg("pec_profile_plots.jpg", width = 8.5, height = 11, units = "in", res = 600)
   grid.arrange(arrangeGrob(pec_GRF_prow, bottom = x.grob), pec_GRF_legend, heights = c(1, .2))
 dev.off()
 
+pdf("pec_profile_plots.pdf", width = 8.5, height = 11)
+  grid.arrange(arrangeGrob(pec_GRF_prow, bottom = x.grob), pec_GRF_legend, heights = c(1, .2))
+dev.off()
 
 ### Compiling pelvic data
 pel_GRFs <- list(
@@ -414,17 +424,17 @@ pel_GRFs_combined <- list(
 )
 
 for (i in 1:length(pel_GRFs_combined)) {
-  pel_GRFs_combined[[i]]$species = substring(pel_GRFs_combined[[i]][,4], 1, 2)
+  pel_GRFs_combined[[i]]$speciesCode = substring(pel_GRFs_combined[[i]][,4], 1, 2)
+  pel_GRFs_combined[[i]]$species <- ifelse(pel_GRFs_combined[[i]]$speciesCode == "af", "A. tigrinum", "P. waltl")
 }
 
-
 ## Pelvic - GRF plots (in units of BW per percent of stance)
-pel_GRF_v <- profilePlotR(pel_GRFs_combined$vertical, "percentStance", "vertical_BW", "species", "Percent Stance", "GRF - vertical (BW)", colorpalette = cbPalette, yrange = c(0, 0.5))
-pel_GRF_ml <- profilePlotR(pel_GRFs_combined$mediolateral, "percentStance", "mediolateral_BW", "species", "Percent Stance", "GRF - mediolateral (BW)", colorpalette = cbPalette, yrange = c(-0.2, 0.2))
-pel_GRF_ap <- profilePlotR(pel_GRFs_combined$anteroposterior, "percentStance", "anteroposterior_BW", "species", "Percent Stance", "GRF - anteroposterior (BW)", colorpalette = cbPalette, yrange = c(-0.2, 0.2))
-pel_GRF_net <- profilePlotR(pel_GRFs_combined$net, "percentStance", "net_BW", "species", "Percent Stance", "GRF - Net (BW)", colorpalette = cbPalette, yrange = c(0, 0.5))
-pel_GRF_mlang <- profilePlotR(pel_GRFs_combined$ml_ang, "percentStance", "mlang_deg", "species", "Percent Stance", "GRF - mediolateral angle (deg)", colorpalette = cbPalette, yrange = c(-50, 50))
-pel_GRF_apang <- profilePlotR(pel_GRFs_combined$ap_ang, "percentStance", "apang_deg", "species", "Percent Stance", "GRF - anteroposterior angle (deg)", colorpalette = cbPalette, yrange = c(-50, 50))
+pel_GRF_v <- profilePlotR(pel_GRFs_combined$vertical, "percentStance", "vertical_BW", "species", "Percent Stance", "GRF - vertical (BW)", cbPalette_brgr, yrange = c(0, 0.5))
+pel_GRF_ml <- profilePlotR(pel_GRFs_combined$mediolateral, "percentStance", "mediolateral_BW", "species", "Percent Stance", "GRF - mediolateral (BW)", cbPalette_brgr, yrange = c(-0.2, 0.2))
+pel_GRF_ap <- profilePlotR(pel_GRFs_combined$anteroposterior, "percentStance", "anteroposterior_BW", "species", "Percent Stance", "GRF - anteroposterior (BW)", cbPalette_brgr, yrange = c(-0.2, 0.2))
+pel_GRF_net <- profilePlotR(pel_GRFs_combined$net, "percentStance", "net_BW", "species", "Percent Stance", "GRF - Net (BW)", cbPalette_brgr, yrange = c(0, 0.5))
+pel_GRF_mlang <- profilePlotR(pel_GRFs_combined$ml_ang, "percentStance", "mlang_deg", "species", "Percent Stance", "GRF - mediolateral angle (deg)", cbPalette_brgr, yrange = c(-50, 50))
+pel_GRF_apang <- profilePlotR(pel_GRFs_combined$ap_ang, "percentStance", "apang_deg", "species", "Percent Stance", "GRF - anteroposterior angle (deg)", cbPalette_brgr, yrange = c(-50, 50))
 
 
 
@@ -452,7 +462,9 @@ jpeg("pel_profile_plots.jpg", width = 8.5, height = 11, units = "in", res = 600)
 grid.arrange(arrangeGrob(pel_GRF_prow, bottom = x.grob), pel_GRF_legend, heights = c(1, .2))
 dev.off()
 
-
+pdf("pel_profile_plots.pdf", width = 8.5, height = 11)
+grid.arrange(arrangeGrob(pel_GRF_prow, bottom = x.grob), pel_GRF_legend, heights = c(1, .2))
+dev.off()
 
 
 #### PeakNetGRF: summary stats ####
@@ -466,40 +478,10 @@ aggregate(. ~ group, data = peakNetGRF[,variablesToAnalyze[1:(length(variablesTo
 nVars <- length(variablesToAnalyze) - 3
 
 
-## Pectoral - yank plots (in units of BW per percent of stance)
-pec_yank_pv <- profilePlotR(pec_yank_combined$vertical, "percentStance", "yank", "species", "Percent Stance", "Yank - vertical", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-pec_yank_pml <- profilePlotR(pec_yank_combined$mediolateral, "percentStance", "yank", "species", "Percent Stance", "Yank - mediolateral", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-pec_yank_pap <- profilePlotR(pec_yank_combined$anteroposterior, "percentStance", "yank", "species", "Percent Stance", "Yank - anteroposterior", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-pec_yank_pnet <- profilePlotR(pec_yank_combined$net, "percentStance", "yank", "species", "Percent Stance", "Yank - Net", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-
-pec_yank_prow <- cowplot::plot_grid(
-  pec_yank_pv + theme(axis.title.x = element_blank(),
-                      legend.position = "none"), 
-  pec_yank_pml + theme(axis.title.x = element_blank(),
-                       legend.position = "none" ), 
-  pec_yank_pap + theme(axis.title.x = element_blank(),
-                       legend.position = "none" ),
-  pec_yank_pnet + theme(axis.title.x = element_blank(),
-                        legend.position = "none" ),
-  nrow = 2,
-  labels = "auto")
-
-
-pec_yank_legend <- get_legend(pec_yank_pv)
-
-# Produce plot with insets and common x-axis label
-grid.arrange(arrangeGrob(pec_yank_prow, bottom = x.grob), pec_yank_legend, heights = c(1, .2))
-
-
-
-
 #### PEAK NET GRF - PLOTS ####
 
-## Choosing a color palette that is friendly to color blindness
-cbPalette <- c("#D55E00", "#0072B2", "#56B4E9")
-
 ## Create function to produce box plots with jitter points and marginal densities on the sides
-boxWithDensityPlot <- function(df, xName, yName, xLabel, yLabel, grouplevels = NULL, colorPalette = NULL,...) {
+boxWithDensityPlot <- function(df, xName, yName, xLabel, yLabel, grouplevels = NULL, colorPalette = NULL, xTickAngle = 0, ...) {
   # create the plot
   if(is.null(grouplevels)) {grouplevels = unique(df[,xName])}
   original_plot <- df %>% 
@@ -514,7 +496,7 @@ boxWithDensityPlot <- function(df, xName, yName, xLabel, yLabel, grouplevels = N
                       values = colorPalette) +
     xlab(paste("\n", xLabel)) +
     ylab(paste(yLabel, "\n")) +
-    theme_pubr() + 
+    theme_pubr(x.text.angle = xTickAngle) + 
     border()      
   
   y_density <- axis_canvas(original_plot, axis = "y", coord_flip = TRUE) +
@@ -532,18 +514,22 @@ boxWithDensityPlot <- function(df, xName, yName, xLabel, yLabel, grouplevels = N
   ggdraw(combined_plot)
 }
 
-boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpV_BW", "", "GRF - vertical", colorPalette = cbPalette)
+### REORDERING SPECIES ###
+pec_peakNetGRFs$species <- factor(pec_peakNetGRFs$species , levels=c("A. tigrinum", "P. waltl", "P. barbarus"))
 
+## Choosing a color palette that is friendly to color blindness
+#brown, green,  light blue
+cbPalette_brblgr <- c("#661100", "#009E73", "#56B4E9")
 
 ### PECTORAL - ALL DATA
-pec_peakNetGRFs$species <- substring(pec_peakNetGRFs$group, 1, 2)
+#pec_peakNetGRFs$species <- substring(pec_peakNetGRFs$group, 1, 2)
 
-pec_peakNetGRFs_VBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpV_BW", "", "GRF - vertical", colorPalette = cbPalette)
-pec_peakNetGRFs_MLBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpML_BW", "", "GRF - mediolateral", colorPalette = cbPalette)
-pec_peakNetGRFs_APBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpAP_BW", "", "GRF - anteroposterior", colorPalette = cbPalette)
-pec_peakNetGRFs_netBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "NetGRF_BW", "", "GRF - net", colorPalette = cbPalette)
-pec_peakNetGRFs_MLangle_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "MLAngle_Convert_deg", "", "mediolateral angle", colorPalette = cbPalette)
-pec_peakNetGRFs_APangle_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "APAngle_Convert_deg", "", "anteroposterior angle", colorPalette = cbPalette)
+pec_peakNetGRFs_VBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpV_BW", "", "GRF - vertical", colorPalette = cbPalette_brblgr, xTickAngle = 45)
+pec_peakNetGRFs_MLBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpML_BW", "", "GRF - mediolateral", colorPalette = cbPalette_brblgr, xTickAngle = 45)
+pec_peakNetGRFs_APBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "InterpAP_BW", "", "GRF - anteroposterior", colorPalette = cbPalette_brblgr, xTickAngle = 45)
+pec_peakNetGRFs_netBW_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "NetGRF_BW", "", "GRF - net", colorPalette = cbPalette_brblgr, xTickAngle = 45)
+pec_peakNetGRFs_MLangle_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "MLAngle_Convert_deg", "", "mediolateral angle", colorPalette = cbPalette_brblgr, xTickAngle = 45)
+pec_peakNetGRFs_APangle_plot <- boxWithDensityPlot(pec_peakNetGRFs, "species", "APAngle_Convert_deg", "", "anteroposterior angle", colorPalette = cbPalette_brblgr, xTickAngle = 45)
 
 jpeg("pec_peakNetGRF_plots.jpg", width = 8.5, height = 11, units = "in", res = 300)
 cowplot::plot_grid(pec_peakNetGRFs_netBW_plot,
@@ -558,18 +544,46 @@ cowplot::plot_grid(pec_peakNetGRFs_netBW_plot,
 )
 dev.off()
 
+pdf("pec_peakNetGRF_plots.pdf", width = 8.5, height = 11)
+cowplot::plot_grid(pec_peakNetGRFs_netBW_plot,
+                   pec_peakNetGRFs_VBW_plot, 
+                   pec_peakNetGRFs_MLBW_plot, 
+                   pec_peakNetGRFs_APBW_plot,
+                   pec_peakNetGRFs_MLangle_plot,
+                   pec_peakNetGRFs_APangle_plot,
+                   ncol = 3,
+                   #labels = c("a", "b", "c", "d", "e", "f")
+                   labels = "AUTO"
+)
+dev.off()
+
+
+### REORDERING SPECIES ###
 
 ### PELVIC - ALL DATA
-pel_peakNetGRFs$species <- substring(pel_peakNetGRFs$group, 1, 2)
+#pel_peakNetGRFs$species <- substring(pel_peakNetGRFs$group, 1, 2)
 
-pel_peakNetGRFs_VBW_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "InterpV_BW", "", "GRF - vertical", colorPalette = cbPalette)
-pel_peakNetGRFs_MLBW_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "InterpML_BW", "", "GRF - mediolateral", colorPalette = cbPalette)
-pel_peakNetGRFs_APBW_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "InterpAP_BW", "", "GRF - anteroposterior", colorPalette = cbPalette)
-pel_peakNetGRFs_netBW_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "NetGRF_BW", "", "GRF - net", colorPalette = cbPalette)
-pel_peakNetGRFs_MLangle_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "MLAngle_Convert_deg", "", "mediolateral angle", colorPalette = cbPalette)
-pel_peakNetGRFs_APangle_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "APAngle_Convert_deg", "", "anteroposterior angle", colorPalette = cbPalette)
+pel_peakNetGRFs_VBW_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "InterpV_BW", "", "GRF - vertical", colorPalette = cbPalette_brgr, xTickAngle = 45)
+pel_peakNetGRFs_MLBW_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "InterpML_BW", "", "GRF - mediolateral", colorPalette = cbPalette_brgr, xTickAngle = 45)
+pel_peakNetGRFs_APBW_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "InterpAP_BW", "", "GRF - anteroposterior", colorPalette = cbPalette_brgr, xTickAngle = 45)
+pel_peakNetGRFs_netBW_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "NetGRF_BW", "", "GRF - net", colorPalette = cbPalette_brgr, xTickAngle = 45)
+pel_peakNetGRFs_MLangle_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "MLAngle_Convert_deg", "", "mediolateral angle", colorPalette = cbPalette_brgr, xTickAngle = 45)
+pel_peakNetGRFs_APangle_plot <- boxWithDensityPlot(pel_peakNetGRFs, "species", "APAngle_Convert_deg", "", "anteroposterior angle", colorPalette = cbPalette_brgr, xTickAngle = 45)
 
 jpeg("pel_peakNetGRF_plots.jpg", width = 8.5, height = 11, units = "in", res = 300)
+cowplot::plot_grid(pel_peakNetGRFs_netBW_plot, 
+                   pel_peakNetGRFs_VBW_plot, 
+                   pel_peakNetGRFs_MLBW_plot, 
+                   pel_peakNetGRFs_APBW_plot,
+                   pel_peakNetGRFs_MLangle_plot,
+                   pel_peakNetGRFs_APangle_plot,
+                   ncol = 3,
+                   #labels = c("a", "b", "c", "d", "e", "f")
+                   labels = "AUTO"
+)
+dev.off()
+
+pdf("pel_peakNetGRF_plots.pdf", width = 8.5, height = 11)
 cowplot::plot_grid(pel_peakNetGRFs_netBW_plot, 
                    pel_peakNetGRFs_VBW_plot, 
                    pel_peakNetGRFs_MLBW_plot, 
@@ -843,7 +857,8 @@ pec_yank_combined <- list(
 )
 
 for (i in 1:length(pec_yank_combined)) {
-  pec_yank_combined[[i]]$species = substring(pec_yank_combined[[i]][,4], 1, 2)
+  pec_yank_combined[[i]]$speciesCode = substring(pec_yank_combined[[i]][,4], 1, 2)
+  pec_yank_combined[[i]]$species <- ifelse(pec_yank_combined[[i]]$speciesCode == "pb", "P. barbarus", ifelse(pec_yank_combined[[i]]$speciesCode == "af", "A. tigrinum", "P. waltl"))
 }
 
 pel_yank_combined <- list(
@@ -854,17 +869,18 @@ pel_yank_combined <- list(
 )
 
 for (i in 1:length(pel_yank_combined)) {
-  pel_yank_combined[[i]]$species = substring(pel_yank_combined[[i]][,4], 1, 2)
+  pel_yank_combined[[i]]$speciesCode = substring(pel_yank_combined[[i]][,4], 1, 2)
+  pel_yank_combined[[i]]$species <- ifelse(pel_yank_combined[[i]]$speciesCode == "pb", "P. barbarus", ifelse(pel_yank_combined[[i]]$speciesCode == "af", "A. tigrinum", "P. waltl"))
 }
 
 #### YANK - PLOTS ####
 
 
 ## Pectoral - yank plots (in units of BW per percent of stance)
-pec_yank_pv <- profilePlotR(pec_yank_combined$vertical, "percentStance", "yank", "species", "Percent Stance", "Yank - vertical", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-pec_yank_pml <- profilePlotR(pec_yank_combined$mediolateral, "percentStance", "yank", "species", "Percent Stance", "Yank - mediolateral", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-pec_yank_pap <- profilePlotR(pec_yank_combined$anteroposterior, "percentStance", "yank", "species", "Percent Stance", "Yank - anteroposterior", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-pec_yank_pnet <- profilePlotR(pec_yank_combined$net, "percentStance", "yank", "species", "Percent Stance", "Yank - Net", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_yank_pv <- profilePlotR(pec_yank_combined$vertical, "percentStance", "yank", "species", "Percent Stance", "Yank - vertical", colorPalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_yank_pml <- profilePlotR(pec_yank_combined$mediolateral, "percentStance", "yank", "species", "Percent Stance", "Yank - mediolateral", colorPalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_yank_pap <- profilePlotR(pec_yank_combined$anteroposterior, "percentStance", "yank", "species", "Percent Stance", "Yank - anteroposterior", colorPalette = cbPalette, yrange = c(-0.02, 0.02))
+pec_yank_pnet <- profilePlotR(pec_yank_combined$net, "percentStance", "yank", "species", "Percent Stance", "Yank - Net", colorPalette = cbPalette, yrange = c(-0.02, 0.02))
 
 pec_yank_prow <- cowplot::plot_grid(
                   pec_yank_pnet + theme(axis.title.x = element_blank(),
@@ -883,14 +899,18 @@ pec_yank_legend <- get_legend(pec_yank_pv)
 
 # Produce plot with insets and common x-axis label
 jpeg("compareGRFs_pec_yank.jpg", width = 8, height = 10, units = "in", res = 300)
-grid.arrange(arrangeGrob(pec_yank_prow, bottom = x.grob), pec_yank_legend, heights = c(1, .2))
+grid.arrange(arrangeGrob(pec_yank_prow, bottom = x.grob), pec_yank_legend, heights = c(1, .2), top = textGrob("Pectoral appendages \n",gp=gpar(fontsize=20)))
+dev.off()
+
+pdf("compareGRFs_pec_yank.pdf", width = 8, height = 10)
+grid.arrange(arrangeGrob(pec_yank_prow, bottom = x.grob), pec_yank_legend, heights = c(1, .2), top = textGrob("Pectoral appendages \n",gp=gpar(fontsize=20)))
 dev.off()
 
 ## Pelvic - yank plots
-pel_yank_pv <- profilePlotR(pel_yank_combined$vertical, "percentStance", "yank", "species", "Percent Stance", "Yank - vertical", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-pel_yank_pml <- profilePlotR(pel_yank_combined$mediolateral, "percentStance", "yank", "species", "Percent Stance", "Yank - mediolateral", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-pel_yank_pap <- profilePlotR(pel_yank_combined$anteroposterior, "percentStance", "yank", "species", "Percent Stance", "Yank - anteroposterior", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
-pel_yank_pnet <- profilePlotR(pel_yank_combined$net, "percentStance", "yank", "species", "Percent Stance", "Yank - Net", colorpalette = cbPalette, yrange = c(-0.02, 0.02))
+pel_yank_pv <- profilePlotR(pel_yank_combined$vertical, "percentStance", "yank", "species", "Percent Stance", "Yank - vertical", colorPalette = cbPalette_brgr, yrange = c(-0.02, 0.02))
+pel_yank_pml <- profilePlotR(pel_yank_combined$mediolateral, "percentStance", "yank", "species", "Percent Stance", "Yank - mediolateral", colorPalette = cbPalette_brgr, yrange = c(-0.02, 0.02))
+pel_yank_pap <- profilePlotR(pel_yank_combined$anteroposterior, "percentStance", "yank", "species", "Percent Stance", "Yank - anteroposterior", colorPalette = cbPalette_brgr, yrange = c(-0.02, 0.02))
+pel_yank_pnet <- profilePlotR(pel_yank_combined$net, "percentStance", "yank", "species", "Percent Stance", "Yank - Net", colorPalette = cbPalette_brgr, yrange = c(-0.02, 0.02))
 
 pel_yank_prow <- cowplot::plot_grid(
   pel_yank_pnet + theme(axis.title.x = element_blank(),
@@ -909,7 +929,11 @@ pel_yank_legend <- get_legend(pel_yank_pv)
 
 # Produce plot with insets and common x-axis label
 jpeg("compareGRFs_pel_yank.jpg", width = 8, height = 10, units = "in", res = 300)
-grid.arrange(arrangeGrob(pel_yank_prow, bottom = x.grob), pel_yank_legend, heights = c(1, .2))
+grid.arrange(arrangeGrob(pel_yank_prow, bottom = x.grob), pel_yank_legend, heights = c(1, .2), top = textGrob("Pelvic appendages \n",gp=gpar(fontsize=20)))
+dev.off()
+
+pdf("compareGRFs_pel_yank.pdf", width = 8, height = 10)
+grid.arrange(arrangeGrob(pel_yank_prow, bottom = x.grob), pel_yank_legend, heights = c(1, .2), top = textGrob("Pelvic appendages \n",gp=gpar(fontsize=20)))
 dev.off()
 
 
