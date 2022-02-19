@@ -34,6 +34,9 @@ library(performance) # r2_nakagawa()
 library(qqplotr) # for stat_qq_band()
 library(ggpubr) # for theme_pubr
 
+# check all objects in kraken package
+ls("package:kraken")
+
 forcePath = "./force_rawFiles"
 setwd(forcePath)
 
@@ -42,7 +45,7 @@ setwd(forcePath)
 # save(CalibFile, file = "./data/FinLimbGRFs_Calibs.rda")
 # 
 # #### LOAD THE VIDEO INFO FILE ####
-# VideoFile <- data.frame(read.csv("./FinLimbGRFs_VideoInfo.csv", header=TRUE))
+# VideoFile <- data.frame(read.csv("./compareGRFs/FinLimbGRFs_VideoInfo.csv", header=TRUE))
 # save(CalibFile, file = "./data/FinLimbGRFs_VideoInfo.rda")
 
 
@@ -401,8 +404,9 @@ jpeg("pec_profile_plots.jpg", width = 8.5, height = 11, units = "in", res = 600)
 dev.off()
 
 pdf("pec_profile_plots.pdf", width = 8.5, height = 11)
-  grid.arrange(arrangeGrob(pec_GRF_prow, bottom = x.grob), pec_GRF_legend, heights = c(1, .2))
+  grid.arrange(arrangeGrob(pec_GRF_prow, bottom = x.grob), pec_GRF_legend, heights = c(1, .2), top = textGrob("Figure 1: Pectoral appendages \n",gp=gpar(fontsize=20)))
 dev.off()
+
 
 ### Compiling pelvic data
 pel_GRFs <- list(
@@ -463,7 +467,7 @@ grid.arrange(arrangeGrob(pel_GRF_prow, bottom = x.grob), pel_GRF_legend, heights
 dev.off()
 
 pdf("pel_profile_plots.pdf", width = 8.5, height = 11)
-grid.arrange(arrangeGrob(pel_GRF_prow, bottom = x.grob), pel_GRF_legend, heights = c(1, .2))
+grid.arrange(arrangeGrob(pel_GRF_prow, bottom = x.grob), pel_GRF_legend, heights = c(1, .2), top = textGrob("Figure 3: Pelvic appendages \n",gp=gpar(fontsize=20)))
 dev.off()
 
 
@@ -544,8 +548,15 @@ cowplot::plot_grid(pec_peakNetGRFs_netBW_plot,
 )
 dev.off()
 
-pdf("pec_peakNetGRF_plots.pdf", width = 8.5, height = 11)
-cowplot::plot_grid(pec_peakNetGRFs_netBW_plot,
+Fig2_title <- ggdraw() + 
+  draw_label(
+    "Figure 2",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0
+  ) 
+pdf("pec_peakNetGRF_plots.pdf", width = 8.5, height = 11, title = "Figure 4")
+cowplot::plot_grid(Fig2_title, plot_grid(pec_peakNetGRFs_netBW_plot,
                    pec_peakNetGRFs_VBW_plot, 
                    pec_peakNetGRFs_MLBW_plot, 
                    pec_peakNetGRFs_APBW_plot,
@@ -554,7 +565,7 @@ cowplot::plot_grid(pec_peakNetGRFs_netBW_plot,
                    ncol = 3,
                    #labels = c("a", "b", "c", "d", "e", "f")
                    labels = "AUTO"
-)
+), ncol = 1, rel_heights = c(0.1, 1))
 dev.off()
 
 
@@ -583,8 +594,16 @@ cowplot::plot_grid(pel_peakNetGRFs_netBW_plot,
 )
 dev.off()
 
+
+Fig4_title <- ggdraw() + 
+  draw_label(
+    "Figure 4",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0
+  ) 
 pdf("pel_peakNetGRF_plots.pdf", width = 8.5, height = 11)
-cowplot::plot_grid(pel_peakNetGRFs_netBW_plot, 
+cowplot::plot_grid(Fig4_title, plot_grid(pel_peakNetGRFs_netBW_plot, 
                    pel_peakNetGRFs_VBW_plot, 
                    pel_peakNetGRFs_MLBW_plot, 
                    pel_peakNetGRFs_APBW_plot,
@@ -593,9 +612,8 @@ cowplot::plot_grid(pel_peakNetGRFs_netBW_plot,
                    ncol = 3,
                    #labels = c("a", "b", "c", "d", "e", "f")
                    labels = "AUTO"
-)
+), ncol = 1, rel_heights = c(0.1, 1))
 dev.off()
-
 
 
 #### PEAK NET GRF - LMM ####
@@ -903,7 +921,7 @@ grid.arrange(arrangeGrob(pec_yank_prow, bottom = x.grob), pec_yank_legend, heigh
 dev.off()
 
 pdf("compareGRFs_pec_yank.pdf", width = 8, height = 10)
-grid.arrange(arrangeGrob(pec_yank_prow, bottom = x.grob), pec_yank_legend, heights = c(1, .2), top = textGrob("Pectoral appendages \n",gp=gpar(fontsize=20)))
+grid.arrange(arrangeGrob(pec_yank_prow, bottom = x.grob), pec_yank_legend, heights = c(1, .2), top = textGrob("Figure 5: Pectoral appendages \n",gp=gpar(fontsize=20)))
 dev.off()
 
 ## Pelvic - yank plots
@@ -933,7 +951,7 @@ grid.arrange(arrangeGrob(pel_yank_prow, bottom = x.grob), pel_yank_legend, heigh
 dev.off()
 
 pdf("compareGRFs_pel_yank.pdf", width = 8, height = 10)
-grid.arrange(arrangeGrob(pel_yank_prow, bottom = x.grob), pel_yank_legend, heights = c(1, .2), top = textGrob("Pelvic appendages \n",gp=gpar(fontsize=20)))
+grid.arrange(arrangeGrob(pel_yank_prow, bottom = x.grob), pel_yank_legend, heights = c(1, .2), top = textGrob("Figure 6: Pelvic appendages \n",gp=gpar(fontsize=20)))
 dev.off()
 
 
@@ -1648,6 +1666,148 @@ pec_yank_ml_max_rlmm_noOutliers_resids <- resid(pec_yank_ml_max_rlmm_noOutliers)
   ## Save the data taken at the peak Net GRF
   Save_FilterNoOverlap_PeakNet_Pel <- paste("FinLimbs_Pel_Filtered_noOverlap_Peak_",SaveDate, ".csv", sep="")
   write.table(GRFs$Pelvic$Pel_GRFs_Filtered_PeakNet, file = Save_FilterNoOverlap_PeakNet_Pel, sep =",", row.names=FALSE)
+  
+  
+  
+  ##### COMPARING STANCE DURATIONS ####
+  
+  VideoInfo <- GRFs$VideoInfo
+  names(VideoInfo)[1] <- "filename"
+  VideoInfo$individual <- substring(VideoInfo$filename, 1,4)
+  
+  # Separate info between pectoral vs. pelvic trials
+  Pec_VideoInfo <- VideoInfo[VideoInfo$TrialsToUse == "both"|VideoInfo$TrialsToUse == "pec",]
+  Pel_VideoInfo <- VideoInfo[VideoInfo$TrialsToUse == "both"|VideoInfo$TrialsToUse == "pel",]
+  
+  Pec_VideoInfo$stance <- Pec_VideoInfo$Pectoral.End.Frame - Pec_VideoInfo$Pectoral.Start.Frame
+  Pel_VideoInfo$stance <- Pel_VideoInfo$Pelvic.End.Frame - Pel_VideoInfo$Pelvic.Start.Frame
+  
+  
+  ## double-check number of trials in each species
+  table(factor(Pec_VideoInfo$Species, levels = c("Ambystoma_tigrinum", "Pleurodeles_waltl", "Periophthalmus_barbarus"))) 
+  table(factor(Pel_VideoInfo$Species, levels = c("Ambystoma_tigrinum", "Pleurodeles_waltl", "Periophthalmus_barbarus"))) 
+  
+  
+  ### stance comparisons
+  pec_stance_lmm <- lmer(stance ~ Species + (1|individual), data = Pec_VideoInfo)
+  pec_stance_emm <- emmeans(pec_stance_lmm, "Species")
+  pairs(pec_stance_emm)
+  pec_stance_lmm_omega2 <- performance::r2_xu(pec_stance_lmm) # 0.4148974
+  performance::r2_nakagawa(pec_stance_lmm) # c = 0.392, m = 0.271
+  
+  pel_stance_lmm <- lmer(stance ~ Species + (1|individual), data = Pel_VideoInfo)
+  pel_stance_emm <- emmeans(pel_stance_lmm, "Species")
+  pairs(pel_stance_emm)
+  pel_stance_lmm_omega2 <- performance::r2_xu(pel_stance_lmm) # 0.1784667
+  performance::r2_nakagawa(pel_stance_lmm) # c = 0.157, m = 0.002
+  
+  
+  #### RUNNING STANCE DURATION AS COVARIATE IN LMMS - PEAK NET GRF ####
+  new <- pec_peakNetGRFs[pec_peakNetGRFs$filename %in% Pec_VideoInfo$File.name,]
+  new <- merge(pec_peakNetGRFs, Pel_VideoInfo, by = c("filename", "individual", "Species"))
+  
+  ### PECTORAL
+  # vertical 
+  pec_peakNetGRF_v_lmm_stance <- lmer(InterpV_BW ~ species*stance + (1|individual), data = pec_peakNetGRFs)
+  pec_peakNetGRF_v_emm <- emmeans(pec_peakNetGRF_v_lmm, "species")
+  pairs(pec_peakNetGRF_v_emm)
+  pec_peakNetGRF_v_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_v_lmm) # 0.2239348
+  performance::r2_nakagawa(pec_peakNetGRF_v_lmm) # c = 0.214, m = 0.154
+  
+  # mediolateral
+  pec_peakNetGRF_ml_lmm <- lmer(InterpML_BW ~ species + (1|individual), data = pec_peakNetGRFs)
+  pec_peakNetGRF_ml_emm <- emmeans(pec_peakNetGRF_ml_lmm, "species")
+  pairs(pec_peakNetGRF_ml_emm)
+  pec_peakNetGRF_ml_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_ml_lmm) # 0.5055679
+  performance::r2_nakagawa(pec_peakNetGRF_ml_lmm) # c = 0.491, m = 0.260
+  
+  # anteroposterior
+  pec_peakNetGRF_ap_lmm <- lmer(InterpAP_BW ~ species + (1|individual), data = pec_peakNetGRFs)
+  pec_peakNetGRF_ap_emm <- emmeans(pec_peakNetGRF_ap_lmm, "species")
+  pairs(pec_peakNetGRF_ap_emm)
+  pec_peakNetGRF_ap_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_ap_lmm) # 0.670572
+  performance::r2_nakagawa(pec_peakNetGRF_ap_lmm) # c = 0.651, m = 0.515
+  
+  # net
+  pec_peakNetGRF_net_lmm <- lmer(NetGRF_BW ~ species + (1|individual), data = pec_peakNetGRFs)
+  pec_peakNetGRF_net_emm <- emmeans(pec_peakNetGRF_net_lmm, "species")
+  pairs(pec_peakNetGRF_net_emm)
+  pec_peakNetGRF_net_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_net_lmm) # 0.2309856
+  performance::r2_nakagawa(pec_peakNetGRF_net_lmm) # c = 0.225, m = 0.110
+  
+  # mediolateral angle
+  pec_peakNetGRF_mlang_lmm <- lmer(MLAngle_Convert_deg ~ species + (1|individual), data = pec_peakNetGRFs)
+  pec_peakNetGRF_mlang_emm <- emmeans(pec_peakNetGRF_mlang_lmm, "species")
+  pairs(pec_peakNetGRF_mlang_emm)
+  pec_peakNetGRF_mlang_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_mlang_lmm) # 0.427933
+  performance::r2_nakagawa(pec_peakNetGRF_mlang_lmm) # c = 0.421, m = 0.258
+  
+  # anteroposterior angle
+  pec_peakNetGRF_apang_lmm <- lmer(APAngle_Convert_deg ~ species + (1|individual), data = pec_peakNetGRFs)
+  pec_peakNetGRF_apang_emm <- emmeans(pec_peakNetGRF_apang_lmm, "species")
+  pairs(pec_peakNetGRF_apang_emm)
+  pec_peakNetGRF_apang_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_apang_lmm) # 0.6657909
+  performance::r2_nakagawa(pec_peakNetGRF_apang_lmm) # c = 0.645, m = 0.543
+  
+  # percent stance
+  pec_peakNetGRF_percentstance_lmm <- lmer(PercentStance ~ species + (1|individual), data = pec_peakNetGRFs)
+  pec_peakNetGRF_percentstance_emm <- emmeans(pec_peakNetGRF_percentstance_lmm, "species")
+  pairs(pec_peakNetGRF_percentstance_emm)
+  pec_peakNetGRF_percentstance_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_percentstance_lmm) # 0.4574002
+  performance::r2_nakagawa(pec_peakNetGRF_percentstance_lmm) # c = 0.462, m = 0.226
+  
+  
+  ### PELVIC
+  # vertical 
+  pel_peakNetGRF_v_lmm <- lmer(InterpV_BW ~ species + (1|individual), data = pel_peakNetGRFs)
+  pel_peakNetGRF_v_emm <- emmeans(pel_peakNetGRF_v_lmm, "species")
+  pairs(pel_peakNetGRF_v_emm)
+  pel_peakNetGRF_v_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_v_lmm) # 0.750374
+  performance::r2_nakagawa(pel_peakNetGRF_v_lmm) # c = 0.734, m = 0.558
+  
+  # mediolateral
+  pel_peakNetGRF_ml_lmm <- lmer(InterpML_BW ~ species + (1|individual), data = pel_peakNetGRFs)
+  pel_peakNetGRF_ml_emm <- emmeans(pel_peakNetGRF_ml_lmm, "species")
+  pairs(pel_peakNetGRF_ml_emm)
+  pel_peakNetGRF_ml_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_ml_lmm) # 0.3266032 
+  performance::r2_nakagawa(pel_peakNetGRF_ml_lmm) # c = 0.350, m = 0.056
+  
+  # anteroposterior
+  pel_peakNetGRF_ap_lmm <- lmer(InterpAP_BW ~ species + (1|individual), data = pel_peakNetGRFs)
+  pel_peakNetGRF_ap_emm <- emmeans(pel_peakNetGRF_ap_lmm, "species")
+  pairs(pel_peakNetGRF_ap_emm)
+  pel_peakNetGRF_ap_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_ap_lmm) # 0.4262423
+  performance::r2_nakagawa(pel_peakNetGRF_ap_lmm) # c = 0.418, m = 0.102
+  
+  # net
+  pel_peakNetGRF_net_lmm <- lmer(NetGRF_BW ~ species + (1|individual), data = pel_peakNetGRFs)
+  pel_peakNetGRF_net_emm <- emmeans(pel_peakNetGRF_net_lmm, "species")
+  pairs(pel_peakNetGRF_net_emm)
+  pel_peakNetGRF_net_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_net_lmm) # 0.7405002
+  performance::r2_nakagawa(pel_peakNetGRF_net_lmm) # c = 0.715, m = 0.585
+  
+  # mediolateral angle
+  pel_peakNetGRF_mlang_lmm <- lmer(MLAngle_Convert_deg ~ species + (1|individual), data = pel_peakNetGRFs)
+  pel_peakNetGRF_mlang_emm <- emmeans(pel_peakNetGRF_mlang_lmm, "species")
+  pairs(pel_peakNetGRF_mlang_emm)
+  pel_peakNetGRF_mlang_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_mlang_lmm) # 0.4554476
+  performance::r2_nakagawa(pel_peakNetGRF_mlang_lmm) # c = 0.483, m = 0.215 
+  
+  # anteroposterior angle
+  pel_peakNetGRF_apang_lmm <- lmer(APAngle_Convert_deg ~ species + (1|individual), data = pel_peakNetGRFs)
+  pel_peakNetGRF_apang_emm <- emmeans(pel_peakNetGRF_apang_lmm, "species")
+  pairs(pel_peakNetGRF_apang_emm)
+  pel_peakNetGRF_apang_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_apang_lmm) # 0.3052985
+  performance::r2_nakagawa(pel_peakNetGRF_apang_lmm) # c = 0.315, m = 0.001
+  
+  # percent stance
+  pel_peakNetGRF_percentstance_lmm <- lmer(PercentStance ~ species + (1|individual), data = pel_peakNetGRFs)
+  pel_peakNetGRF_percentstance_emm <- emmeans(pel_peakNetGRF_percentstance_lmm, "species")
+  pairs(pel_peakNetGRF_percentstance_emm)
+  pel_peakNetGRF_percentstance_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_percentstance_lmm) # 0.1924656
+  performance::r2_nakagawa(pel_peakNetGRF_percentstance_lmm) # c = 0.183, m = 0.019
+  
+  
   
   
   ############## UNUSED: Discriminant Function Analysis   ##########
