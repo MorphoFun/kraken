@@ -78,11 +78,9 @@ GRFanalysis <- function(myData) {
   ## LOOKING UP THE VIDEO INFO ##
   # Appendages listed as "Both" have both pectoral and pelvic appendage data
   VideoInfo <- VideoFile[VideoFile$File.name %in% Trial,]
-  # VideoInfo$Pectoral.Start.Frame <- as.numeric(VideoInfo$Pectoral.Start.Frame)
-  # VideoInfo$Pectoral.End.Frame <- as.numeric(VideoInfo$Pectoral.End.Frame)
-  # VideoInfo$Pelvic.Start.Frame <- as.numeric(VideoInfo$Pelvic.Start.Frame)
-  # VideoInfo$Pelvic.End.Frame <- as.numeric(VideoInfo$Pelvic.End.Frame)
+  VideoInfo$ForceZeroStart <- 1
   Date <- format(as.Date(VideoInfo$Date.Filmed, format = "%m/%d/%y"), format="%y%m%d")
+  
   
   ## LOOKING UP THE CALIB INFO ##
   CalibInfo <- CalibFile[CalibFile$Date %in% Date,]
