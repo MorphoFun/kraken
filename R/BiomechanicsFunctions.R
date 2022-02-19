@@ -1198,34 +1198,34 @@ interpolateR <- function(df, n, method = 'spline', ...) {
 }
 
 
-############################################################################################################################
-######################################## CALCULATING CRUDE SPEED FOR A SINGLE FILE #########################################
-#####                                                                                                                  #####
-##### CrudeSpd is used to calculate a crude estimate of speed, whereby speed is calculated based on the                #####
-#####   distance traveled over a given time.  The assumption is that a matrix of X,Y coordinates are entered and       #####
-#####   distance is calculated based on the first and last row of these matrices.                                      #####
-#####                                                                                                                  #####
-##### - x = 2-column matrix that contain X-coordinates in column 1 and Y-coordinates in column 2                       #####
-##### - rate = filming rate in units of frames per second                                                              #####
-##### - calib = value to calibrate the X,Y coordinate data from units of pixels to another unit                        #####
-#####   (e.g., cm, mm); if no vector is provided, output will not be calibrated and will remain in the                 #####
-#####   original units used                                                                                            #####
-##### - distance.scale = character string of the units of measure related to distance traveled                         #####
-##### - time.scale = character string of the units of time. Default is seconds ("s")                                   #####
-#####                                                                                                                  #####
-#####                                                                                                                  #####
-##### Note: If you are evaluating more than one trial, use CrudeSpd.Multi() instead                                    #####    
-#####                                                                                                                  #####
-##### This function will output:                                                                                       #####
-##### 1. time elapsed                                                                                                  #####
-##### 2. distance traveled (uncalibrated)                                                                              #####
-##### 3. distance traveled (calibrated)                                                                                #####
-##### 4. tangential velocity (calibrated)                                                                              #####  
-##### 5. tangential speed (calibrated)                                                                                 ##### 
-##### 6. names of your observations/rows (optional; only outputted if data entered for rownames)                       #####  
-#####                                                                                                                  #####
-#####                                                                                                                  #####
-############################################################################################################################
+######################################################################################################################
+######################################## CALCULATING CRUDE SPEED FOR A SINGLE FILE ###################################
+##                                                                                                                  ##
+## CrudeSpd is used to calculate a crude estimate of speed, whereby speed is calculated based on the                ##
+##   distance traveled over a given time.  The assumption is that a matrix of X,Y coordinates are entered and       ##
+##   distance is calculated based on the first and last row of these matrices.                                      ##
+##                                                                                                                  ##
+## - x = 2-column matrix that contain X-coordinates in column 1 and Y-coordinates in column 2                       ##
+## - rate = filming rate in units of frames per second                                                              ##
+## - calib = value to calibrate the X,Y coordinate data from units of pixels to another unit                        ##
+##   (e.g., cm, mm); if no vector is provided, output will not be calibrated and will remain in the                 ##
+##   original units used                                                                                            ##
+## - distance.scale = character string of the units of measure related to distance traveled                         ##
+## - time.scale = character string of the units of time. Default is seconds ("s")                                   ##
+##                                                                                                                  ##
+##                                                                                                                  ##
+## Note: If you are evaluating more than one trial, use CrudeSpd.Multi() instead                                    ##
+##                                                                                                                  ##
+## This function will output:                                                                                       ##
+## 1. time elapsed                                                                                                  ##
+## 2. distance traveled (uncalibrated)                                                                              ##
+## 3. distance traveled (calibrated)                                                                                ##
+## 4. tangential velocity (calibrated)                                                                              ##
+## 5. tangential speed (calibrated)                                                                                 ##
+## 6. names of your observations/rows (optional; only outputted if data entered for rownames)                       ##
+##                                                                                                                  ##
+##                                                                                                                  ##
+######################################################################################################################
 
 CrudeSpd <- function(x, rate, calib=1, distance.scale="units", time.scale="s") {
   xy <- matrix(NA, 1, 5)
