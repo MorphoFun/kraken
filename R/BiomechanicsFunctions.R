@@ -690,15 +690,15 @@ protraction <- function(P1,P2,P3, Yaw, ...) {
 #'
 #' @description Calculates the pitch angle (in degrees), from the XYZ coordinates of two points 
 #'
-#' @usage pitchAngle(P1, P2)
+#' @usage pitchAngle(posteriorMidline, anteriorMidline)
 #'
-#' @param \code{P1} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the pelvic girdle)
-#' @param \code{P2} A data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the second point (e.g., the hip)
+#' @param \code{P1} An n by 3 data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the first point (e.g, the pelvic girdle)
+#' @param \code{P2} An n by 3 data.frame of numeric values containing the X, Y, and Z coordinate data, respectively, for the second point (e.g., the hip)
 
-#' @details These procedures follow the methodology used in Kawano and Blob (2013) and Kawano et al. 2016 to calculate angles formed about the limb joints in animals. 
+#' @details These procedures follow the methodology used in Kawano and Blob (2013), Kawano et al. 2016, and Quigley et al. 2022 (in review) to calculate angles formed about the limb joints in animals. 
 #' @references Kawano SM, Blob RW. 2013. Propulsive forces of mudskipper fins and salamander limbs during terrestrial locomotion: implications for the invasion of land. Integrative and Comparative Biology 53(2): 283-294. \url{https://academic.oup.com/icb/article/53/2/283/806410/Propulsive-Forces-of-Mudskipper-Fins-and}
 #' @references Kawano SM, Economy DR, Kennedy MS, Dean D, Blob RW. 2016. Comparative limb bone loading in the humerus and femur of the tiger salamander Ambystoma tigrinum: testing the "mixed-chain" hypothesis for skeletal safety factors. Journal of Experimental Biology 219: 341-353. \url{http://jeb.biologists.org/content/219/3/341}
-
+                          
 #' @examples
 #' 
 
@@ -711,81 +711,43 @@ protraction <- function(P1,P2,P3, Yaw, ...) {
 #' @export
 
 
-pitchAngle <- function(P1, P2, ...) {
-  SacPointX <- P1[,1]
-  SacPointZ <- P1[,3]
-  HipPointX <- P2[,1]
-  HipPointZ <- P2[,3]
-  ShiftPelvisPlaneX <- SacPointX - HipPointX
-  ShiftPelvisPlaneZ <- SacPointZ - HipPointZ
+pitchAngle <- function(posteriorMidline, anteriorMidline){
+  #Written by Zach Quigley
+  #
+  #Takes two n x 3 dataframes where each row contains the 3D coordinates for a landmark for a specific frame of video.
+  #Calculates difference of posterior midline point p1 and anterior midline point p2 to get vectors dX, dY, and dZ. Next, it 
+  #generates a right-triangle using the vectors and used arctangent to calculate pitch angle (pitch = arctan(opposite/adjacent). 
+  #For clarity, if p2 was in the plane of the X and Z axes we could calculate pitch essentially in 2D using the formula "pitch = arctan(dZ / dX)". 
+  #Since p2 is in 3D space, however, I used the formula "pitch = arctan(dZ / (sqrt(dX^2 + dY^2))"
+  #
+  #         p2
+  #        / |
+  #       /  |
+  #      /   |
+  #     /    |side length = dZ
+  #    /     |
+  # p1/______|
+  #   side length = sqrt(dX^2+dY^2)
+  #   
+  # (points form right triangle, and we'll calculate corner angle at p1)
+  #
+  # Written by Zach Quigley
   
-  ## dot product between two row vectors
-  wdot <- function(a, b) {
-    y <- a*b
-    y <- t(sum(t(y)))
-    return(y)
+  p1 <- posteriorMidline
+  p2 <- anteriorMidline
+  
+  #calculate differences (vectors) for xy and z coordinates
+  dx <- p2[,1]-p1[,1] #dX p1 and p2
+  dy <- p2[,2]-p1[,2] #dY p1 and p2
+  dz <- p2[,3]-p1[,3] #dZ p1 and p2
+  
+  pitch <- vector() #create empty vector to fill in during for loop
+  
+  for(i in c(1:nrow(p1))){
+    pitch <- c(pitch, atan2(dz[i], sqrt(dx[i]*dx[i] + dy[i]*dy[i]))*180/pi)
   }
-  
-  ## Cross rpdouct between two row vectors 
-  #library(pracma) # for the cross() function that returns a vector
-  wcross <- function(a, b) {
-    c <- t(pracma::cross(t(a),t(b)))
-    return(c)
-  }
-  
-  ## vlength
-  vlength <- function(x) {
-    v <- (wdot(x, x))^0.5
-    return(v)
-  }
-  
-  ## ABDUCTION/ADDUCTION OF FEMUR: MOVEMENT IN THE DORSOVENTRAL DIRECTION ABSOLUTE FRAME OF REFERENCE
-  
-  # Roll calculations
-  
-  # Definitions of normal vectors to planes for calculation of segment angles to those vectors &, thereby, those planes
-  
-  # define horizontal plane and normal to it:  (wcross equals a cross product function written by Will Corning for convenient orientation)
-  HZPlane1 <- c(0, 0, 0)
-  HZPlane2 <- c(.1, 0, 0)
-  HZPlane3 <- c(0, .1, 0)
-  HZVector1 <- HZPlane2 - HZPlane1
-  HZVector2 <- HZPlane3 - HZPlane1
-  # had to take the tranpose to get this to work with wdot
-  HZNorm <- t(wcross(HZVector1,HZVector2))
-
-  # define pitch-adjusted horizontal plane and normal to it:
-  # define plane of body based on sacral point and hip point, defining based on ilium rather than trunk
-  
-  HZPlane2Pitch <- matrix(NA, length(ShiftPelvisPlaneX), 3)
-  HZNormPitch <- matrix(NA, length(ShiftPelvisPlaneX), 3)
-  HZNormPitchMatrix <- matrix(NA, length(ShiftPelvisPlaneX), 3)
-  MagHZNormPitch <- matrix(NA, length(ShiftPelvisPlaneX), 1)
-  MagPitchVector <- matrix(NA, length(ShiftPelvisPlaneX), 1)
-  CosdotPitch <- matrix(NA, length(ShiftPelvisPlaneX), 1)
-  PitchAng <- matrix(NA, length(ShiftPelvisPlaneX), 1)
-  
-  for (i in 1:length(ShiftPelvisPlaneX)) {
-    HZPlane1Pitch <- c(0, 0, 0)
-    HZPlane2Pitch[i,] <- c(ShiftPelvisPlaneX[i], 0, ShiftPelvisPlaneZ[i])
-    HZPlane3Pitch <- c(0, .1, 0)
-    HZVector1Pitch <- HZPlane2Pitch - HZPlane1Pitch
-    HZVector2Pitch <- HZPlane3Pitch - HZPlane1Pitch
-    HZNormPitch[i,] <- wcross(HZVector1Pitch[i,], HZVector2Pitch)
-    HZNormPitchMatrix[i,] <- HZNormPitch[i,]
-    
-    dotPitch <- wdot(HZNormPitch[i,],HZNorm)
-    MagHZNormPitch[i] <- vlength(HZNormPitch[i,])
-    MagHZNorm <- vlength(HZNorm)
-    MagPitchVector[i] <- MagHZNormPitch[i,]*MagHZNorm
-    CosdotPitch[i] <- dotPitch/MagPitchVector[i]
-    PitchAng[i] <- (acos(CosdotPitch[i]))*(180/pi)
-    Pitch <- PitchAng
-  }
-  return(Pitch)
+  return(pitch)
 }
-
-
 
 
 
