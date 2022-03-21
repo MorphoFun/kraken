@@ -567,8 +567,6 @@ cowplot::plot_grid(Fig2_title, plot_grid(pec_peakNetGRFs_netBW_plot,
 dev.off()
 
 
-### REORDERING SPECIES ###
-
 ### PELVIC - ALL DATA
 #pel_peakNetGRFs$species <- substring(pel_peakNetGRFs$group, 1, 2)
 
@@ -1427,19 +1425,19 @@ shapiro.test(resid(pec_yank_net_max_lmm)) # p-value = 0.866
 shapiro.test(resid(pec_yank_v_min_lmm)) # p-value = 0.4643
 shapiro.test(resid(pec_yank_ml_min_lmm)) # p-value = 0.0006225
 shapiro.test(resid(pec_yank_ap_min_lmm)) # p-value =  0.0006075
-shapiro.test(resid(pec_yank_net_min_lmm)) # p-value = 0.3703
+shapiro.test(resid(pec_yank_net_min_lmm)) # p-value = 0.4183
 
 ## Pel - max
 shapiro.test(resid(pel_yank_v_max_lmm)) # p-value = 0.00000358
 shapiro.test(resid(pel_yank_ml_max_lmm)) # p-value = 0.02667
 shapiro.test(resid(pel_yank_ap_max_lmm)) # p-value = 0.000001058
-shapiro.test(resid(pel_yank_net_max_lmm)) # p-value = 0.000009399
+shapiro.test(resid(pel_yank_net_max_lmm)) # p-value = 0.000011
 
 ## Pel - min
 shapiro.test(resid(pel_yank_v_min_lmm)) # p-value = 0.07706
 shapiro.test(resid(pel_yank_ml_min_lmm)) # p-value = 0.00008501
 shapiro.test(resid(pel_yank_ap_min_lmm)) # p-value = 0.001612
-shapiro.test(resid(pel_yank_net_min_lmm)) # p-value = 0.05154
+shapiro.test(resid(pel_yank_net_min_lmm)) # p-value = 0.0585
 
 
 #### YANK - QQ PLOT ASSUMPTIONS ####
@@ -1610,15 +1608,6 @@ pel_yank_ap_min_noOutliers_emm <- emmeans(pel_yank_ap_min_noOutliers_lmm, "speci
 
 
 
-#### YANK - ROBUST LMM ####
-
-pec_yank_ml_max_rlmm <- rlmer(yank_max ~ species + (1|individual), data = pec_yank_ml_max)
-pec_yank_ml_max_rlmm_resids <- resid(pec_yank_ml_max_rlmm)
-pec_yank_ml_max_rlmm_noOutliers <- rlmer(yank_max ~ species + (1|individual), data = pec_yank_ml_max_noOutliers)
-pec_yank_ml_max_rlmm_noOutliers_resids <- resid(pec_yank_ml_max_rlmm_noOutliers)
-
-
-
   #### SAVING THE DATA ####
   ## go to the parent directory then save output in 'output' folder
   setwd('..')
@@ -1677,8 +1666,8 @@ pec_yank_ml_max_rlmm_noOutliers_resids <- resid(pec_yank_ml_max_rlmm_noOutliers)
   Pec_VideoInfo <- VideoInfo[VideoInfo$TrialsToUse == "both"|VideoInfo$TrialsToUse == "pec",]
   Pel_VideoInfo <- VideoInfo[VideoInfo$TrialsToUse == "both"|VideoInfo$TrialsToUse == "pel",]
   
-  Pec_VideoInfo$stance <- Pec_VideoInfo$Pectoral.End.Frame - Pec_VideoInfo$Pectoral.Start.Frame
-  Pel_VideoInfo$stance <- Pel_VideoInfo$Pelvic.End.Frame - Pel_VideoInfo$Pelvic.Start.Frame
+  Pec_VideoInfo$stance_s <- (Pec_VideoInfo$Pectoral.End.Frame - Pec_VideoInfo$Pectoral.Start.Frame)/Pec_VideoInfo$Filming.Rate.Hz
+  Pel_VideoInfo$stance_s <- (Pel_VideoInfo$Pelvic.End.Frame - Pel_VideoInfo$Pelvic.Start.Frame)/Pel_VideoInfo$Filming.Rate.Hz
   
   
   ## double-check number of trials in each species
@@ -1687,123 +1676,119 @@ pec_yank_ml_max_rlmm_noOutliers_resids <- resid(pec_yank_ml_max_rlmm_noOutliers)
   
   
   ### stance comparisons
-  pec_stance_lmm <- lmer(stance ~ Species + (1|individual), data = Pec_VideoInfo)
+  pec_stance_lmm <- lmer(stance_s ~ Species + (1|individual), data = Pec_VideoInfo)
   pec_stance_emm <- emmeans(pec_stance_lmm, "Species")
   pairs(pec_stance_emm)
   pec_stance_lmm_omega2 <- performance::r2_xu(pec_stance_lmm) # 0.4148974
   performance::r2_nakagawa(pec_stance_lmm) # c = 0.392, m = 0.271
+  (summary(pec_stance_lmm)$coefficients[1,1]/(summary(pec_stance_lmm)$coefficients[2,1]+summary(pec_stance_lmm)$coefficients[1,1]))*100
+  # stance duration is only ~35.6% different between af and pb
+  (summary(pec_stance_lmm)$coefficients[1,1]/(summary(pec_stance_lmm)$coefficients[3,1]+summary(pec_stance_lmm)$coefficients[1,1]))*100
+  # stance duration is only ~3.5% different between af and pw
+  ((summary(pec_stance_lmm)$coefficients[3,1]+summary(pec_stance_lmm)$coefficients[1,1])/(summary(pec_stance_lmm)$coefficients[2,1]+summary(pec_stance_lmm)$coefficients[1,1]))*100
+  # stance duration is only ~40.5% different between af and pb
   
-  pel_stance_lmm <- lmer(stance ~ Species + (1|individual), data = Pel_VideoInfo)
+  pel_stance_lmm <- lmer(stance_s ~ Species + (1|individual), data = Pel_VideoInfo)
   pel_stance_emm <- emmeans(pel_stance_lmm, "Species")
   pairs(pel_stance_emm)
   pel_stance_lmm_omega2 <- performance::r2_xu(pel_stance_lmm) # 0.1784667
   performance::r2_nakagawa(pel_stance_lmm) # c = 0.157, m = 0.002
+ (summary(pel_stance_lmm)$coefficients[1,1]/(summary(pel_stance_lmm)$coefficients[2,1]+summary(pel_stance_lmm)$coefficients[1,1]))*100
+  # stance duration is only ~2.6% different between the species
   
   
   #### RUNNING STANCE DURATION AS COVARIATE IN LMMS - PEAK NET GRF ####
-  new <- pec_peakNetGRFs[pec_peakNetGRFs$filename %in% Pec_VideoInfo$File.name,]
-  new <- merge(pec_peakNetGRFs, Pel_VideoInfo, by = c("filename", "individual", "Species"))
+  ## Using likelihood ratio tests to determine whether stance needs to be included in the model
+  
+  pec_peakNetGRFs_wStance <- merge(pec_peakNetGRFs, Pec_VideoInfo, by = c("filename", "individual"))
+
   
   ### PECTORAL
   # vertical 
-  pec_peakNetGRF_v_lmm_stance <- lmer(InterpV_BW ~ species*stance + (1|individual), data = pec_peakNetGRFs)
-  pec_peakNetGRF_v_emm <- emmeans(pec_peakNetGRF_v_lmm, "species")
-  pairs(pec_peakNetGRF_v_emm)
-  pec_peakNetGRF_v_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_v_lmm) # 0.2239348
-  performance::r2_nakagawa(pec_peakNetGRF_v_lmm) # c = 0.214, m = 0.154
+  pec_peakNetGRF_v_stance_lmm <- lmer(InterpV_BW ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance)
+  pec_peakNetGRF_v_stance_lmm_ML <- lmer(InterpV_BW ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  pec_peakNetGRF_v_lmm_ML <- lmer(InterpV_BW ~ species + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  anova(pec_peakNetGRF_v_lmm_ML, pec_peakNetGRF_v_stance_lmm_ML) # p-value = 0.4905
+  
+  pec_peakNetGRF_v_stance_emm <- emmeans(pec_peakNetGRF_v_stance_lmm, ~species|stance_s)
+  pairs(pec_peakNetGRF_v_stance_emm)
+  performance::r2_nakagawa(pec_peakNetGRF_v_stance_lmm) # c = 0.197, m = 0.148
+  summary(pec_peakNetGRF_v_stance_lmm)
+  Anova(pec_peakNetGRF_v_stance_lmm)
   
   # mediolateral
-  pec_peakNetGRF_ml_lmm <- lmer(InterpML_BW ~ species + (1|individual), data = pec_peakNetGRFs)
-  pec_peakNetGRF_ml_emm <- emmeans(pec_peakNetGRF_ml_lmm, "species")
-  pairs(pec_peakNetGRF_ml_emm)
-  pec_peakNetGRF_ml_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_ml_lmm) # 0.5055679
-  performance::r2_nakagawa(pec_peakNetGRF_ml_lmm) # c = 0.491, m = 0.260
+  pec_peakNetGRF_ml_stance_lmm <- lmer(InterpML_BW ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance)
+  pec_peakNetGRF_ml_stance_lmm_ML <- lmer(InterpML_BW ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  pec_peakNetGRF_ml_lmm_ML <- lmer(InterpML_BW ~ stance_s + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  anova(pec_peakNetGRF_ml_lmm_ML, pec_peakNetGRF_ml_stance_lmm_ML) # p-value 0.0004
+  
+  pec_peakNetGRF_ml_stance_emm <- emmeans(pec_peakNetGRF_ml_stance_lmm, ~species|stance_s)
+  pairs(pec_peakNetGRF_ml_stance_emm)
+  performance::r2_nakagawa(pec_peakNetGRF_ml_stance_lmm) # c = 0.529, m = 0.305
+  summary(pec_peakNetGRF_ml_stance_lmm)
+  Anova(pec_peakNetGRF_ml_stance_lmm)
+  
   
   # anteroposterior
-  pec_peakNetGRF_ap_lmm <- lmer(InterpAP_BW ~ species + (1|individual), data = pec_peakNetGRFs)
-  pec_peakNetGRF_ap_emm <- emmeans(pec_peakNetGRF_ap_lmm, "species")
-  pairs(pec_peakNetGRF_ap_emm)
-  pec_peakNetGRF_ap_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_ap_lmm) # 0.670572
-  performance::r2_nakagawa(pec_peakNetGRF_ap_lmm) # c = 0.651, m = 0.515
+  pec_peakNetGRF_ap_stance_lmm <- lmer(InterpAP_BW ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance)
+  pec_peakNetGRF_ap_stance_lmm_ML <- lmer(InterpAP_BW ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  pec_peakNetGRF_ap_lmm_ML <- lmer(InterpAP_BW ~ stance_s + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  anova(pec_peakNetGRF_ap_lmm_ML, pec_peakNetGRF_ap_stance_lmm_ML) # p-value <0.0001
+  
+  pec_peakNetGRF_ap_stance_emm <- emmeans(pec_peakNetGRF_ap_stance_lmm, ~species|stance_s)
+  pairs(pec_peakNetGRF_ap_stance_emm)
+  performance::r2_nakagawa(pec_peakNetGRF_ap_stance_lmm) # c = 0.709, m = 0.594
+  summary(pec_peakNetGRF_ap_stance_lmm)
+  Anova(pec_peakNetGRF_ap_stance_lmm)
   
   # net
-  pec_peakNetGRF_net_lmm <- lmer(NetGRF_BW ~ species + (1|individual), data = pec_peakNetGRFs)
-  pec_peakNetGRF_net_emm <- emmeans(pec_peakNetGRF_net_lmm, "species")
-  pairs(pec_peakNetGRF_net_emm)
-  pec_peakNetGRF_net_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_net_lmm) # 0.2309856
-  performance::r2_nakagawa(pec_peakNetGRF_net_lmm) # c = 0.225, m = 0.110
+  pec_peakNetGRF_net_stance_lmm <- lmer(NetGRF_BW ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance)
+  pec_peakNetGRF_net_stance_lmm_ML <- lmer(NetGRF_BW ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  pec_peakNetGRF_net_lmm_ML <- lmer(NetGRF_BW ~ stance_s + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  anova(pec_peakNetGRF_net_lmm_ML, pec_peakNetGRF_net_stance_lmm_ML) # p-value = 0.09234
+  
+  pec_peakNetGRF_net_stance_emm <- emmeans(pec_peakNetGRF_net_stance_lmm, ~species|stance_s)
+  pairs(pec_peakNetGRF_net_stance_emm)
+  performance::r2_nakagawa(pec_peakNetGRF_net_stance_lmm) # c = 0.211, m = 0.113
+  summary(pec_peakNetGRF_net_stance_lmm)
+  Anova(pec_peakNetGRF_net_stance_lmm)
   
   # mediolateral angle
-  pec_peakNetGRF_mlang_lmm <- lmer(MLAngle_Convert_deg ~ species + (1|individual), data = pec_peakNetGRFs)
-  pec_peakNetGRF_mlang_emm <- emmeans(pec_peakNetGRF_mlang_lmm, "species")
-  pairs(pec_peakNetGRF_mlang_emm)
-  pec_peakNetGRF_mlang_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_mlang_lmm) # 0.427933
-  performance::r2_nakagawa(pec_peakNetGRF_mlang_lmm) # c = 0.421, m = 0.258
+  pec_peakNetGRF_mlang_stance_lmm <- lmer(MLAngle_Convert_deg ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance)
+  pec_peakNetGRF_mlang_stance_lmm_ML <- lmer(MLAngle_Convert_deg ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  pec_peakNetGRF_mlang_lmm_ML <- lmer(MLAngle_Convert_deg ~ stance_s + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  anova(pec_peakNetGRF_mlang_lmm_ML, pec_peakNetGRF_mlang_stance_lmm_ML) # p-value = 0.0005425 
+  
+  pec_peakNetGRF_mlang_stance_emm <- emmeans(pec_peakNetGRF_mlang_stance_lmm, ~species|stance_s)
+  pairs(pec_peakNetGRF_mlang_stance_emm)
+  performance::r2_nakagawa(pec_peakNetGRF_mlang_stance_lmm) # c = 0.426, m = 0.295
+  summary(pec_peakNetGRF_mlang_stance_lmm)
+  Anova(pec_peakNetGRF_mlang_stance_lmm)
   
   # anteroposterior angle
-  pec_peakNetGRF_apang_lmm <- lmer(APAngle_Convert_deg ~ species + (1|individual), data = pec_peakNetGRFs)
-  pec_peakNetGRF_apang_emm <- emmeans(pec_peakNetGRF_apang_lmm, "species")
-  pairs(pec_peakNetGRF_apang_emm)
-  pec_peakNetGRF_apang_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_apang_lmm) # 0.6657909
-  performance::r2_nakagawa(pec_peakNetGRF_apang_lmm) # c = 0.645, m = 0.543
+  pec_peakNetGRF_apang_stance_lmm <- lmer(APAngle_Convert_deg ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance)
+  pec_peakNetGRF_apang_stance_lmm_ML <- lmer(APAngle_Convert_deg ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  pec_peakNetGRF_apang_lmm_ML <- lmer(APAngle_Convert_deg ~ stance_s + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  anova(pec_peakNetGRF_apang_lmm_ML, pec_peakNetGRF_apang_stance_lmm_ML) # p-value = 0.0000000006941
+  
+  pec_peakNetGRF_apang_stance_emm <- emmeans(pec_peakNetGRF_apang_stance_lmm, ~species|stance_s)
+  pairs(pec_peakNetGRF_apang_stance_emm)
+  performance::r2_nakagawa(pec_peakNetGRF_apang_stance_lmm) # c = 0.732, m = 0.653
+  summary(pec_peakNetGRF_apang_stance_lmm)
+  Anova(pec_peakNetGRF_apang_stance_lmm)
   
   # percent stance
-  pec_peakNetGRF_percentstance_lmm <- lmer(PercentStance ~ species + (1|individual), data = pec_peakNetGRFs)
-  pec_peakNetGRF_percentstance_emm <- emmeans(pec_peakNetGRF_percentstance_lmm, "species")
-  pairs(pec_peakNetGRF_percentstance_emm)
-  pec_peakNetGRF_percentstance_lmm_omega2 <- performance::r2_xu(pec_peakNetGRF_percentstance_lmm) # 0.4574002
-  performance::r2_nakagawa(pec_peakNetGRF_percentstance_lmm) # c = 0.462, m = 0.226
+  pec_peakNetGRF_percentstance_stance_lmm <- lmer(PercentStance ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance)
+  pec_peakNetGRF_percentstance_stance_lmm_ML <- lmer(PercentStance ~ species*stance_s + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  pec_peakNetGRF_percentstance_lmm_ML <- lmer(PercentStance ~ stance_s + (1|individual), data = pec_peakNetGRFs_wStance, REML = FALSE)
+  anova(pec_peakNetGRF_percentstance_lmm_ML, pec_peakNetGRF_percentstance_stance_lmm_ML) # p-value = 0.01524
   
+  pec_peakNetGRF_percentstance_stance_emm <- emmeans(pec_peakNetGRF_percentstance_stance_lmm, species*stance_s)
+  pairs(pec_peakNetGRF_percentstance_stance_emm)
+  performance::r2_nakagawa(pec_peakNetGRF_percentstance_stance_lmm) # c = 0.469, m = 0.250
+  summary(pec_peakNetGRF_percentstance_stance_lmm)
+  Anova(pec_peakNetGRF_percentstance_stance_lmm)
   
-  ### PELVIC
-  # vertical 
-  pel_peakNetGRF_v_lmm <- lmer(InterpV_BW ~ species + (1|individual), data = pel_peakNetGRFs)
-  pel_peakNetGRF_v_emm <- emmeans(pel_peakNetGRF_v_lmm, "species")
-  pairs(pel_peakNetGRF_v_emm)
-  pel_peakNetGRF_v_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_v_lmm) # 0.750374
-  performance::r2_nakagawa(pel_peakNetGRF_v_lmm) # c = 0.734, m = 0.558
-  
-  # mediolateral
-  pel_peakNetGRF_ml_lmm <- lmer(InterpML_BW ~ species + (1|individual), data = pel_peakNetGRFs)
-  pel_peakNetGRF_ml_emm <- emmeans(pel_peakNetGRF_ml_lmm, "species")
-  pairs(pel_peakNetGRF_ml_emm)
-  pel_peakNetGRF_ml_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_ml_lmm) # 0.3266032 
-  performance::r2_nakagawa(pel_peakNetGRF_ml_lmm) # c = 0.350, m = 0.056
-  
-  # anteroposterior
-  pel_peakNetGRF_ap_lmm <- lmer(InterpAP_BW ~ species + (1|individual), data = pel_peakNetGRFs)
-  pel_peakNetGRF_ap_emm <- emmeans(pel_peakNetGRF_ap_lmm, "species")
-  pairs(pel_peakNetGRF_ap_emm)
-  pel_peakNetGRF_ap_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_ap_lmm) # 0.4262423
-  performance::r2_nakagawa(pel_peakNetGRF_ap_lmm) # c = 0.418, m = 0.102
-  
-  # net
-  pel_peakNetGRF_net_lmm <- lmer(NetGRF_BW ~ species + (1|individual), data = pel_peakNetGRFs)
-  pel_peakNetGRF_net_emm <- emmeans(pel_peakNetGRF_net_lmm, "species")
-  pairs(pel_peakNetGRF_net_emm)
-  pel_peakNetGRF_net_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_net_lmm) # 0.7405002
-  performance::r2_nakagawa(pel_peakNetGRF_net_lmm) # c = 0.715, m = 0.585
-  
-  # mediolateral angle
-  pel_peakNetGRF_mlang_lmm <- lmer(MLAngle_Convert_deg ~ species + (1|individual), data = pel_peakNetGRFs)
-  pel_peakNetGRF_mlang_emm <- emmeans(pel_peakNetGRF_mlang_lmm, "species")
-  pairs(pel_peakNetGRF_mlang_emm)
-  pel_peakNetGRF_mlang_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_mlang_lmm) # 0.4554476
-  performance::r2_nakagawa(pel_peakNetGRF_mlang_lmm) # c = 0.483, m = 0.215 
-  
-  # anteroposterior angle
-  pel_peakNetGRF_apang_lmm <- lmer(APAngle_Convert_deg ~ species + (1|individual), data = pel_peakNetGRFs)
-  pel_peakNetGRF_apang_emm <- emmeans(pel_peakNetGRF_apang_lmm, "species")
-  pairs(pel_peakNetGRF_apang_emm)
-  pel_peakNetGRF_apang_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_apang_lmm) # 0.3052985
-  performance::r2_nakagawa(pel_peakNetGRF_apang_lmm) # c = 0.315, m = 0.001
-  
-  # percent stance
-  pel_peakNetGRF_percentstance_lmm <- lmer(PercentStance ~ species + (1|individual), data = pel_peakNetGRFs)
-  pel_peakNetGRF_percentstance_emm <- emmeans(pel_peakNetGRF_percentstance_lmm, "species")
-  pairs(pel_peakNetGRF_percentstance_emm)
-  pel_peakNetGRF_percentstance_lmm_omega2 <- performance::r2_xu(pel_peakNetGRF_percentstance_lmm) # 0.1924656
-  performance::r2_nakagawa(pel_peakNetGRF_percentstance_lmm) # c = 0.183, m = 0.019
   
   
   
