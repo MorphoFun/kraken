@@ -40,13 +40,14 @@ ls("package:kraken")
 forcePath = "./force_rawFiles"
 setwd(forcePath)
 
-# #### LOAD THE CALIBRATION FILE ####
-# CalibFile <- data.frame(read.csv("./FinLimbGRFs_Calibs.csv", header=TRUE))
-# save(CalibFile, file = "./data/FinLimbGRFs_Calibs.rda")
-# 
-# #### LOAD THE VIDEO INFO FILE ####
-# VideoFile <- data.frame(read.csv("./compareGRFs/FinLimbGRFs_VideoInfo.csv", header=TRUE))
-# save(CalibFile, file = "./data/FinLimbGRFs_VideoInfo.rda")
+#### LOAD THE CALIBRATION FILE ####
+CalibFile <- data.frame(read.csv("./FinLimbGRFs_Calibs.csv", header=TRUE))
+#save(CalibFile, file = "./data/FinLimbGRFs_Calibs.rda")
+
+
+#### LOAD THE VIDEO INFO FILE ####
+VideoFile <- data.frame(read.csv("./FinLimbGRFs_VideoInfo.csv", header=TRUE))
+#save(CalibFile, file = "./data/FinLimbGRFs_VideoInfo.rda")
 
 
 #### LOADING THE DATA ####
@@ -296,6 +297,20 @@ GRFanalysis <- function(myData) {
 }
 
 GRFs <- GRFanalysis(myData)
+
+### Calculating stance duration
+pec_VideoInfo <- subset(GRFs$VideoInfo, TrialsToUse == "pec")
+pel_VideoInfo <- subset(GRFs$VideoInfo, TrialsToUse == "pel")
+
+film_Hz <- 100
+
+pec_VideoInfo$stance_s <- (pec_VideoInfo$Pectoral.End.Frame - pec_VideoInfo$Pectoral.Start.Frame)*(1/film_Hz)
+mean(pec_VideoInfo$stance_s) # 0.481
+max(pec_VideoInfo$stance_s) # 1.04
+
+pel_VideoInfo$stance_s <- (pel_VideoInfo$Pelvic.End.Frame - pel_VideoInfo$Pelvic.Start.Frame)*(1/film_Hz)
+mean(pel_VideoInfo$stance_s) # 0.592
+max(pel_VideoInfo$stance_s) # 1.00
 
   
 ### Combine the peak net GRF data
